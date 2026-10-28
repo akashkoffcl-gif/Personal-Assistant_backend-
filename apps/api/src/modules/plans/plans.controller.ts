@@ -25,3 +25,4 @@ export class PlansController {
     return this.plansService.lockPlan(user.id, date, isLocked);
   }
 }
+

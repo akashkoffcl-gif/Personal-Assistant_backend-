@@ -29,3 +29,4 @@ export class EmergenciesController {
     return this.emergenciesService.cancelEmergency(user.id, id);
   }
 }
+

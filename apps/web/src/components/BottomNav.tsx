@@ -66,3 +66,4 @@ export function BottomNav({ currentTab, onSelectTab, onOpenEmergency }: BottomNa
     </nav>
   );
 }
+

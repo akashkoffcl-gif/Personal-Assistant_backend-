@@ -53,3 +53,4 @@ export class NotificationsController {
     return { success: true, ...result };
   }
 }
+

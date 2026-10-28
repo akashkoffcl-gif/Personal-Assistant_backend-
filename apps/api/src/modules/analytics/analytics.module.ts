@@ -12,3 +12,4 @@ import { AuthModule } from '../auth/auth.module';
   exports: [AnalyticsService],
 })
 export class AnalyticsModule {}
+

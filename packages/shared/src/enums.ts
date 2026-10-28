@@ -1,8 +1,10 @@
 export enum TaskCategory {
-  ROUTINE = 'ROUTINE',
+  PERSONAL_ROUTINE = 'PERSONAL_ROUTINE',
   WORK = 'WORK',
-  PLANNING = 'PLANNING',
+  DAY_PLAN = 'DAY_PLAN',
   EMERGENCY = 'EMERGENCY',
+  ROUTINE = 'PERSONAL_ROUTINE',
+  PLANNING = 'DAY_PLAN',
 }
 
 export enum TaskStatus {
@@ -11,6 +13,19 @@ export enum TaskStatus {
   COMPLETED = 'COMPLETED',
   SKIPPED = 'SKIPPED',
   CANCELLED = 'CANCELLED',
+}
+
+export const VALID_TASK_STATUS_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
+  [TaskStatus.TODO]: [TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED, TaskStatus.SKIPPED, TaskStatus.CANCELLED],
+  [TaskStatus.IN_PROGRESS]: [TaskStatus.COMPLETED, TaskStatus.TODO, TaskStatus.SKIPPED, TaskStatus.CANCELLED],
+  [TaskStatus.COMPLETED]: [TaskStatus.TODO, TaskStatus.IN_PROGRESS],
+  [TaskStatus.SKIPPED]: [TaskStatus.TODO],
+  [TaskStatus.CANCELLED]: [TaskStatus.TODO],
+};
+
+export function isValidStatusTransition(from: TaskStatus, to: TaskStatus): boolean {
+  if (from === to) return true;
+  return VALID_TASK_STATUS_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
 export enum SchedulingMode {
@@ -67,3 +82,4 @@ export enum OutboxEventStatus {
   PROCESSED = 'PROCESSED',
   FAILED = 'FAILED',
 }
+

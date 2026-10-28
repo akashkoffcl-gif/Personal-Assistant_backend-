@@ -22,3 +22,4 @@ import { AuthModule } from '../auth/auth.module';
   exports: [EmergenciesService],
 })
 export class EmergenciesModule {}
+

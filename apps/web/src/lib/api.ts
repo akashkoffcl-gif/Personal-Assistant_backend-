@@ -90,3 +90,4 @@ export const api = {
   updateSettings: (data: any) => fetcher<UserSettingsDto>('/settings', { method: 'PATCH', body: JSON.stringify(data) }),
   exportUserData: () => fetcher<any>('/settings/export'),
 };
+

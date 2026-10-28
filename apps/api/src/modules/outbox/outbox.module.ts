@@ -7,3 +7,4 @@ import { PrismaService } from '../../common/prisma.service';
   exports: [OutboxService],
 })
 export class OutboxModule {}
+

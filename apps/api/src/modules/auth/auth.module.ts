@@ -9,3 +9,4 @@ import { PrismaService } from '../../common/prisma.service';
   exports: [SupabaseAuthGuard],
 })
 export class AuthModule {}
+

@@ -9,10 +9,12 @@ generator client {
 }
 
 enum TaskCategory {
-  ROUTINE
+  PERSONAL_ROUTINE
   WORK
-  PLANNING
+  DAY_PLAN
   EMERGENCY
+  ROUTINE
+  PLANNING
 }
 
 enum TaskStatus {
@@ -421,3 +423,4 @@ model OutboxEvent {
   @@index([status, createdAt])
   @@map("outbox_events")
 }
+

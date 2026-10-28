@@ -76,3 +76,4 @@ export class RoutinesController {
     return this.routinesService.remove(user.id, id);
   }
 }
+

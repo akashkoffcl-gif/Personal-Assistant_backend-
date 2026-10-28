@@ -6,3 +6,4 @@ import { SchedulingEngineService } from './scheduling-engine.service';
   exports: [SchedulingEngineService],
 })
 export class SchedulingModule {}
+

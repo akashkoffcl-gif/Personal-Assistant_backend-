@@ -36,3 +36,4 @@ import { WorkerModule } from './worker/worker.module';
   providers: [PrismaService, RedisService],
 })
 export class AppModule {}
+

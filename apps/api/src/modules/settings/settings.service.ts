@@ -79,3 +79,4 @@ export class SettingsService {
     return { success: true, message: 'All personal data deleted permanently.' };
   }
 }
+

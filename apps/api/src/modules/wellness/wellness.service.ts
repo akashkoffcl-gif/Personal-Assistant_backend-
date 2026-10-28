@@ -213,3 +213,4 @@ export class WellnessService {
     return { success: true, message: 'All personal wellness records have been permanently cleared.' };
   }
 }
+

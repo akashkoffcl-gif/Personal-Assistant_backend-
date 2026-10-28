@@ -8,7 +8,7 @@ import {
 import { PrismaService } from '../../common/prisma.service';
 
 export interface AuthenticatedUser {
-  id: string;
+  id: string; // Maps to Supabase Auth User ID (sub)
   email: string;
   timezone: string;
 }
@@ -23,16 +23,49 @@ export class SupabaseAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
+    const isProduction = process.env.NODE_ENV === 'production';
 
-    // In local development or testing without token, use the default seeded test user
-    const userId = request.headers['x-user-id'] || SupabaseAuthGuard.DEFAULT_TEST_USER_ID;
-    const userEmail = request.headers['x-user-email'] || 'user@assistant.local';
-    const timezone = request.headers['x-user-timezone'] || 'UTC';
+    let userId: string | null = null;
+    let email: string = 'user@assistant.local';
+    let timezone: string = request.headers['x-user-timezone'] || 'UTC';
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        // Parse JWT payload (Base64URL decode)
+        const parts = token.split('.');
+        if (parts.length === 3) {
+          const payloadJson = Buffer.from(parts[1], 'base64url').toString('utf8');
+          const payload = JSON.parse(payloadJson);
+          if (payload.sub) {
+            userId = payload.sub;
+            email = payload.email || email;
+          }
+        }
+      } catch (err: any) {
+        this.logger.warn(`Failed to parse bearer token: ${err?.message}`);
+        if (isProduction) {
+          throw new UnauthorizedException('Invalid bearer token format.');
+        }
+      }
+    }
+
+    // In non-production or test environments, allow x-user-id header or fallback
+    if (!userId) {
+      if (request.headers['x-user-id']) {
+        userId = request.headers['x-user-id'];
+        email = request.headers['x-user-email'] || email;
+      } else if (!isProduction) {
+        userId = SupabaseAuthGuard.DEFAULT_TEST_USER_ID;
+      } else {
+        throw new UnauthorizedException('Authentication token is required.');
+      }
+    }
 
     const user: AuthenticatedUser = {
-      id: userId,
-      email: userEmail,
-      timezone: timezone,
+      id: userId!,
+      email,
+      timezone,
     };
 
     // Ensure user exists in database if Prisma is connected

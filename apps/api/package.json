@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "nest build || tsc",
+    "build": "tsc",
     "start": "node dist/src/main.js",
     "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "worker:dev": "ts-node-dev --respawn --transpile-only src/worker/worker.main.ts",

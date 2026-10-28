@@ -171,3 +171,4 @@ export interface DailyKpiSummary {
   workTasksCompleted: number;
   overdueTasksCount: number;
 }
+

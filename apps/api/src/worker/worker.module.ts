@@ -13,3 +13,4 @@ import { OutboxService } from '../modules/outbox/outbox.service';
   ],
 })
 export class WorkerModule {}
+

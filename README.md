@@ -204,3 +204,4 @@ Time:        14.229 s
 
 1. **Browser Push Support on iOS:** Mobile Safari on iOS requires iOS 16.4+ and requires the user to add the app to the Home Screen ("Add to Home Screen") before the Push API is accessible.
 2. **Worker Scaling:** For high-throughput environments, multiple instances of the worker process can be scaled horizontally; BullMQ automatically coordinates job concurrency via Redis locks.
+

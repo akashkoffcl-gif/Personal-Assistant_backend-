@@ -98,3 +98,4 @@ export const UserSettingsSchema = z.object({
   autoRescheduleOnEmergency: z.boolean().default(true),
   defaultBufferMinutes: z.number().int().min(0).max(60).default(10),
 });
+

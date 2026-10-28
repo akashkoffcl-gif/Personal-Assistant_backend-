@@ -14,12 +14,20 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     try {
-      await this.$connect();
+      // Fast connection timeout race (1.5s) to prevent blocking when database is offline
+      await Promise.race([
+        this.$connect(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Connection timeout after 1500ms')), 1500),
+        ),
+      ]);
       this.isConnected = true;
       this.logger.log('Authoritative Supabase PostgreSQL connection established.');
     } catch (error: any) {
       this.isConnected = false;
-      this.logger.warn(`PostgreSQL connection unavailable (${error?.message}). Running in mock/development resilience mode.`);
+      this.logger.warn(
+        `PostgreSQL connection unavailable (${error?.message}). Running in mock/development resilience mode.`,
+      );
     }
   }
 

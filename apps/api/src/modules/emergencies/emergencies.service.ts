@@ -259,3 +259,4 @@ export class EmergenciesService {
     return { success: true, message: 'Emergency cancelled and pending reminders cleared.' };
   }
 }
+

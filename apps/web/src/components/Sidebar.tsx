@@ -101,3 +101,4 @@ export function Sidebar({ currentTab, onSelectTab, onOpenEmergency }: SidebarPro
     </aside>
   );
 }
+

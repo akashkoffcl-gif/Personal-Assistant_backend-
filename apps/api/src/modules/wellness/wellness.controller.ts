@@ -38,3 +38,4 @@ export class WellnessController {
     return this.wellnessService.clearUserWellnessData(user.id);
   }
 }
+

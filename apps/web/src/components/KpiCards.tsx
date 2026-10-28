@@ -104,3 +104,4 @@ export function KpiCards({ kpi, wellnessTrendLabel = 'Insufficient data', loadin
     </div>
   );
 }
+

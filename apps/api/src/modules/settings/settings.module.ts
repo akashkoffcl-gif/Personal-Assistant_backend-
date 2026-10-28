@@ -11,3 +11,4 @@ import { AuthModule } from '../auth/auth.module';
   exports: [SettingsService],
 })
 export class SettingsModule {}
+

@@ -200,3 +200,4 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
     </div>
   );
 }
+

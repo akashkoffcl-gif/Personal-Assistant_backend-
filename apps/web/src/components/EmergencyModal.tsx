@@ -226,3 +226,4 @@ export function EmergencyModal({ isOpen, onClose, onSubmit }: EmergencyModalProp
     </div>
   );
 }
+

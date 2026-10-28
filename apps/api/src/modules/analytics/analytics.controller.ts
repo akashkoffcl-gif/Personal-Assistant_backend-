@@ -25,3 +25,4 @@ export class AnalyticsController {
     return this.analyticsService.getTrends(user.id, days ? Number(days) : 7);
   }
 }
+

@@ -31,3 +31,4 @@ export class SettingsController {
     return this.settingsService.deleteUserData(user.id);
   }
 }
+

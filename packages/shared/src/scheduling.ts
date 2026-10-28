@@ -46,3 +46,4 @@ export interface SchedulingResult {
   emergencyPlaced?: ScheduleAssignment;
   unresolvedTasks: SchedulableTask[];
 }
+
