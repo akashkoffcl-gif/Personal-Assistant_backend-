@@ -231,3 +231,4 @@ describe('Tasks CRUD & Persistent History Unit Tests', () => {
     expect(mockReminders.invalidateTaskReminders).toHaveBeenCalledWith(task.id);
   });
 });
+

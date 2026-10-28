@@ -5,11 +5,13 @@ import {
   UnauthorizedException,
   Logger,
 } from '@nestjs/common';
+import * as jwt from 'jsonwebtoken';
 import { PrismaService } from '../../common/prisma.service';
 
 export interface AuthenticatedUser {
   id: string; // Maps to Supabase Auth User ID (sub)
   email: string;
+  role: string;
   timezone: string;
 }
 
@@ -23,57 +25,90 @@ export class SupabaseAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers['authorization'];
-    const isProduction = process.env.NODE_ENV === 'production';
+    const nodeEnv = process.env.NODE_ENV || 'development';
+    const isProduction = nodeEnv === 'production';
+    const jwtSecret = process.env.SUPABASE_JWT_SECRET;
 
     let userId: string | null = null;
     let email: string = 'user@assistant.local';
+    let role: string = 'authenticated';
     let timezone: string = request.headers['x-user-timezone'] || 'UTC';
 
+    // 1. Bearer Token Verification
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
-      try {
-        // Parse JWT payload (Base64URL decode)
-        const parts = token.split('.');
-        if (parts.length === 3) {
-          const payloadJson = Buffer.from(parts[1], 'base64url').toString('utf8');
-          const payload = JSON.parse(payloadJson);
-          if (payload.sub) {
-            userId = payload.sub;
-            email = payload.email || email;
-          }
-        }
-      } catch (err: any) {
-        this.logger.warn(`Failed to parse bearer token: ${err?.message}`);
-        if (isProduction) {
-          throw new UnauthorizedException('Invalid bearer token format.');
-        }
-      }
-    }
 
-    // In non-production or test environments, allow x-user-id header or fallback
-    if (!userId) {
+      if (!jwtSecret) {
+        this.logger.error('SUPABASE_JWT_SECRET is not configured on the server.');
+        throw new UnauthorizedException('Authentication service misconfigured.');
+      }
+
+      try {
+        // Cryptographically verify signature, algorithm, audience, and expiration
+        const verified = jwt.verify(token, jwtSecret, {
+          algorithms: ['HS256'],
+        }) as jwt.JwtPayload;
+
+        if (!verified.sub) {
+          throw new UnauthorizedException('JWT token missing subject (sub) claim.');
+        }
+
+        // Validate Audience: Supabase Auth standard audience is 'authenticated'
+        if (verified.aud && verified.aud !== 'authenticated') {
+          throw new UnauthorizedException(`Invalid token audience: ${verified.aud}`);
+        }
+
+        // Validate Issuer: Supabase standard issuer is 'supabase' or ends with supabase project URL
+        if (verified.iss && verified.iss !== 'supabase' && !verified.iss.includes('supabase')) {
+          throw new UnauthorizedException(`Invalid token issuer: ${verified.iss}`);
+        }
+
+        userId = verified.sub;
+        email = verified.email || (verified.user_metadata?.email) || email;
+        role = verified.role || role;
+      } catch (err: any) {
+        if (err instanceof UnauthorizedException) {
+          throw err;
+        }
+        if (err instanceof jwt.TokenExpiredError) {
+          throw new UnauthorizedException('Authentication token has expired.');
+        } else if (err instanceof jwt.JsonWebTokenError) {
+          throw new UnauthorizedException(`Cryptographic token validation failed: ${err.message}`);
+        }
+        throw new UnauthorizedException('Invalid authentication credentials.');
+      }
+    } else {
+      // 2. Unauthenticated check
+      if (isProduction) {
+        // In production, NEVER use fallback user!
+        throw new UnauthorizedException('Authorization Bearer token is required.');
+      }
+
+      // In development / testing environments only, allow explicit x-user-id header or dev test user
       if (request.headers['x-user-id']) {
         userId = request.headers['x-user-id'];
         email = request.headers['x-user-email'] || email;
-      } else if (!isProduction) {
-        userId = SupabaseAuthGuard.DEFAULT_TEST_USER_ID;
       } else {
-        throw new UnauthorizedException('Authentication token is required.');
+        userId = SupabaseAuthGuard.DEFAULT_TEST_USER_ID;
       }
     }
 
     const user: AuthenticatedUser = {
-      id: userId!,
+      id: userId,
       email,
+      role,
       timezone,
     };
 
-    // Ensure user exists in database if Prisma is connected
+    // 3. User Identity Mapping & Profile Lifecycle Synchronization
+    // Ensure application profile exists in PostgreSQL (scoped 1:1 to auth.uid())
     if (this.prisma.isConnected) {
       try {
         await this.prisma.user.upsert({
           where: { id: user.id },
-          update: {},
+          update: {
+            email: user.email,
+          },
           create: {
             id: user.id,
             email: user.email,

@@ -1,13 +1,16 @@
 import { SupabaseAuthGuard } from '../src/modules/auth/supabase-auth.guard';
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import * as jwt from 'jsonwebtoken';
 import { TasksService } from '../src/modules/tasks/tasks.service';
 import { TaskCategory, Priority, SchedulingMode } from '@assistant/shared';
 
 describe('Authentication & Ownership Verification', () => {
   let authGuard: SupabaseAuthGuard;
   let mockPrisma: any;
+  const jwtSecret = 'test-jwt-secret-key-32-chars-minimum-length';
 
   beforeEach(() => {
+    process.env.SUPABASE_JWT_SECRET = jwtSecret;
     mockPrisma = {
       isConnected: false,
       user: {
@@ -27,13 +30,19 @@ describe('Authentication & Ownership Verification', () => {
   };
 
   it('extracts user ID from valid Bearer JWT token payload', async () => {
-    // Generate valid base64url payload with sub
-    const payload = { sub: 'user-supabase-1234', email: 'alex@example.com' };
-    const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
-    const fakeJwt = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${encodedPayload}.signature`;
+    const token = jwt.sign(
+      {
+        sub: 'user-supabase-1234',
+        email: 'alex@example.com',
+        aud: 'authenticated',
+        iss: 'supabase',
+      },
+      jwtSecret,
+      { algorithm: 'HS256', expiresIn: '1h' },
+    );
 
     const context = createMockContext({
-      authorization: `Bearer ${fakeJwt}`,
+      authorization: `Bearer ${token}`,
     });
 
     const result = await authGuard.canActivate(context);
@@ -135,3 +144,4 @@ describe('Authentication & Ownership Verification', () => {
     await expect(tasksService.findOne(userB, taskA.id)).rejects.toThrow();
   });
 });
+

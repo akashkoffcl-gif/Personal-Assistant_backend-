@@ -66,17 +66,25 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async invalidatePattern(pattern: string): Promise<void> {
-    if (this.isConnected && this.client) {
-      const keys = await this.client.keys(pattern);
-      if (keys.length > 0) {
-        await this.client.del(...keys);
+    try {
+      if (this.isConnected && this.client) {
+        await Promise.race([
+          (async () => {
+            const keys = await this.client!.keys(pattern);
+            if (keys && keys.length > 0) {
+              await this.client!.del(...keys);
+            }
+          })(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Redis invalidate timeout')), 1000)),
+        ]);
       }
-    } else {
-      const regex = new RegExp(pattern.replace('*', '.*'));
-      for (const key of this.memoryCache.keys()) {
-        if (regex.test(key)) {
-          this.memoryCache.delete(key);
-        }
+    } catch (e) {
+      // Gracefully fall back to memory cache
+    }
+    const regex = new RegExp(pattern.replace('*', '.*'));
+    for (const key of this.memoryCache.keys()) {
+      if (regex.test(key)) {
+        this.memoryCache.delete(key);
       }
     }
   }

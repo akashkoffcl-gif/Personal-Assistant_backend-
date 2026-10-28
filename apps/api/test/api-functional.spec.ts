@@ -9,6 +9,7 @@ import { RoutinesService } from '../src/modules/routines/routines.service';
 import { WellnessService } from '../src/modules/wellness/wellness.service';
 import { EmergenciesService } from '../src/modules/emergencies/emergencies.service';
 import { SettingsService } from '../src/modules/settings/settings.service';
+import { PrismaService } from '../src/common/prisma.service';
 
 describe('API Functional Integration Suite', () => {
   let app: INestApplication;
@@ -17,6 +18,7 @@ describe('API Functional Integration Suite', () => {
   let wellnessService: WellnessService;
   let emergenciesService: EmergenciesService;
   let settingsService: SettingsService;
+  let prisma: PrismaService;
 
   const testUserId = '00000000-0000-0000-0000-000000000001';
 
@@ -36,9 +38,27 @@ describe('API Functional Integration Suite', () => {
     wellnessService = moduleFixture.get<WellnessService>(WellnessService);
     emergenciesService = moduleFixture.get<EmergenciesService>(EmergenciesService);
     settingsService = moduleFixture.get<SettingsService>(SettingsService);
+    prisma = moduleFixture.get<PrismaService>(PrismaService);
+    await prisma.$connect();
+    prisma.isConnected = true;
+
+    await prisma.user.upsert({
+      where: { id: testUserId },
+      update: {},
+      create: {
+        id: testUserId,
+        email: 'functional-test@assistant.local',
+        settings: { create: {} },
+      },
+    });
   });
 
   afterAll(async () => {
+    if (prisma && prisma.isConnected) {
+      try {
+        await prisma.user.delete({ where: { id: testUserId } });
+      } catch (e) {}
+    }
     if (app) {
       await app.close();
     }
