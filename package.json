@@ -1,0 +1,23 @@
+{
+  "name": "personal-assistant-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run --workspaces --if-present build",
+    "test": "npm run --workspaces --if-present test",
+    "dev:api": "npm --workspace=apps/api run start:dev",
+    "dev:worker": "npm --workspace=apps/api run worker:dev",
+    "dev:web": "npm --workspace=apps/web run dev",
+    "lint": "npm run --workspaces --if-present lint"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

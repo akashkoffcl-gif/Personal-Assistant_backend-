@@ -1,0 +1,14 @@
+import { Module } from '@nestjs/common';
+import { RemindersService } from './reminders.service';
+import { RemindersController } from './reminders.controller';
+import { PrismaService } from '../../common/prisma.service';
+import { RedisService } from '../../common/redis.service';
+import { AuthModule } from '../auth/auth.module';
+
+@Module({
+  imports: [AuthModule],
+  controllers: [RemindersController],
+  providers: [RemindersService, PrismaService, RedisService],
+  exports: [RemindersService],
+})
+export class RemindersModule {}

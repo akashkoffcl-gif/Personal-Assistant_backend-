@@ -1,0 +1,69 @@
+export enum TaskCategory {
+  ROUTINE = 'ROUTINE',
+  WORK = 'WORK',
+  PLANNING = 'PLANNING',
+  EMERGENCY = 'EMERGENCY',
+}
+
+export enum TaskStatus {
+  TODO = 'TODO',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  SKIPPED = 'SKIPPED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum SchedulingMode {
+  FIXED = 'FIXED',
+  FLEXIBLE = 'FLEXIBLE',
+}
+
+export enum Priority {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  URGENT = 'URGENT',
+}
+
+export enum RecurrenceFrequency {
+  DAILY = 'DAILY',
+  WEEKDAYS = 'WEEKDAYS',
+  WEEKENDS = 'WEEKENDS',
+  WEEKLY = 'WEEKLY',
+  CUSTOM = 'CUSTOM',
+}
+
+export enum ReminderStatus {
+  SCHEDULED = 'SCHEDULED',
+  ENQUEUED = 'ENQUEUED',
+  PROCESSING = 'PROCESSING',
+  SENT = 'SENT',
+  DELIVERED = 'DELIVERED',
+  DISMISSED = 'DISMISSED',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum ScheduleChangeReason {
+  EMERGENCY_INSERTION = 'EMERGENCY_INSERTION',
+  MANUAL_RESCHEDULE = 'MANUAL_RESCHEDULE',
+  CONFLICT_RESOLVED = 'CONFLICT_RESOLVED',
+  EMERGENCY_CANCELLED = 'EMERGENCY_CANCELLED',
+  PLAN_OPTIMIZATION = 'PLAN_OPTIMIZATION',
+}
+
+export enum WellnessMetricType {
+  HYDRATION = 'HYDRATION',
+  EXERCISE = 'EXERCISE',
+  MEAL = 'MEAL',
+  SLEEP = 'SLEEP',
+  BREAK = 'BREAK',
+  MOOD = 'MOOD',
+  ENERGY = 'ENERGY',
+}
+
+export enum OutboxEventStatus {
+  PENDING = 'PENDING',
+  PROCESSED = 'PROCESSED',
+  FAILED = 'FAILED',
+}
