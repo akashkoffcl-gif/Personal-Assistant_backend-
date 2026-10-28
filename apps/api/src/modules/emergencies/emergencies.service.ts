@@ -247,6 +247,82 @@ export class EmergenciesService {
 
     await this.remindersService.invalidateTaskReminders(emergencyTaskId);
 
+    // Calculate a safe replan for remaining tasks of the day
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dayStart = new Date(`${todayStr}T08:00:00.000Z`);
+    const dayEnd = new Date(`${todayStr}T22:00:00.000Z`);
+
+    const remainingTasks = await this.prisma.task.findMany({
+      where: {
+        userId,
+        status: { in: [TaskStatus.TODO, TaskStatus.IN_PROGRESS] },
+        scheduledStartTime: {
+          gte: new Date(`${todayStr}T00:00:00.000Z`),
+          lte: new Date(`${todayStr}T23:59:59.999Z`),
+        },
+      },
+    });
+
+    if (remainingTasks.length > 0) {
+      const schedulableRemaining: SchedulableTask[] = remainingTasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        category: t.category as TaskCategory,
+        status: t.status as TaskStatus,
+        priority: t.priority as Priority,
+        schedulingMode: t.schedulingMode as SchedulingMode,
+        estimatedDurationMinutes: t.estimatedDurationMinutes,
+        bufferMinutes: t.bufferMinutes,
+        scheduledStartTime: t.scheduledStartTime,
+        scheduledEndTime: t.scheduledEndTime,
+        earliestStartTime: t.earliestStartTime,
+        deadline: t.deadline,
+        maxDelayMinutes: t.maxDelayMinutes,
+      }));
+
+      const replanResult = this.schedulingEngine.planDay(schedulableRemaining, dayStart, dayEnd);
+
+      const latestPlan = await this.prisma.schedulePlan.findFirst({
+        where: { userId, date: todayStr },
+        orderBy: { version: 'desc' },
+      });
+      const nextVersion = (latestPlan?.version || 0) + 1;
+
+      const newPlan = await this.prisma.schedulePlan.create({
+        data: {
+          userId,
+          date: todayStr,
+          version: nextVersion,
+          isLocked: false,
+        },
+      });
+
+      for (const assignment of replanResult.assignments) {
+        if (assignment.isModified) {
+          await this.prisma.task.update({
+            where: { id: assignment.taskId },
+            data: {
+              scheduledStartTime: assignment.startTime,
+              scheduledEndTime: assignment.endTime,
+            },
+          });
+
+          await this.prisma.scheduleChange.create({
+            data: {
+              userId,
+              planId: newPlan.id,
+              taskId: assignment.taskId,
+              reason: ScheduleChangeReason.EMERGENCY_CANCELLED,
+              originalStartTime: assignment.originalStartTime,
+              originalEndTime: assignment.originalEndTime,
+              revisedStartTime: assignment.startTime,
+              revisedEndTime: assignment.endTime,
+            },
+          });
+        }
+      }
+    }
+
     // Record Outbox event
     await this.outboxService.publish(
       'EMERGENCY',
@@ -256,7 +332,7 @@ export class EmergenciesService {
     );
 
     await this.redis.invalidatePattern(`dashboard:${userId}:*`);
-    return { success: true, message: 'Emergency cancelled and pending reminders cleared.' };
+    return { success: true, message: 'Emergency cancelled and plan safely restored.' };
   }
 }
 

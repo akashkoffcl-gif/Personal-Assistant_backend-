@@ -33,6 +33,8 @@ export function TodaySchedule({
 
   const filteredTasks = tasks.filter((t) => {
     if (categoryFilter === 'ALL') return true;
+    if (categoryFilter === 'ROUTINE') return t.category === TaskCategory.PERSONAL_ROUTINE || t.category === ('ROUTINE' as any);
+    if (categoryFilter === 'PLANNING') return t.category === TaskCategory.DAY_PLAN || t.category === ('PLANNING' as any);
     return t.category === categoryFilter;
   });
 
