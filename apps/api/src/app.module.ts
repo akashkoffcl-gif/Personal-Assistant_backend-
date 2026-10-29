@@ -14,6 +14,8 @@ import { WellnessModule } from './modules/wellness/wellness.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
+import { ProjectsModule } from './modules/projects/projects.module';
+import { AutomationModule } from './modules/automation/automation.module';
 import { WorkerModule } from './worker/worker.module';
 
 @Module({
@@ -31,6 +33,8 @@ import { WorkerModule } from './worker/worker.module';
     AnalyticsModule,
     SettingsModule,
     OutboxModule,
+    ProjectsModule,
+    AutomationModule,
     WorkerModule,
   ],
   providers: [PrismaService, RedisService],

@@ -102,6 +102,9 @@ model User {
   wellnessCheckIns      WellnessCheckIn[]
   wellnessDailySummaries WellnessDailySummary[]
   dailySummaries        DailySummary[]
+  projects              Project[]
+  automationRules       AutomationRule[]
+  automationRuleExecutions AutomationRuleExecution[]
 
   @@map("users")
 }
@@ -120,6 +123,10 @@ model UserSettings {
   enableGentleReminders     Boolean  @default(true)
   autoRescheduleOnEmergency Boolean  @default(true)
   defaultBufferMinutes      Int      @default(10)
+  preferredWorkDays         Int[]    @default([1, 2, 3, 4, 5])
+  defaultTaskDurationMinutes Int     @default(30)
+  defaultReminderLeadMinutes Int     @default(15)
+  weekStartDay              Int      @default(1)
   updatedAt                 DateTime @updatedAt @db.Timestamptz
 
   user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -133,6 +140,7 @@ model Task {
   userId                   String
   title                    String
   description              String?
+  notes                    String?
   category                 TaskCategory
   status                   TaskStatus     @default(TODO)
   priority                 Priority       @default(MEDIUM)
@@ -147,11 +155,16 @@ model Task {
   bufferMinutes            Int            @default(5)
   completedAt              DateTime?      @db.Timestamptz
   routineId                String?
+  projectId                String?
+  parentTaskId             String?
   createdAt                DateTime       @default(now()) @db.Timestamptz
   updatedAt                DateTime       @updatedAt @db.Timestamptz
 
   user                     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   routine                  Routine?       @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  project                  Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parentTask               Task?          @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subtasks                 Task[]         @relation("TaskSubtasks")
   reminders                Reminder[]
   taskEvents               TaskEvent[]
   scheduleChanges          ScheduleChange[]
@@ -159,10 +172,71 @@ model Task {
   @@index([userId, category])
   @@index([userId, status])
   @@index([userId, scheduledStartTime])
+  @@index([userId, projectId])
+  @@index([parentTaskId])
   @@map("tasks")
 }
 
-// 4. Routine Model
+// 4. Project Model
+model Project {
+  id          String    @id @default(uuid())
+  userId      String
+  title       String
+  description String?
+  color       String    @default("#142B4A")
+  status      String    @default("ACTIVE") // ACTIVE, COMPLETED, ARCHIVED
+  targetDate  DateTime? @db.Timestamptz
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @db.Timestamptz
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@index([userId, status])
+  @@map("projects")
+}
+
+// 5. AutomationRule Model
+model AutomationRule {
+  id              String                    @id @default(uuid())
+  userId          String
+  name            String
+  ruleType        String                    // OVERDUE_ALERT, UPCOMING_REMINDER, BREAK_SUGGESTION, REPEATED_POSTPONEMENT_ALERT, CONFLICT_AUTO_SUGGEST
+  condition       Json                      @default("{}")
+  action          Json                      @default("{}")
+  cooldownMinutes Int                       @default(60)
+  lastExecutedAt  DateTime?                 @db.Timestamptz
+  isEnabled       Boolean                   @default(true)
+  createdAt       DateTime                  @default(now()) @db.Timestamptz
+  updatedAt       DateTime                  @updatedAt @db.Timestamptz
+
+  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  executions      AutomationRuleExecution[]
+
+  @@index([userId, isEnabled])
+  @@map("automation_rules")
+}
+
+// 6. AutomationRuleExecution Model
+model AutomationRuleExecution {
+  id          String         @id @default(uuid())
+  ruleId      String
+  userId      String
+  triggeredBy String         // Trigger event name or scheduled evaluation
+  actionTaken String
+  status      String         // SUCCESS, SKIPPED_COOLDOWN, FAILED
+  details     Json?
+  executedAt  DateTime       @default(now()) @db.Timestamptz
+
+  rule        AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, executedAt])
+  @@index([ruleId])
+  @@map("automation_rule_executions")
+}
+
+// 7. Routine Model
 model Routine {
   id               String              @id @default(uuid())
   userId           String
@@ -177,6 +251,9 @@ model Routine {
   targetQuantity   Float?
   unit             String?
   isActive         Boolean             @default(true)
+  isPaused         Boolean             @default(false)
+  startDate        DateTime?           @db.Timestamptz
+  endDate          DateTime?           @db.Timestamptz
   streakCount      Int                 @default(0)
   createdAt        DateTime            @default(now()) @db.Timestamptz
   updatedAt        DateTime            @updatedAt @db.Timestamptz

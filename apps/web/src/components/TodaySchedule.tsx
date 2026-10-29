@@ -73,7 +73,7 @@ export function TodaySchedule({
     <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="text-base font-bold text-assistant-navy">Today's Schedule</h3>
+          <h3 className="text-base font-bold text-assistant-navy">Today&apos;s Schedule</h3>
           <p className="text-xs text-assistant-coolGrey">Chronological timeline & time blocks</p>
         </div>
 
@@ -141,11 +141,13 @@ export function TodaySchedule({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span
-                        className={`text-sm font-semibold truncate ${
+                        onClick={() => onSelectTask?.(task)}
+                        className={`text-sm font-semibold truncate cursor-pointer hover:text-assistant-sky transition-colors ${
                           isCompleted
                             ? 'line-through text-assistant-coolGrey'
                             : 'text-assistant-navy'
                         }`}
+                        title="Click to view details"
                       >
                         {task.title}
                       </span>

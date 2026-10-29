@@ -51,7 +51,7 @@ describe('API Functional Integration Suite', () => {
         settings: { create: {} },
       },
     });
-  });
+  }, 45000);
 
   afterAll(async () => {
     if (prisma && prisma.isConnected) {
@@ -62,7 +62,7 @@ describe('API Functional Integration Suite', () => {
     if (app) {
       await app.close();
     }
-  });
+  }, 30000);
 
   it('1. Task Management: handles task creation across categories', async () => {
     const task = await tasksService.create(testUserId, {

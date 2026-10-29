@@ -11,6 +11,9 @@ import {
   TaskCategory,
   TaskStatus,
   PushSubscriptionPayload,
+  ProjectDto,
+  AutomationRuleDto,
+  AutomationRuleExecutionDto,
 } from '@assistant/shared';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
@@ -63,6 +66,20 @@ export const api = {
   // Day-Specific Planning
   getDayPlan: (date: string) => fetcher<any>(`/plans/${date}`),
   lockPlan: (date: string, isLocked: boolean) => fetcher<{ success: boolean }>(`/plans/${date}/lock`, { method: 'POST', body: JSON.stringify({ isLocked }) }),
+
+  // Projects
+  getProjects: () => fetcher<ProjectDto[]>('/projects'),
+  createProject: (data: any) => fetcher<ProjectDto>('/projects', { method: 'POST', body: JSON.stringify(data) }),
+  updateProject: (id: string, data: any) => fetcher<ProjectDto>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteProject: (id: string) => fetcher<{ success: boolean }>(`/projects/${id}`, { method: 'DELETE' }),
+
+  // Automation
+  getAutomationRules: () => fetcher<AutomationRuleDto[]>('/automation/rules'),
+  createAutomationRule: (data: any) => fetcher<AutomationRuleDto>('/automation/rules', { method: 'POST', body: JSON.stringify(data) }),
+  toggleAutomationRule: (id: string, isEnabled: boolean) =>
+    fetcher<AutomationRuleDto>(`/automation/rules/${id}/toggle`, { method: 'POST', body: JSON.stringify({ isEnabled }) }),
+  getAutomationExecutions: () => fetcher<AutomationRuleExecutionDto[]>('/automation/executions'),
+  evaluateAutomationRules: () => fetcher<{ evaluated: number; executed: number }>('/automation/evaluate', { method: 'POST' }),
 
   // Emergencies & Schedule Changes
   createEmergency: (data: any) => fetcher<any>('/emergencies', { method: 'POST', body: JSON.stringify(data) }),

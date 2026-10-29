@@ -23,6 +23,7 @@ export function EmergencyModal({ isOpen, onClose, onSubmit }: EmergencyModalProp
   const [deadline, setDeadline] = useState('');
   const [bufferMinutes, setBufferMinutes] = useState(10);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [result, setResult] = useState<any | null>(null);
 
   if (!isOpen) return null;
@@ -33,6 +34,7 @@ export function EmergencyModal({ isOpen, onClose, onSubmit }: EmergencyModalProp
 
     try {
       setLoading(true);
+      setErrorMessage(null);
       const res = await onSubmit({
         title,
         description,
@@ -42,7 +44,7 @@ export function EmergencyModal({ isOpen, onClose, onSubmit }: EmergencyModalProp
       });
       setResult(res);
     } catch (err: any) {
-      alert(`Emergency replanning error: ${err.message}`);
+      setErrorMessage(err.message || 'Emergency replanning error');
     } finally {
       setLoading(false);
     }
@@ -52,6 +54,7 @@ export function EmergencyModal({ isOpen, onClose, onSubmit }: EmergencyModalProp
     setResult(null);
     setTitle('');
     setDescription('');
+    setErrorMessage(null);
     onClose();
   };
 
@@ -70,6 +73,12 @@ export function EmergencyModal({ isOpen, onClose, onSubmit }: EmergencyModalProp
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {errorMessage && (
+          <div className="m-4 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-assistant-red font-medium">
+            ⚠️ {errorMessage}
+          </div>
+        )}
 
         {!result ? (
           <form onSubmit={handleSubmit} className="p-6 space-y-4">

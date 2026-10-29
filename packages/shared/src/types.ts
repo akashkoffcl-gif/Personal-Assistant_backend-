@@ -31,6 +31,25 @@ export interface UserSettingsDto {
   enableGentleReminders: boolean;
   autoRescheduleOnEmergency: boolean;
   defaultBufferMinutes: number;
+  preferredWorkDays?: number[];
+  defaultTaskDurationMinutes?: number;
+  defaultReminderLeadMinutes?: number;
+  weekStartDay?: number;
+}
+
+export interface ProjectDto {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string | null;
+  color: string;
+  status: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED';
+  targetDate?: string | null;
+  tasksCount?: number;
+  completedTasksCount?: number;
+  progressPercent?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface TaskDto {
@@ -38,6 +57,7 @@ export interface TaskDto {
   userId: string;
   title: string;
   description?: string | null;
+  notes?: string | null;
   category: TaskCategory;
   status: TaskStatus;
   priority: Priority;
@@ -53,6 +73,10 @@ export interface TaskDto {
   isOverdue?: boolean;
   completedAt?: string | null;
   routineId?: string | null;
+  projectId?: string | null;
+  parentTaskId?: string | null;
+  project?: ProjectDto | null;
+  subtasks?: TaskDto[];
   createdAt: string;
   updatedAt: string;
 }
@@ -71,6 +95,9 @@ export interface RoutineDto {
   targetQuantity?: number | null;
   unit?: string | null;
   isActive: boolean;
+  isPaused?: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
   streakCount: number;
   createdAt: string;
   updatedAt: string;
@@ -171,4 +198,30 @@ export interface DailyKpiSummary {
   workTasksCompleted: number;
   overdueTasksCount: number;
 }
+
+export interface AutomationRuleDto {
+  id: string;
+  userId: string;
+  name: string;
+  ruleType: string;
+  condition: Record<string, any>;
+  action: Record<string, any>;
+  cooldownMinutes: number;
+  lastExecutedAt?: string | null;
+  isEnabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AutomationRuleExecutionDto {
+  id: string;
+  ruleId: string;
+  userId: string;
+  triggeredBy: string;
+  actionTaken: string;
+  status: string;
+  details?: Record<string, any> | null;
+  executedAt: string;
+}
+
 

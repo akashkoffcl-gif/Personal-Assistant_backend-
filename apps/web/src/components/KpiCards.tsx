@@ -8,9 +8,10 @@ interface KpiCardsProps {
   kpi?: DailyKpiSummary;
   wellnessTrendLabel?: string;
   loading?: boolean;
+  onSelectCard?: (cardType: 'tasks' | 'routines' | 'work' | 'wellness') => void;
 }
 
-export function KpiCards({ kpi, wellnessTrendLabel = 'Insufficient data', loading }: KpiCardsProps) {
+export function KpiCards({ kpi, wellnessTrendLabel = 'Insufficient data', loading, onSelectCard }: KpiCardsProps) {
   const completionRate = kpi?.completionRatePercent || 0;
   const routineAdherence = kpi?.routineAdherencePercent || 0;
   const workCompleted = kpi?.workTasksCompleted || 0;
@@ -19,6 +20,7 @@ export function KpiCards({ kpi, wellnessTrendLabel = 'Insufficient data', loadin
 
   const cards = [
     {
+      id: 'tasks' as const,
       title: 'Task Completion',
       value: `${completionRate}%`,
       subtitle: `${kpi?.completedTasks || 0} of ${kpi?.totalTasks || 0} completed`,
@@ -28,6 +30,7 @@ export function KpiCards({ kpi, wellnessTrendLabel = 'Insufficient data', loadin
       borderColor: 'border-emerald-200',
     },
     {
+      id: 'routines' as const,
       title: 'Routine Adherence',
       value: `${routineAdherence}%`,
       subtitle: `${kpi?.routinesCompleted || 0} of ${kpi?.routinesTotal || 0} routines`,
@@ -37,6 +40,7 @@ export function KpiCards({ kpi, wellnessTrendLabel = 'Insufficient data', loadin
       borderColor: 'border-sky-200',
     },
     {
+      id: 'work' as const,
       title: 'Work Progress',
       value: `${workTotal > 0 ? Math.round((workCompleted / workTotal) * 100) : 0}%`,
       subtitle: `${workCompleted} of ${workTotal} work items`,
@@ -47,6 +51,7 @@ export function KpiCards({ kpi, wellnessTrendLabel = 'Insufficient data', loadin
       badge: overdueCount > 0 ? `${overdueCount} Overdue` : undefined,
     },
     {
+      id: 'wellness' as const,
       title: 'Wellness Trend',
       value: wellnessTrendLabel,
       subtitle: 'Behavioral consistency baseline',
@@ -69,12 +74,15 @@ export function KpiCards({ kpi, wellnessTrendLabel = 'Insufficient data', loadin
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {cards.map((c, i) => {
+      {cards.map((c) => {
         const Icon = c.icon;
         return (
           <div
-            key={i}
-            className={`p-4 rounded-xl bg-white border ${c.borderColor} shadow-xs transition-shadow hover:shadow-sm`}
+            key={c.id}
+            onClick={() => onSelectCard?.(c.id)}
+            className={`p-4 rounded-xl bg-white border ${c.borderColor} shadow-xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01]`}
+            role="button"
+            tabIndex={0}
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-assistant-coolGrey uppercase tracking-wider">

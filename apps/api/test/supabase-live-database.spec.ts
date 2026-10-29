@@ -349,5 +349,74 @@ describe('Supabase Live Database & Cryptographic Auth Integration Suite', () => 
       expect(summary.checkIn).toBeDefined();
       expect(summary.checkIn.moodScore).toBe(5);
     });
+
+    it('creates a Project and links a Task with subtasks on live Supabase PostgreSQL', async () => {
+      // 1. Create Project
+      const project = await prisma.project.create({
+        data: {
+          userId: testUserA,
+          title: 'Supabase Live Project Alpha',
+          color: '#142B4A',
+          status: 'ACTIVE',
+        },
+      });
+      expect(project.id).toBeDefined();
+
+      // 2. Create Task linked to Project
+      const parentTask = await tasksService.create(testUserA, {
+        title: 'Master Architecture Document',
+        category: TaskCategory.WORK,
+        priority: Priority.HIGH,
+        estimatedDurationMinutes: 60,
+        projectId: project.id,
+      });
+      expect(parentTask.projectId).toBe(project.id);
+
+      // 3. Create Subtask linked to parent Task
+      const subtask = await prisma.task.create({
+        data: {
+          userId: testUserA,
+          title: 'Draft Sequence Diagram',
+          category: TaskCategory.WORK,
+          parentTaskId: parentTask.id,
+        },
+      });
+      expect(subtask.parentTaskId).toBe(parentTask.id);
+
+      // Verify retrieval with relation
+      const fetchedParent = await prisma.task.findUnique({
+        where: { id: parentTask.id },
+        include: { subtasks: true, project: true },
+      });
+      expect(fetchedParent.project.title).toBe('Supabase Live Project Alpha');
+      expect(fetchedParent.subtasks).toHaveLength(1);
+      expect(fetchedParent.subtasks[0].title).toBe('Draft Sequence Diagram');
+    });
+
+    it('persists AutomationRule and AutomationRuleExecution on live Supabase PostgreSQL', async () => {
+      const rule = await prisma.automationRule.create({
+        data: {
+          userId: testUserA,
+          name: 'Live Supabase Overdue Check',
+          ruleType: 'OVERDUE_ALERT',
+          condition: { maxOverdueHours: 2 },
+          action: { notify: true },
+          cooldownMinutes: 30,
+        },
+      });
+      expect(rule.id).toBeDefined();
+
+      const execution = await prisma.automationRuleExecution.create({
+        data: {
+          ruleId: rule.id,
+          userId: testUserA,
+          triggeredBy: 'LIVE_TEST_TRIGGER',
+          actionTaken: 'Executed live alert check',
+          status: 'SUCCESS',
+        },
+      });
+      expect(execution.id).toBeDefined();
+      expect(execution.ruleId).toBe(rule.id);
+    });
   });
 });

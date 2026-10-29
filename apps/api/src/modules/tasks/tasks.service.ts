@@ -117,6 +117,9 @@ export class TasksService {
         canSplit: data.canSplit || false,
         bufferMinutes: data.bufferMinutes || 5,
         routineId: data.routineId || null,
+        projectId: data.projectId || null,
+        parentTaskId: data.parentTaskId || null,
+        notes: data.notes || null,
       },
     });
 

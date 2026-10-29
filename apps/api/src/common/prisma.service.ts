@@ -14,11 +14,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     try {
-      // Fast connection timeout race (1.5s) to prevent blocking when database is offline
+      // Fast connection timeout race (5s) to prevent blocking when database is offline
       await Promise.race([
         this.$connect(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Connection timeout after 1500ms')), 1500),
+          setTimeout(() => reject(new Error('Connection timeout after 5000ms')), 5000),
         ),
       ]);
       this.isConnected = true;

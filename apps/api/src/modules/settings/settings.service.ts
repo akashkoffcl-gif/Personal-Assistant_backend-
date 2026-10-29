@@ -49,16 +49,13 @@ export class SettingsService {
       return { userId, tasks: [], routines: [], exportTimestamp: new Date().toISOString() };
     }
 
-    const [tasks, routines, routineOccurrences, wellnessMetrics, wellnessCheckIns, taskEvents, scheduleChanges] =
-      await Promise.all([
-        this.prisma.task.findMany({ where: { userId } }),
-        this.prisma.routine.findMany({ where: { userId } }),
-        this.prisma.routineOccurrence.findMany({ where: { userId } }),
-        this.prisma.wellnessMetric.findMany({ where: { userId } }),
-        this.prisma.wellnessCheckIn.findMany({ where: { userId } }),
-        this.prisma.taskEvent.findMany({ where: { userId } }),
-        this.prisma.scheduleChange.findMany({ where: { userId } }),
-      ]);
+    const tasks = await this.prisma.task.findMany({ where: { userId } });
+    const routines = await this.prisma.routine.findMany({ where: { userId } });
+    const routineOccurrences = await this.prisma.routineOccurrence.findMany({ where: { userId } });
+    const wellnessMetrics = await this.prisma.wellnessMetric.findMany({ where: { userId } });
+    const wellnessCheckIns = await this.prisma.wellnessCheckIn.findMany({ where: { userId } });
+    const taskEvents = await this.prisma.taskEvent.findMany({ where: { userId } });
+    const scheduleChanges = await this.prisma.scheduleChange.findMany({ where: { userId } });
 
     return {
       userId,

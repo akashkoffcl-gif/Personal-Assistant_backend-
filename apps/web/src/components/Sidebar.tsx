@@ -12,11 +12,14 @@ import {
   BarChart3,
   Calendar,
   Settings,
+  FolderKanban,
+  Cpu,
 } from 'lucide-react';
 
 export type NavTab =
   | 'dashboard'
   | 'my-day'
+  | 'projects'
   | 'routines'
   | 'work'
   | 'planning'
@@ -24,6 +27,7 @@ export type NavTab =
   | 'wellness'
   | 'analytics'
   | 'calendar'
+  | 'automation'
   | 'settings';
 
 interface SidebarProps {
@@ -34,8 +38,9 @@ interface SidebarProps {
 
 export function Sidebar({ currentTab, onSelectTab, onOpenEmergency }: SidebarProps) {
   const navItems: Array<{ id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'dashboard', label: 'Command Center', icon: LayoutDashboard },
     { id: 'my-day', label: 'My Day', icon: CalendarCheck },
+    { id: 'projects', label: 'Projects', icon: FolderKanban },
     { id: 'routines', label: 'Routines', icon: Repeat },
     { id: 'work', label: 'Work', icon: Briefcase },
     { id: 'planning', label: 'Planning', icon: CalendarDays },
@@ -43,6 +48,7 @@ export function Sidebar({ currentTab, onSelectTab, onOpenEmergency }: SidebarPro
     { id: 'wellness', label: 'Health & Wellness', icon: HeartPulse },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
+    { id: 'automation', label: 'Automation Rules', icon: Cpu },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 

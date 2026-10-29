@@ -21,6 +21,7 @@ export function CreateTaskModal({ isOpen, onClose, onSubmit }: CreateTaskModalPr
   const [deadline, setDeadline] = useState('');
   const [bufferMinutes, setBufferMinutes] = useState(5);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -30,6 +31,7 @@ export function CreateTaskModal({ isOpen, onClose, onSubmit }: CreateTaskModalPr
 
     try {
       setLoading(true);
+      setErrorMessage(null);
       await onSubmit({
         title,
         description: description || undefined,
@@ -45,7 +47,7 @@ export function CreateTaskModal({ isOpen, onClose, onSubmit }: CreateTaskModalPr
       setDescription('');
       onClose();
     } catch (err: any) {
-      alert(`Error creating task: ${err.message}`);
+      setErrorMessage(err.message || 'Error creating task');
     } finally {
       setLoading(false);
     }
@@ -62,6 +64,11 @@ export function CreateTaskModal({ isOpen, onClose, onSubmit }: CreateTaskModalPr
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+          {errorMessage && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-assistant-red font-medium">
+              ⚠️ {errorMessage}
+            </div>
+          )}
           <div>
             <label className="block text-xs font-semibold text-assistant-navy mb-1">Title *</label>
             <input

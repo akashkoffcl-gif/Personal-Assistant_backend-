@@ -144,7 +144,7 @@ export function RightWidgets({
         <div className="flex items-center gap-2 mb-3">
           <Heart className="w-4 h-4 text-assistant-red" />
           <h4 className="text-xs font-bold text-assistant-navy uppercase tracking-wider">
-            Today's Wellness
+            Today&apos;s Wellness
           </h4>
         </div>
         <div className="space-y-2 text-xs">
