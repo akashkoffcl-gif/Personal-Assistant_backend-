@@ -4,18 +4,13 @@ import React, { useState } from 'react';
 import {
   Check,
   Clock,
-  AlertTriangle,
-  Flame,
   Briefcase,
   Repeat,
   CalendarDays,
-  MoreVertical,
   Plus,
   Pin,
   ListTodo,
   ArrowRight,
-  Filter,
-  CheckCircle2,
   Calendar,
   Sparkles,
 } from 'lucide-react';
@@ -72,25 +67,25 @@ export function TodaySchedule({
     switch (p) {
       case Priority.URGENT:
         return (
-          <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-700 border border-rose-300/60 shadow-xs">
+          <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200">
             Urgent
           </span>
         );
       case Priority.HIGH:
         return (
-          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 border border-amber-300/60 shadow-xs">
+          <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">
             High
           </span>
         );
       case Priority.MEDIUM:
         return (
-          <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-700 border border-sky-300/60 shadow-xs">
+          <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
             Medium
           </span>
         );
       default:
         return (
-          <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded-full bg-slate-200/60 text-slate-600 border border-slate-300/60 shadow-xs">
+          <span className="text-[10px] font-medium uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
             Low
           </span>
         );
@@ -101,26 +96,26 @@ export function TodaySchedule({
     switch (cat) {
       case TaskCategory.EMERGENCY:
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-500/15 px-2 py-0.5 rounded-lg border border-rose-300/60">
-            <Flame className="w-3 h-3 text-rose-600 animate-pulse" /> Emergency
+          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+            Emergency
           </span>
         );
       case TaskCategory.WORK:
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-800 bg-slate-200/70 px-2 py-0.5 rounded-lg border border-slate-300/60">
-            <Briefcase className="w-3 h-3 text-slate-700" /> Work
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+            <Briefcase className="w-3 h-3 text-slate-500" /> Work
           </span>
         );
       case TaskCategory.ROUTINE:
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-sky-800 bg-sky-500/15 px-2 py-0.5 rounded-lg border border-sky-300/60">
-            <Repeat className="w-3 h-3 text-sky-600" /> Habit
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+            <Repeat className="w-3 h-3 text-blue-500" /> Routine
           </span>
         );
       case TaskCategory.PLANNING:
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-500/15 px-2 py-0.5 rounded-lg border border-emerald-300/60">
-            <CalendarDays className="w-3 h-3 text-emerald-600" /> Planning
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+            <CalendarDays className="w-3 h-3 text-emerald-500" /> Plan
           </span>
         );
       default:
@@ -129,35 +124,36 @@ export function TodaySchedule({
   };
 
   return (
-    <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
-      {/* Header and Interactive Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs">
+      {/* Header and Filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-100">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+            <h3 className="text-base font-bold text-slate-900 tracking-tight">
               Today&apos;s Schedule & Tasks
             </h3>
-            <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-sky-500/10 text-sky-700 border border-sky-300/50">
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">
               {filteredTasks.length} {filteredTasks.length === 1 ? 'item' : 'items'}
             </span>
           </div>
-          <p className="text-xs text-assistant-coolGrey font-medium">
-            Chronological timeline, subtasks & dynamic time blocks
+          <p className="text-xs text-slate-500 mt-0.5">
+            Chronological timeline, subtasks and scheduled time blocks
           </p>
         </div>
 
         {/* Filters Group */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Status filter toggle */}
-          <div className="flex items-center p-0.5 rounded-xl bg-slate-200/50 border border-white/70">
+          <div className="flex items-center p-0.5 rounded-lg bg-slate-100 border border-slate-200">
             {(['ALL', 'PENDING', 'COMPLETED'] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`px-2 py-1 text-[11px] font-bold rounded-lg transition-all ${statusFilter === s
-                    ? 'bg-white text-slate-900 shadow-xs'
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                  statusFilter === s
+                    ? 'bg-white text-slate-900 shadow-xs font-semibold'
                     : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                }`}
               >
                 {s === 'ALL' ? 'All' : s === 'PENDING' ? 'Active' : 'Done'}
               </button>
@@ -170,12 +166,13 @@ export function TodaySchedule({
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-xl transition-all whitespace-nowrap border ${categoryFilter === cat
-                    ? 'bg-assistant-navy text-white border-transparent shadow-xs scale-102'
-                    : 'glass-card text-slate-600 hover:text-slate-900 border-white/80'
-                  }`}
+                className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors whitespace-nowrap border ${
+                  categoryFilter === cat
+                    ? 'bg-slate-900 text-white border-slate-900 font-semibold'
+                    : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200'
+                }`}
               >
-                {cat === 'ALL' ? 'All' : cat.charAt(0) + cat.slice(1).toLowerCase()}
+                {cat === 'ALL' ? 'All Categories' : cat.charAt(0) + cat.slice(1).toLowerCase()}
               </button>
             ))}
           </div>
@@ -184,21 +181,21 @@ export function TodaySchedule({
 
       {/* Task List */}
       {loading ? (
-        <div className="py-14 text-center text-sm text-slate-400 flex flex-col items-center gap-2">
-          <div className="w-6 h-6 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
-          <span>Synchronizing schedule timeline...</span>
+        <div className="py-12 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
+          <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <span>Loading scheduled activities...</span>
         </div>
       ) : filteredTasks.length === 0 ? (
-        <div className="py-12 text-center glass-card rounded-2xl border border-dashed border-slate-300/80 p-6">
-          <Calendar className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-          <h4 className="text-sm font-bold text-slate-700">No scheduled tasks match your filter</h4>
-          <p className="text-xs text-slate-500 mt-1 mb-4">
-            Create an appointment, habit, or task to organize your day.
+        <div className="py-8 text-center rounded-lg border border-dashed border-slate-200 p-5 bg-slate-50/50">
+          <Calendar className="w-8 h-8 text-slate-400 mx-auto mb-1.5" />
+          <h4 className="text-xs font-semibold text-slate-700">No scheduled tasks match your filter</h4>
+          <p className="text-xs text-slate-500 mt-0.5 mb-3">
+            Add a task, appointment, or routine to organize today.
           </p>
           {onOpenCreateTask && (
             <button
               onClick={onOpenCreateTask}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-900 glass-button-primary border border-sky-300 shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Create Task</span>
@@ -206,61 +203,65 @@ export function TodaySchedule({
           )}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {filteredTasks.map((t) => {
             const isCompleted = t.status === TaskStatus.COMPLETED;
             const isOverdue =
               !isCompleted &&
               t.scheduledEndTime &&
               new Date(t.scheduledEndTime).getTime() < Date.now();
-            const isFixed = t.schedulingMode === SchedulingMode.FIXED || (t.schedulingMode as string) === 'FIXED_APPOINTMENT';
+            const isFixed =
+              t.schedulingMode === SchedulingMode.FIXED ||
+              (t.schedulingMode as string) === 'FIXED_APPOINTMENT';
             const subtaskCount = t.subtasks?.length || 0;
-            const completedSubtasks = t.subtasks?.filter((s) => s.status === TaskStatus.COMPLETED).length || 0;
+            const completedSubtasks =
+              t.subtasks?.filter((s) => s.status === TaskStatus.COMPLETED).length || 0;
 
             return (
               <div
                 key={t.id}
-                className={`p-4 rounded-2xl border transition-all duration-200 select-none group relative overflow-hidden ${isCompleted
-                    ? 'bg-emerald-50/40 border-emerald-200/60 opacity-80'
+                className={`p-3 rounded-lg border transition-colors select-none ${
+                  isCompleted
+                    ? 'bg-slate-50/80 border-slate-200 opacity-75'
                     : isOverdue
-                      ? 'bg-rose-50/50 border-rose-300/70 shadow-xs hover:border-rose-400'
-                      : 'glass-card border-white/90 hover:border-sky-300 shadow-glass hover:shadow-glass-hover'
-                  }`}
+                    ? 'bg-red-50/20 border-red-200 hover:border-red-300'
+                    : 'bg-white border-slate-200 hover:border-slate-300'
+                }`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  {/* Left: Interactive Complete Checkbox */}
-                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                  {/* Left: Complete Checkbox */}
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         onComplete(t.id);
                       }}
-                      className={`w-6 h-6 rounded-xl flex items-center justify-center border transition-all mt-0.5 shrink-0 ${isCompleted
-                          ? 'bg-emerald-500 border-emerald-500 text-white shadow-glass-glow-emerald scale-105'
-                          : 'border-slate-300 bg-white/80 hover:border-emerald-500 hover:bg-emerald-50 text-transparent hover:scale-110 shadow-xs'
-                        }`}
+                      className={`w-5 h-5 rounded flex items-center justify-center border transition-colors mt-0.5 shrink-0 ${
+                        isCompleted
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'border-slate-300 bg-white hover:border-blue-600 hover:bg-blue-50 text-transparent'
+                      }`}
                       title={isCompleted ? 'Mark as active' : 'Complete task'}
                     >
-                      <Check className="w-4 h-4 stroke-[3]" />
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
                     </button>
 
-                    {/* Task Content: Clickable to open drawer */}
+                    {/* Task Content */}
                     <div
                       className="min-w-0 flex-1 cursor-pointer"
                       onClick={() => onSelectTask?.(t)}
                     >
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                         <span
-                          className={`text-sm font-bold tracking-tight truncate transition-colors ${isCompleted
-                              ? 'line-through text-slate-400'
-                              : 'text-slate-900 group-hover:text-assistant-navy'
-                            }`}
+                          className={`text-xs font-semibold tracking-tight truncate ${
+                            isCompleted ? 'line-through text-slate-400' : 'text-slate-900'
+                          }`}
                         >
                           {t.title}
                         </span>
 
                         {isFixed && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-500/15 px-2 py-0.5 rounded-full border border-amber-300/60">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-slate-700 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
                             <Pin className="w-2.5 h-2.5" /> Fixed
                           </span>
                         )}
@@ -269,56 +270,48 @@ export function TodaySchedule({
                         {getPriorityBadge(t.priority)}
 
                         {t.project && (
-                          <span
-                            className="text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs"
-                            style={{
-                              backgroundColor: `${t.project.color || '#38BDF8'}15`,
-                              borderColor: `${t.project.color || '#38BDF8'}40`,
-                              color: t.project.color || '#0284C7',
-                            }}
-                          >
-                            📁 {t.project.title}
+                          <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                            {t.project.title}
                           </span>
                         )}
                       </div>
 
                       {t.description && (
-                        <p className="text-xs text-slate-500 line-clamp-1 mb-2">
+                        <p className="text-xs text-slate-500 line-clamp-1 mb-1">
                           {t.description}
                         </p>
                       )}
 
                       {/* Time and Duration info */}
-                      <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
+                      <div className="flex items-center gap-2.5 text-[11px] text-slate-500 font-normal">
                         {t.scheduledStartTime ? (
-                          <span className="flex items-center gap-1 text-slate-700 font-semibold">
-                            <Clock className="w-3.5 h-3.5 text-sky-500" />
+                          <span className="flex items-center gap-1 text-slate-700 font-medium">
+                            <Clock className="w-3 h-3 text-slate-400" />
                             {format(new Date(t.scheduledStartTime), 'h:mm a')}
                             {t.scheduledEndTime && ` - ${format(new Date(t.scheduledEndTime), 'h:mm a')}`}
                           </span>
                         ) : (
-                          <span className="flex items-center gap-1 text-slate-500">
-                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="flex items-center gap-1 text-slate-400">
+                            <Clock className="w-3 h-3 text-slate-400" />
                             Flexible schedule
                           </span>
                         )}
 
                         {t.estimatedDurationMinutes && (
-                          <span className="text-slate-400 font-semibold">
+                          <span className="text-slate-400">
                             • {t.estimatedDurationMinutes}m
                           </span>
                         )}
 
-                        {/* Subtasks summary */}
                         {subtaskCount > 0 && (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-200">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-200">
                             <ListTodo className="w-3 h-3 text-indigo-500" />
-                            {completedSubtasks}/{subtaskCount} subtasks
+                            {completedSubtasks}/{subtaskCount}
                           </span>
                         )}
 
                         {isOverdue && (
-                          <span className="text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                          <span className="text-[10px] font-semibold text-red-600 bg-red-50 px-1.5 py-0.2 rounded border border-red-200">
                             Overdue
                           </span>
                         )}
@@ -326,18 +319,18 @@ export function TodaySchedule({
                     </div>
                   </div>
 
-                  {/* Right: Quick Action Buttons */}
-                  <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+                  {/* Right Actions */}
+                  <div className="flex items-center gap-1 shrink-0 pt-0.5">
                     {!isCompleted && onOpenTaskCheckIn && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           onOpenTaskCheckIn(t);
                         }}
-                        className="px-2.5 py-1 text-xs font-bold rounded-xl glass-card text-sky-700 hover:border-sky-300 transition-all flex items-center gap-1 shadow-xs hover:scale-102"
-                        title="Check in on task completion & follow-ups"
+                        className="px-2 py-1 text-xs font-semibold rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors flex items-center gap-1"
+                        title="Check in on task completion"
                       >
-                        <Sparkles className="w-3 h-3 text-sky-500" />
+                        <Sparkles className="w-3 h-3 text-blue-600" />
                         <span>Check-In</span>
                       </button>
                     )}
@@ -348,18 +341,18 @@ export function TodaySchedule({
                           e.stopPropagation();
                           onSnooze(t.id);
                         }}
-                        className="px-2.5 py-1 text-xs font-semibold rounded-xl glass-card text-slate-600 hover:text-sky-700 hover:border-sky-300 transition-all flex items-center gap-1 shadow-xs"
+                        className="px-2 py-1 text-xs font-medium rounded-md bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 transition-colors flex items-center gap-1"
                         title="Snooze task by 15 minutes"
                       >
-                        <Clock className="w-3 h-3 text-sky-500" />
-                        <span className="hidden sm:inline">+15m</span>
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        <span>+15m</span>
                       </button>
                     )}
 
                     <button
                       onClick={() => onSelectTask?.(t)}
-                      className="p-1.5 rounded-xl glass-card text-slate-500 hover:text-slate-900 hover:border-slate-300 transition-all shadow-xs"
-                      title="Open details, subtasks & history"
+                      className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-colors"
+                      title="Open details"
                     >
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>

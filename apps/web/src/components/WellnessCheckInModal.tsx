@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Heart, Smile, BatteryCharging, Zap, ShieldAlert, Sparkles } from 'lucide-react';
+import { X, Heart, Smile, BatteryCharging, Zap, ShieldAlert } from 'lucide-react';
 
 interface WellnessCheckInModalProps {
   isOpen: boolean;
@@ -49,14 +49,13 @@ export function WellnessCheckInModal({ isOpen, onClose, onSubmit }: WellnessChec
     onChange: (val: number) => void,
     lowLabel: string,
     highLabel: string,
-    activeColorClass: string,
   ) => (
-    <div className="space-y-1.5 p-3 rounded-2xl glass-card border border-white/80 shadow-xs">
+    <div className="space-y-1.5 p-3 rounded-lg border border-slate-200 bg-slate-50/50">
       <div className="flex items-center justify-between text-xs">
-        <span className="font-bold text-slate-800 flex items-center gap-1.5">
+        <span className="font-semibold text-slate-800 flex items-center gap-1.5">
           {icon} {label}
         </span>
-        <span className="font-extrabold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
+        <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
           {value} / 5
         </span>
       </div>
@@ -66,17 +65,17 @@ export function WellnessCheckInModal({ isOpen, onClose, onSubmit }: WellnessChec
             key={score}
             type="button"
             onClick={() => onChange(score)}
-            className={`py-2 text-xs font-black rounded-xl border transition-all ${
+            className={`py-1.5 text-xs font-semibold rounded-md border transition-colors ${
               value === score
-                ? `${activeColorClass} text-white shadow-xs scale-105`
-                : 'glass-card text-slate-600 hover:border-sky-300'
+                ? 'bg-blue-600 border-blue-600 text-white'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
             }`}
           >
             {score}
           </button>
         ))}
       </div>
-      <div className="flex justify-between text-[10px] text-slate-400 font-medium px-1">
+      <div className="flex justify-between text-[10px] text-slate-400 font-medium px-0.5">
         <span>{lowLabel}</span>
         <span>{highLabel}</span>
       </div>
@@ -84,92 +83,89 @@ export function WellnessCheckInModal({ isOpen, onClose, onSubmit }: WellnessChec
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md animate-in fade-in duration-150">
-      <div className="glass-panel max-w-md w-full bg-white/90 backdrop-blur-2xl rounded-3xl border border-white/80 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between px-6 py-4 glass-dark text-white border-b border-white/10">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+      <div className="bg-white max-w-md w-full rounded-xl border border-slate-200 shadow-xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-300 flex items-center justify-center border border-rose-400/30">
-              <Heart className="w-4 h-4 text-rose-400 fill-rose-400" />
+            <div className="w-7 h-7 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center">
+              <Heart className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-extrabold text-base tracking-tight text-white">Daily Wellness Check-In</h3>
-              <p className="text-[11px] text-rose-200 font-medium">Energy, Mood & Focus Balance</p>
+              <h3 className="font-bold text-sm text-slate-900">Daily Wellness Check-In</h3>
+              <p className="text-[11px] text-slate-500">Energy, Mood & Focus Balance</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl hover:bg-white/15 transition-all text-white/80 hover:text-white"
+            className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-5 space-y-3.5 max-h-[85vh] overflow-y-auto">
           {renderRatingButtons(
             'Mental Energy Level',
-            <Zap className="w-4 h-4 text-amber-500" />,
+            <Zap className="w-3.5 h-3.5 text-amber-500" />,
             energyScore,
             setEnergyScore,
             '1 - Drained',
             '5 - Peak Energy',
-            'bg-amber-500 border-amber-500',
           )}
 
           {renderRatingButtons(
             'Emotional Mood',
-            <Smile className="w-4 h-4 text-emerald-500" />,
+            <Smile className="w-3.5 h-3.5 text-emerald-500" />,
             moodScore,
             setMoodScore,
-            '1 - Low / Down',
-            '5 - Joyful / Optimistic',
-            'bg-emerald-500 border-emerald-500',
+            '1 - Low',
+            '5 - Joyful',
           )}
 
           {renderRatingButtons(
             'Physical Fatigue',
-            <BatteryCharging className="w-4 h-4 text-purple-500" />,
+            <BatteryCharging className="w-3.5 h-3.5 text-slate-600" />,
             fatigueScore,
             setFatigueScore,
-            '1 - Well Rested',
+            '1 - Rested',
             '5 - Exhausted',
-            'bg-purple-500 border-purple-500',
           )}
 
           {renderRatingButtons(
-            'Stress & Anxiety',
-            <ShieldAlert className="w-4 h-4 text-rose-500" />,
+            'Stress Level',
+            <ShieldAlert className="w-3.5 h-3.5 text-red-500" />,
             stressScore,
             setStressScore,
-            '1 - Calm & Peaceful',
+            '1 - Calm',
             '5 - Overwhelmed',
-            'bg-rose-500 border-rose-500',
           )}
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
               Personal Reflection Notes (Optional)
             </label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="What factors influenced your energy, focus, or stress today?..."
-              className="w-full px-3.5 py-2 text-xs glass-input rounded-xl"
+              placeholder="What influenced your energy, focus, or stress today?..."
+              className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:border-blue-600"
             />
           </div>
 
-          <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200/60">
+          <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-slate-600 glass-card hover:border-slate-300 rounded-xl transition-all"
+              className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-glass-glow disabled:opacity-50"
+              className="px-4 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs disabled:opacity-50"
             >
               {loading ? 'Saving...' : 'Save Check-In'}
             </button>

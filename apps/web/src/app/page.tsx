@@ -482,7 +482,7 @@ export default function App() {
   }, [selectedDate]);
 
   return (
-    <div className="min-h-screen glass-mesh-bg flex flex-col lg:flex-row relative selection:bg-sky-400 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row relative selection:bg-blue-100 selection:text-blue-900">
       {/* 1. Left Sidebar Navigation */}
       <Sidebar
         currentTab={currentTab}
@@ -509,18 +509,18 @@ export default function App() {
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
           {/* TAB 1: COMMAND CENTER (UNIFIED DASHBOARD VIEW) */}
           {currentTab === 'dashboard' && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               {/* Daily Context Bar with Today/Prev/Next Stepper */}
-              <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/80 shadow-glass flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-400/20 to-sky-500/30 text-sky-700 flex items-center justify-center border border-sky-300/50 shadow-xs">
-                    <Calendar className="w-5 h-5 text-sky-600" />
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200 shrink-0">
+                    <Calendar className="w-4 h-4 text-blue-600" />
                   </div>
                   <div>
-                    <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                    <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight leading-tight">
                       {format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')}
                     </h2>
-                    <p className="text-xs text-assistant-coolGrey font-medium">
+                    <p className="text-xs text-slate-500 font-medium leading-tight">
                       {selectedDate === new Date().toISOString().split('T')[0]
                         ? 'Today’s Active Operational Context'
                         : 'Historical / Forward Scheduled View'}
@@ -531,50 +531,50 @@ export default function App() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     onClick={handlePrevDay}
-                    className="p-2 rounded-xl glass-card hover:border-sky-300 text-slate-700 transition-all hover:scale-105 active:scale-95 shadow-xs"
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
                     title="Previous Day"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={handleToday}
-                    className="px-4 py-2 text-xs font-bold rounded-xl bg-assistant-navy text-white hover:bg-slate-800 transition-all hover:scale-102 active:scale-95 shadow-xs"
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors shadow-xs"
                   >
                     Today
                   </button>
                   <button
                     onClick={handleNextDay}
-                    className="p-2 rounded-xl glass-card hover:border-sky-300 text-slate-700 transition-all hover:scale-105 active:scale-95 shadow-xs"
+                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
                     title="Next Day"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                   <input
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="px-3 py-1.5 text-xs font-semibold glass-input rounded-xl text-slate-800 ml-1"
+                    className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-800 ml-1"
                   />
                 </div>
               </div>
 
               {/* Schedule Collision Alert Banner */}
               {dayPlan?.conflicts && dayPlan.conflicts.length > 0 && (
-                <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-300/70 shadow-glass-glow-rose backdrop-blur-xl flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5 animate-pulse" />
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
+                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-black text-rose-800 uppercase tracking-wider">
+                    <h4 className="text-xs font-bold text-red-800 uppercase tracking-wider">
                       Schedule Conflict Detected ({dayPlan.conflicts.length} Overlapping Slots)
                     </h4>
                     {dayPlan.conflicts.map((c: any, i: number) => (
-                      <p key={i} className="text-xs text-rose-700 mt-0.5 font-medium">
+                      <p key={i} className="text-xs text-red-700 mt-0.5">
                         &apos;{c.taskA}&apos; collides with &apos;{c.taskB}&apos; by {c.overlapMinutes}m. Adjust times or trigger replanning.
                       </p>
                     ))}
                   </div>
                   <button
                     onClick={() => setIsEmergencyModalOpen(true)}
-                    className="px-3.5 py-1.5 text-xs font-bold bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-all shadow-xs shrink-0"
+                    className="px-3 py-1 text-xs font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-xs shrink-0"
                   >
                     Auto-Replan
                   </button>
@@ -583,28 +583,28 @@ export default function App() {
 
               {/* Proactive Smart Check-In Assistant Banner */}
               {pendingCheckInItem && (
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-500/15 via-indigo-500/15 to-purple-500/15 border border-sky-300/80 shadow-glass-glow backdrop-blur-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-400 to-indigo-500 text-slate-950 flex items-center justify-center shrink-0 shadow-glass-glow font-bold">
-                      <Sparkles className="w-5 h-5 text-slate-950 animate-pulse" />
+                    <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
+                      <Sparkles className="w-4 h-4 text-white" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                          Proactive Smart Assistant Check-In
+                        <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider">
+                          Proactive Assistant Check-In
                         </h4>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-800 border border-sky-300/60">
+                        <span className="text-[10px] font-semibold px-2 py-0.2 rounded bg-blue-100 text-blue-800 border border-blue-200">
                           Awaiting Response
                         </span>
                       </div>
-                      <p className="text-xs text-slate-700 font-semibold mt-0.5">
+                      <p className="text-xs text-slate-700 mt-0.5">
                         {pendingCheckInItem.message}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setSmartCheckInTarget(pendingCheckInItem.target)}
-                    className="px-4 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-glass-glow flex items-center gap-1.5 shrink-0 self-start sm:self-auto hover:scale-102"
+                    className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
                   >
                     <Clock className="w-3.5 h-3.5" />
                     <span>Answer & Check-In</span>
@@ -717,43 +717,43 @@ export default function App() {
 
           {/* TAB 2: TASK & WORK MANAGEMENT WORKSPACE */}
           {(currentTab === 'my-day' || currentTab === 'work') && (
-            <div className="space-y-6">
-              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div className="space-y-5">
+              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-100">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Task & Work Management
                     </h3>
-                    <p className="text-xs text-assistant-coolGrey font-medium">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Full lifecycle management, deadlines, priorities, and subtask trees
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setIsCreateTaskModalOpen(true)}
-                      className="px-4 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-glass-glow flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
                     >
                       <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> New Task
                     </button>
                   </div>
                 </div>
 
-                {/* Interactive Search Bar & Project Selector */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                {/* Search Bar & Project Selector */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   <div className="sm:col-span-2 relative">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                     <input
                       ref={searchInputRef}
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search tasks by title, description or keywords (Ctrl+K)..."
-                      className="w-full pl-10 pr-4 py-2.5 text-xs font-semibold glass-input rounded-xl"
+                      className="w-full pl-9 pr-14 py-2 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-900 focus:outline-none focus:border-blue-600"
                     />
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-3 top-2.5 text-xs font-bold text-slate-400 hover:text-slate-600"
+                        className="absolute right-3 top-2 text-xs font-semibold text-slate-400 hover:text-slate-600"
                       >
                         Clear
                       </button>
@@ -764,7 +764,7 @@ export default function App() {
                     <select
                       value={selectedProjectId || ''}
                       onChange={(e) => setSelectedProjectId(e.target.value || null)}
-                      className="w-full px-3 py-2.5 text-xs font-bold glass-input rounded-xl text-slate-800"
+                      className="w-full px-3 py-2 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-800"
                     >
                       <option value="">All Projects</option>
                       {projects.map((p) => (
@@ -777,11 +777,11 @@ export default function App() {
                 </div>
 
                 {/* Task List */}
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {filteredTaskList.length === 0 ? (
-                    <div className="py-14 text-center glass-card rounded-2xl border border-dashed border-slate-300 p-6">
-                      <CheckCircle2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-xs font-bold text-slate-600">No matching tasks found.</p>
+                    <div className="py-10 text-center rounded-lg border border-dashed border-slate-200 p-5 bg-slate-50/50">
+                      <CheckCircle2 className="w-7 h-7 text-slate-300 mx-auto mb-1.5" />
+                      <p className="text-xs font-semibold text-slate-700">No matching tasks found.</p>
                       <p className="text-[11px] text-slate-400 mt-0.5">
                         Try modifying your search or project filter.
                       </p>
@@ -792,70 +792,63 @@ export default function App() {
                       return (
                         <div
                           key={t.id}
-                          className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border transition-all duration-200 select-none ${
+                          className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-lg border transition-colors select-none ${
                             isDone
-                              ? 'bg-emerald-50/40 border-emerald-200/60 opacity-80'
-                              : 'glass-card border-white/90 hover:border-sky-300 shadow-glass hover:shadow-glass-hover'
+                              ? 'bg-slate-50/80 border-slate-200 opacity-75'
+                              : 'bg-white border-slate-200 hover:border-slate-300'
                           }`}
                         >
                           <div
                             onClick={() => setSelectedTask(t)}
                             className="flex-1 cursor-pointer min-w-0"
                           >
-                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <div className="flex items-center gap-1.5 flex-wrap mb-1">
                               <span
-                                className={`font-bold text-sm transition-colors ${
-                                  isDone ? 'line-through text-slate-400' : 'text-slate-900 hover:text-sky-600'
+                                className={`font-semibold text-xs transition-colors ${
+                                  isDone ? 'line-through text-slate-400' : 'text-slate-900 hover:text-blue-600'
                                 }`}
                               >
                                 {t.title}
                               </span>
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full glass-pill text-slate-700 uppercase">
+                              <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 uppercase">
                                 {t.category}
                               </span>
                               <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${
                                   t.priority === Priority.URGENT
-                                    ? 'bg-rose-500/15 text-rose-700 border border-rose-300/60'
+                                    ? 'bg-red-50 text-red-700 border border-red-200'
                                     : t.priority === Priority.HIGH
-                                    ? 'bg-amber-500/15 text-amber-700 border border-amber-300/60'
-                                    : 'glass-pill text-slate-600'
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    : 'bg-slate-100 text-slate-600'
                                 }`}
                               >
                                 {t.priority}
                               </span>
                               {t.project && (
-                                <span
-                                  className="text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs"
-                                  style={{
-                                    backgroundColor: `${t.project.color || '#38BDF8'}15`,
-                                    borderColor: `${t.project.color || '#38BDF8'}40`,
-                                    color: t.project.color || '#0284C7',
-                                  }}
-                                >
-                                  📁 {t.project.title}
+                                <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                  {t.project.title}
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-slate-500 mt-1 truncate font-medium">
-                              Status: <span className="font-bold text-slate-700">{t.status}</span> • Duration: {t.estimatedDurationMinutes}m
+                            <p className="text-[11px] text-slate-500 truncate">
+                              Status: <span className="font-semibold text-slate-700">{t.status}</span> • Duration: {t.estimatedDurationMinutes}m
                               {t.scheduledStartTime ? ` • Start: ${format(new Date(t.scheduledStartTime), 'MMM d, h:mm a')}` : ' • Flexible'}
                               {t.deadline ? ` • Due: ${format(new Date(t.deadline), 'MMM d, h:mm a')}` : ''}
                             </p>
                           </div>
 
-                          <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
+                          <div className="flex items-center gap-1.5 shrink-0 pt-2 sm:pt-0">
                             {!isDone && (
                               <button
                                 onClick={() => completeTaskMutation.mutate(t.id)}
-                                className="px-3 py-1.5 text-xs font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-300/60 rounded-xl hover:bg-emerald-500/25 transition-all shadow-xs"
+                                className="px-2.5 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md hover:bg-emerald-100 transition-colors"
                               >
                                 Complete
                               </button>
                             )}
                             <button
                               onClick={() => setSelectedTask(t)}
-                              className="px-3 py-1.5 text-xs font-bold text-slate-700 glass-card hover:border-sky-300 rounded-xl transition-all shadow-xs"
+                              className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition-colors"
                             >
                               Edit Details
                             </button>
@@ -871,36 +864,36 @@ export default function App() {
 
           {/* TAB 3: PROJECTS WORKSPACE */}
           {currentTab === 'projects' && (
-            <div className="space-y-6">
-              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
-                <div className="flex items-center justify-between mb-6">
+            <div className="space-y-5">
+              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
+                <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Projects & Workspaces
                     </h3>
-                    <p className="text-xs text-assistant-coolGrey font-medium">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Organize initiatives, target delivery dates, and group deliverables
                     </p>
                   </div>
                   <button
                     onClick={() => setIsProjectModalOpen(true)}
-                    className="px-4 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-glass-glow flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
                   >
                     <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> New Project
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   {projects.length === 0 ? (
-                    <div className="col-span-full py-14 text-center glass-card rounded-2xl border border-dashed border-slate-300 p-6">
-                      <FolderKanban className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-xs font-bold text-slate-600">No active projects yet.</p>
+                    <div className="col-span-full py-10 text-center rounded-lg border border-dashed border-slate-200 p-5 bg-slate-50/50">
+                      <FolderKanban className="w-7 h-7 text-slate-400 mx-auto mb-1.5" />
+                      <p className="text-xs font-semibold text-slate-700">No active projects yet.</p>
                       <p className="text-[11px] text-slate-400 mt-0.5 mb-3">
                         Create a project workspace to bundle tasks and measure overall velocity.
                       </p>
                       <button
                         onClick={() => setIsProjectModalOpen(true)}
-                        className="px-3.5 py-1.5 text-xs font-bold text-slate-900 glass-button-primary rounded-xl shadow-xs"
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs"
                       >
                         Create Project
                       </button>
@@ -913,40 +906,40 @@ export default function App() {
                           setSelectedProjectId(proj.id);
                           setCurrentTab('work');
                         }}
-                        className="p-5 rounded-2xl glass-card border border-white/90 shadow-glass hover:shadow-glass-hover transition-all duration-300 flex flex-col justify-between cursor-pointer group"
+                        className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors bg-white shadow-xs flex flex-col justify-between cursor-pointer"
                       >
                         <div>
-                          <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center justify-between mb-2">
                             <span
-                              className="w-4 h-4 rounded-full ring-2 ring-white shadow-xs"
+                              className="w-3 h-3 rounded-full"
                               style={{ backgroundColor: proj.color }}
                             />
-                            <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full glass-pill text-slate-800 uppercase">
+                            <span className="text-[10px] font-semibold px-2 py-0.2 rounded bg-slate-100 text-slate-700 uppercase">
                               {proj.status}
                             </span>
                           </div>
-                          <h4 className="font-extrabold text-base text-slate-900 group-hover:text-sky-600 transition-colors">
+                          <h4 className="font-semibold text-sm text-slate-900 hover:text-blue-600 transition-colors">
                             {proj.title}
                           </h4>
                           {proj.description && (
-                            <p className="text-xs text-slate-500 mt-1 line-clamp-2 font-medium">
+                            <p className="text-xs text-slate-500 mt-1 line-clamp-2">
                               {proj.description}
                             </p>
                           )}
                         </div>
 
-                        <div className="mt-5 pt-3.5 border-t border-slate-200/60">
-                          <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
+                        <div className="mt-4 pt-3 border-t border-slate-100">
+                          <div className="flex items-center justify-between text-xs font-medium text-slate-700 mb-1">
                             <span>Progress</span>
-                            <span className="text-sky-600">{proj.progressPercent || 0}%</span>
+                            <span className="font-semibold text-blue-600">{proj.progressPercent || 0}%</span>
                           </div>
-                          <div className="w-full bg-slate-200/50 rounded-full h-2 overflow-hidden shadow-inner">
+                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-sky-400 to-indigo-500 transition-all duration-700"
+                              className="h-full rounded-full bg-blue-600 transition-all duration-500"
                               style={{ width: `${proj.progressPercent || 0}%` }}
                             />
                           </div>
-                          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2 font-medium">
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1.5">
                             <span>
                               {proj.completedTasksCount || 0} of {proj.tasksCount || 0} tasks done
                             </span>
@@ -965,26 +958,26 @@ export default function App() {
 
           {/* TAB 4: ROUTINES & HABITS WORKSPACE */}
           {currentTab === 'routines' && (
-            <div className="space-y-6">
-              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
-                <div className="flex items-center justify-between mb-6">
+            <div className="space-y-5">
+              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
+                <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Habits & Daily Routines
                     </h3>
-                    <p className="text-xs text-assistant-coolGrey font-medium">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Permanent recurring habit definitions, target quantities, and streak tracking
                     </p>
                   </div>
                   <button
                     onClick={() => setIsCreateRoutineModalOpen(true)}
-                    className="px-4 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-glass-glow flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
                   >
                     <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> New Habit
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   {routinesList.map((r) => {
                     const todayOcc = occurrences.find((o) => o.routineId === r.id);
                     const actualQty = todayOcc?.actualQuantity || 0;
@@ -996,53 +989,51 @@ export default function App() {
                     return (
                       <div
                         key={r.id}
-                        className="p-5 rounded-2xl glass-card border border-white/90 shadow-glass hover:shadow-glass-hover transition-all duration-300 flex flex-col justify-between gap-4"
+                        className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors bg-white shadow-xs flex flex-col justify-between gap-3"
                       >
                         <div>
                           <div className="flex items-center justify-between">
-                            <span className="font-extrabold text-slate-900 text-sm sm:text-base">
+                            <span className="font-semibold text-sm text-slate-900">
                               {r.title}
                             </span>
-                            <span className="text-xs font-bold text-amber-700 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-300/60 shadow-xs flex items-center gap-1">
-                              <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500 animate-pulse" />
-                              {r.streakCount} Day Streak
+                            <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1">
+                              <Flame className="w-3 h-3 text-amber-500 fill-amber-500" />
+                              {r.streakCount}d Streak
                             </span>
                           </div>
-                          <p className="text-xs text-slate-500 mt-1 font-medium">
-                            Frequency: <span className="font-bold text-slate-700">{r.frequency}</span> • {r.durationMinutes} min
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Frequency: <span className="font-semibold text-slate-700">{r.frequency}</span> • {r.durationMinutes} min
                             {r.targetTime ? ` • Target: ${r.targetTime}` : ''}
                             {r.targetQuantity ? ` • Goal: ${r.targetQuantity.toLocaleString()} ${r.unit || ''}` : ''}
                           </p>
 
                           {/* Today's Inline Progress */}
-                          <div className="mt-4 p-3 rounded-xl bg-white/60 border border-white/80 space-y-1.5 shadow-2xs">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-slate-500 font-medium">Today&apos;s Status</span>
-                              <span className="font-mono font-bold text-slate-800">
+                          <div className="mt-3 p-2.5 rounded-lg bg-slate-50 border border-slate-200/60 space-y-1">
+                            <div className="flex items-center justify-between text-[11px] font-medium">
+                              <span className="text-slate-500">Today&apos;s Status</span>
+                              <span className="font-mono font-semibold text-slate-800">
                                 {actualQty.toLocaleString()} / {targetQty.toLocaleString()} {unit}
                               </span>
                             </div>
-                            <div className="w-full bg-slate-200/60 rounded-full h-2 overflow-hidden shadow-inner">
+                            <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
                               <div
                                 className={`h-full rounded-full transition-all duration-500 ${
-                                  isCompleted
-                                    ? 'bg-gradient-to-r from-emerald-400 to-teal-500'
-                                    : 'bg-gradient-to-r from-sky-400 to-indigo-500'
+                                  isCompleted ? 'bg-emerald-600' : 'bg-blue-600'
                                 }`}
                                 style={{ width: `${Math.max(4, progressPercent)}%` }}
                               />
                             </div>
                             {todayOcc?.notes && (
-                              <p className="text-[10px] text-sky-700 font-semibold pt-0.5">
+                              <p className="text-[10px] text-blue-700 font-medium pt-0.5">
                                 🔔 {todayOcc.notes}
                               </p>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
-                          <span className={`text-[11px] font-bold ${isCompleted ? 'text-emerald-700' : 'text-slate-500'}`}>
-                            {isCompleted ? '✅ Goal achieved today' : `${Math.max(0, targetQty - actualQty).toLocaleString()} ${unit} remaining`}
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                          <span className={`text-[11px] font-medium ${isCompleted ? 'text-emerald-700' : 'text-slate-500'}`}>
+                            {isCompleted ? 'Goal achieved today' : `${Math.max(0, targetQty - actualQty).toLocaleString()} ${unit} remaining`}
                           </span>
                           <button
                             onClick={() => {
@@ -1060,9 +1051,9 @@ export default function App() {
                                 toast.info('Habit occurrence active', 'Track today in Command Center.');
                               }
                             }}
-                            className="px-3 py-1.5 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-xs flex items-center gap-1.5 hover:scale-102"
+                            className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition-colors"
                           >
-                            <span>{isCompleted ? 'Update Progress' : 'Log / Check-In'}</span>
+                            <span>{isCompleted ? 'Update' : 'Log / Check-In'}</span>
                           </button>
                         </div>
                       </div>
@@ -1075,26 +1066,26 @@ export default function App() {
 
           {/* TAB 5: CALENDAR & PLANNING WORKSPACE */}
           {(currentTab === 'planning' || currentTab === 'calendar') && (
-            <div className="space-y-6">
-              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div className="space-y-5">
+              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-100">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Calendar & Schedule Planning
                     </h3>
-                    <p className="text-xs text-assistant-coolGrey font-medium">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Multi-view agenda, time blocks, and deterministic conflict detection (Plan v{dayPlan?.version || 1})
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex bg-white/60 p-1 rounded-xl border border-white/80 shadow-xs">
+                    <div className="flex p-0.5 rounded-lg bg-slate-100 border border-slate-200">
                       {(['day', 'week', 'agenda'] as const).map((view) => (
                         <button
                           key={view}
                           onClick={() => setCalendarView(view)}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all capitalize ${
+                          className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors capitalize ${
                             calendarView === view
-                              ? 'bg-assistant-navy text-white shadow-xs'
+                              ? 'bg-white text-slate-900 shadow-xs font-semibold'
                               : 'text-slate-600 hover:text-slate-900'
                           }`}
                         >
@@ -1106,29 +1097,29 @@ export default function App() {
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="px-3 py-1.5 text-xs font-semibold glass-input rounded-xl text-slate-800"
+                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-800"
                     />
                   </div>
                 </div>
 
                 {/* VIEW 1: DAY TIME BLOCKS */}
                 {calendarView === 'day' && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-2xl glass-card border border-white/80 shadow-xs">
-                      <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-3 flex items-center justify-between">
-                        <span>🌅 Morning Focus</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 font-bold">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                      <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center justify-between">
+                        <span>Morning Focus</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 font-semibold border border-blue-200">
                           {dayPlan?.morningPriorities?.length || 0}
                         </span>
                       </h4>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         {dayPlan?.morningPriorities?.map((t: any) => (
                           <div
                             key={t.id}
                             onClick={() => setSelectedTask(t)}
-                            className="p-3 rounded-xl glass-card border border-white/90 text-xs cursor-pointer hover:border-sky-300 transition-all shadow-xs"
+                            className="p-2.5 rounded-md border border-slate-200 bg-white text-xs cursor-pointer hover:border-slate-300 transition-colors shadow-2xs"
                           >
-                            <span className="font-bold text-slate-900">{t.title}</span>
+                            <span className="font-semibold text-slate-900">{t.title}</span>
                             <p className="text-[11px] text-slate-500 mt-0.5">
                               {t.scheduledStartTime ? format(new Date(t.scheduledStartTime), 'h:mm a') : 'Flexible'}
                             </p>
@@ -1137,21 +1128,21 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-2xl glass-card border border-white/80 shadow-xs">
-                      <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-3 flex items-center justify-between">
-                        <span>☀️ Afternoon Sessions</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold">
+                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                      <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center justify-between">
+                        <span>Afternoon Focus</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 font-semibold border border-amber-200">
                           {dayPlan?.afternoonPriorities?.length || 0}
                         </span>
                       </h4>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         {dayPlan?.afternoonPriorities?.map((t: any) => (
                           <div
                             key={t.id}
                             onClick={() => setSelectedTask(t)}
-                            className="p-3 rounded-xl glass-card border border-white/90 text-xs cursor-pointer hover:border-sky-300 transition-all shadow-xs"
+                            className="p-2.5 rounded-md border border-slate-200 bg-white text-xs cursor-pointer hover:border-slate-300 transition-colors shadow-2xs"
                           >
-                            <span className="font-bold text-slate-900">{t.title}</span>
+                            <span className="font-semibold text-slate-900">{t.title}</span>
                             <p className="text-[11px] text-slate-500 mt-0.5">
                               {t.scheduledStartTime ? format(new Date(t.scheduledStartTime), 'h:mm a') : 'Flexible'}
                             </p>
@@ -1160,21 +1151,21 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="p-4 rounded-2xl glass-card border border-white/80 shadow-xs">
-                      <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-3 flex items-center justify-between">
-                        <span>🌙 Evening & Wind Down</span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-bold">
+                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                      <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center justify-between">
+                        <span>Evening Focus</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-semibold">
                           {dayPlan?.eveningPriorities?.length || 0}
                         </span>
                       </h4>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         {dayPlan?.eveningPriorities?.map((t: any) => (
                           <div
                             key={t.id}
                             onClick={() => setSelectedTask(t)}
-                            className="p-3 rounded-xl glass-card border border-white/90 text-xs cursor-pointer hover:border-sky-300 transition-all shadow-xs"
+                            className="p-2.5 rounded-md border border-slate-200 bg-white text-xs cursor-pointer hover:border-slate-300 transition-colors shadow-2xs"
                           >
-                            <span className="font-bold text-slate-900">{t.title}</span>
+                            <span className="font-semibold text-slate-900">{t.title}</span>
                             <p className="text-[11px] text-slate-500 mt-0.5">
                               {t.scheduledStartTime ? format(new Date(t.scheduledStartTime), 'h:mm a') : 'Flexible'}
                             </p>
@@ -1199,17 +1190,17 @@ export default function App() {
                         <div
                           key={idx}
                           onClick={() => setSelectedDate(dayStr)}
-                          className={`p-3 rounded-2xl border transition-all cursor-pointer min-h-40 flex flex-col justify-between ${
+                          className={`p-2.5 rounded-lg border transition-colors cursor-pointer min-h-36 flex flex-col justify-between ${
                             isSelected
-                              ? 'bg-sky-500/15 border-sky-400 shadow-glass-glow'
-                              : 'glass-card border-white/80 hover:border-sky-300'
+                              ? 'bg-blue-50/50 border-blue-600'
+                              : 'bg-white border-slate-200 hover:border-slate-300'
                           }`}
                         >
                           <div>
-                            <span className="text-xs font-bold text-slate-500 block uppercase">
+                            <span className="text-[11px] font-semibold text-slate-500 block uppercase">
                               {format(day, 'EEE')}
                             </span>
-                            <span className="text-base font-black text-slate-900">
+                            <span className="text-sm font-bold text-slate-900">
                               {format(day, 'd')}
                             </span>
                           </div>
@@ -1218,13 +1209,13 @@ export default function App() {
                             {dayTasks.slice(0, 2).map((dt) => (
                               <div
                                 key={dt.id}
-                                className="text-[10px] font-bold truncate p-1 rounded bg-white/80 text-slate-800 shadow-2xs"
+                                className="text-[10px] font-medium truncate p-1 rounded bg-slate-100 text-slate-800"
                               >
                                 {dt.title}
                               </div>
                             ))}
                             {dayTasks.length > 2 && (
-                              <span className="text-[9px] font-bold text-sky-600 block">
+                              <span className="text-[9px] font-semibold text-blue-600 block">
                                 +{dayTasks.length - 2} more
                               </span>
                             )}
@@ -1237,22 +1228,22 @@ export default function App() {
 
                 {/* VIEW 3: AGENDA LIST */}
                 {calendarView === 'agenda' && (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {tasks.map((t) => (
                       <div
                         key={t.id}
                         onClick={() => setSelectedTask(t)}
-                        className="p-3.5 rounded-2xl glass-card border border-white/90 flex items-center justify-between cursor-pointer hover:border-sky-300 shadow-xs"
+                        className="p-3 rounded-lg border border-slate-200 bg-white flex items-center justify-between cursor-pointer hover:border-slate-300 transition-colors"
                       >
                         <div>
-                          <span className="font-bold text-sm text-slate-900">{t.title}</span>
-                          <p className="text-xs text-slate-500 font-medium">
+                          <span className="font-semibold text-xs text-slate-900">{t.title}</span>
+                          <p className="text-[11px] text-slate-500">
                             {t.scheduledStartTime
                               ? `${format(new Date(t.scheduledStartTime), 'h:mm a')} (${t.estimatedDurationMinutes}m)`
                               : 'Flexible'}
                           </p>
                         </div>
-                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-full glass-pill text-slate-700">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                           {t.status}
                         </span>
                       </div>
@@ -1265,52 +1256,52 @@ export default function App() {
 
           {/* TAB 6: EMERGENCY AUDIT WORKSPACE */}
           {currentTab === 'emergency' && (
-            <div className="space-y-6">
-              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
-                <div className="flex items-center justify-between mb-4">
+            <div className="space-y-5">
+              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Emergency Replanning Audit History
                     </h3>
-                    <p className="text-xs text-assistant-coolGrey font-medium">
+                    <p className="text-xs text-slate-500 mt-0.5">
                       Historical log of before/after task repositioning events
                     </p>
                   </div>
                   <button
                     onClick={() => setIsEmergencyModalOpen(true)}
-                    className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl hover:from-rose-600 hover:to-red-700 transition-all shadow-glass-glow-rose"
+                    className="px-3.5 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-xs"
                   >
-                    🚨 Trigger Emergency
+                    Trigger Emergency
                   </button>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {scheduleChanges.length === 0 ? (
-                    <p className="text-xs text-slate-500 py-10 text-center glass-card rounded-2xl border border-dashed border-slate-300 font-medium">
+                    <p className="text-xs text-slate-400 py-8 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50">
                       No emergency schedule replans recorded yet.
                     </p>
                   ) : (
                     scheduleChanges.map((change: any) => (
                       <div
                         key={change.id}
-                        className="p-4 rounded-2xl glass-card border border-white/90 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs"
+                        className="p-3 rounded-lg border border-slate-200 bg-white text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                       >
                         <div>
-                          <span className="font-extrabold text-slate-900 text-sm">
+                          <span className="font-semibold text-slate-900">
                             {change.taskTitle || 'Task Modified'}
                           </span>
-                          <span className="ml-2 text-[10px] font-bold bg-rose-500/15 text-rose-700 px-2 py-0.5 rounded-full border border-rose-300/60">
+                          <span className="ml-2 text-[10px] font-semibold bg-red-50 text-red-700 px-1.5 py-0.2 rounded border border-red-200">
                             {change.reason}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-600 font-semibold">
+                        <div className="flex items-center gap-2 text-slate-600 font-medium">
                           <span>
                             {change.originalStartTime
                               ? format(new Date(change.originalStartTime), 'h:mm a')
                               : 'Unscheduled'}
                           </span>
                           <span>➔</span>
-                          <span className="font-bold text-sky-600">
+                          <span className="font-semibold text-blue-600">
                             {change.revisedStartTime
                               ? format(new Date(change.revisedStartTime), 'h:mm a')
                               : 'New Slot'}
@@ -1326,15 +1317,15 @@ export default function App() {
 
           {/* TAB 7: HEALTH & WELLNESS WORKSPACE */}
           {currentTab === 'wellness' && (
-            <div className="space-y-6">
-              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
-                <div className="flex items-center justify-between mb-4">
+            <div className="space-y-5">
+              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Health & Wellness Tracking
                     </h3>
-                    <p className="text-xs text-assistant-coolGrey font-medium">
-                      Behavioral insights from hydration, exercise, sleep, and self-reported check-ins
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Behavioral indicators from hydration, exercise, sleep, and self-reported check-ins
                     </p>
                   </div>
                   <button
@@ -1352,63 +1343,63 @@ export default function App() {
                         },
                       })
                     }
-                    className="p-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all flex items-center gap-1"
+                    className="px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors flex items-center gap-1"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Clear Records
                   </button>
                 </div>
 
                 {/* Quick Log Row */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
                   <button
                     onClick={() => logMetricMutation.mutate({ type: 'HYDRATION', value: 250, unit: 'ml' })}
-                    className="p-4 rounded-2xl glass-card border border-sky-200/70 hover:border-sky-400 text-left transition-all shadow-xs group"
+                    className="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-blue-500 text-left transition-colors shadow-2xs"
                   >
-                    <span className="text-xs font-bold text-sky-700 block group-hover:scale-102 transition-transform">
+                    <span className="text-xs font-semibold text-blue-700 block">
                       +250ml Water
                     </span>
-                    <p className="text-[11px] text-slate-500 mt-1 font-medium">Hydration intake</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Hydration intake</p>
                   </button>
                   <button
                     onClick={() => logMetricMutation.mutate({ type: 'EXERCISE', value: 30, unit: 'minutes' })}
-                    className="p-4 rounded-2xl glass-card border border-emerald-200/70 hover:border-emerald-400 text-left transition-all shadow-xs group"
+                    className="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-emerald-500 text-left transition-colors shadow-2xs"
                   >
-                    <span className="text-xs font-bold text-emerald-700 block group-hover:scale-102 transition-transform">
+                    <span className="text-xs font-semibold text-emerald-700 block">
                       +30m Workout
                     </span>
-                    <p className="text-[11px] text-slate-500 mt-1 font-medium">Exercise session</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Exercise session</p>
                   </button>
                   <button
                     onClick={() => logMetricMutation.mutate({ type: 'SLEEP', value: 8, unit: 'hours' })}
-                    className="p-4 rounded-2xl glass-card border border-purple-200/70 hover:border-purple-400 text-left transition-all shadow-xs group"
+                    className="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-purple-500 text-left transition-colors shadow-2xs"
                   >
-                    <span className="text-xs font-bold text-purple-700 block group-hover:scale-102 transition-transform">
+                    <span className="text-xs font-semibold text-purple-700 block">
                       +8h Sleep
                     </span>
-                    <p className="text-[11px] text-slate-500 mt-1 font-medium">Restful sleep</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Restful sleep</p>
                   </button>
                   <button
                     onClick={() => setIsCheckInModalOpen(true)}
-                    className="p-4 rounded-2xl glass-card border border-amber-200/70 hover:border-amber-400 text-left transition-all shadow-xs group"
+                    className="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-amber-500 text-left transition-colors shadow-2xs"
                   >
-                    <span className="text-xs font-bold text-amber-700 block group-hover:scale-102 transition-transform">
+                    <span className="text-xs font-semibold text-amber-700 block">
                       Daily Check-In
                     </span>
-                    <p className="text-[11px] text-slate-500 mt-1 font-medium">Mood & Energy Score</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Mood & Energy</p>
                   </button>
                 </div>
 
                 {/* Summary Overview */}
-                <div className="p-5 rounded-2xl glass-card border border-white/90 shadow-xs">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">
-                      Adherence & Consistency Score
+                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                      Adherence & Consistency Status
                     </span>
-                    <span className="text-xs font-bold text-sky-600 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200">
-                      {wellness?.adherenceTrendLabel || 'Sufficient baseline active'}
+                    <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                      {wellness?.adherenceTrendLabel || 'Insufficient data'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 font-medium">
+                  <p className="text-xs text-slate-600">
                     Hydration: {wellness?.hydrationTotalMl || 0}ml • Exercise: {wellness?.exerciseDurationMinutes || 0}m • Sleep: {wellness?.sleepHours || 0}h
                   </p>
                 </div>
@@ -1418,7 +1409,7 @@ export default function App() {
 
           {/* TAB 8: ANALYTICS SUITE */}
           {currentTab === 'analytics' && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <AnalyticsCharts
                 data={trends}
                 days={analyticsDays}
@@ -1430,40 +1421,40 @@ export default function App() {
 
           {/* TAB 9: AUTOMATION RULES WORKSPACE */}
           {currentTab === 'automation' && (
-            <div className="space-y-6">
-              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div className="space-y-5">
+              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-100">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Rule-Driven Automation Engine
                     </h3>
-                    <p className="text-xs text-assistant-coolGrey font-medium">
-                      Deterministic background rules, continuous focus break suggestions, and schedule triggers
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Deterministic background rules, focus break notifications, and schedule triggers
                     </p>
                   </div>
                   <button
                     onClick={() => evaluateRulesMutation.mutate()}
-                    className="px-4 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-glass-glow flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
                   >
                     <Play className="w-3.5 h-3.5 stroke-[2.5]" /> Evaluate Rules Now
                   </button>
                 </div>
 
                 {/* Automation Rules List */}
-                <div className="space-y-3 mb-8">
+                <div className="space-y-2 mb-6">
                   {automationRules.map((rule) => (
                     <div
                       key={rule.id}
-                      className="p-4 rounded-2xl glass-card border border-white/90 flex items-center justify-between gap-4 shadow-xs"
+                      className="p-3.5 rounded-lg border border-slate-200 bg-white flex items-center justify-between gap-4"
                     >
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-sm text-slate-900">{rule.name}</span>
-                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full glass-pill text-slate-700">
+                          <span className="font-semibold text-xs text-slate-900">{rule.name}</span>
+                          <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-700">
                             {rule.ruleType}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-500 mt-1 font-medium">
+                        <p className="text-[11px] text-slate-500 mt-0.5">
                           Cooldown: {rule.cooldownMinutes}m
                           {rule.lastExecutedAt
                             ? ` • Last run: ${format(new Date(rule.lastExecutedAt), 'MMM d, h:mm a')}`
@@ -1473,10 +1464,10 @@ export default function App() {
 
                       <button
                         onClick={() => toggleRuleMutation.mutate({ id: rule.id, isEnabled: !rule.isEnabled })}
-                        className={`px-3.5 py-1.5 text-xs font-bold rounded-xl border transition-all ${
+                        className={`px-3 py-1 text-xs font-semibold rounded-md border transition-colors ${
                           rule.isEnabled
-                            ? 'bg-emerald-500/15 text-emerald-700 border-emerald-300/60 shadow-glass-glow-emerald'
-                            : 'glass-card text-slate-400 border-slate-200'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-slate-100 text-slate-500 border-slate-200'
                         }`}
                       >
                         {rule.isEnabled ? 'Active' : 'Disabled'}
@@ -1487,25 +1478,25 @@ export default function App() {
 
                 {/* Execution History */}
                 <div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 mb-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
                     Recent Automation Executions
                   </h4>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {automationExecutions.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-8 text-center glass-card rounded-2xl border border-dashed border-slate-300 font-medium">
+                      <p className="text-xs text-slate-400 py-6 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50">
                         No rule executions recorded yet.
                       </p>
                     ) : (
                       automationExecutions.slice(0, 10).map((exec) => (
                         <div
                           key={exec.id}
-                          className="p-3.5 rounded-xl glass-card border border-white/80 text-xs flex items-center justify-between shadow-xs"
+                          className="p-2.5 rounded-md border border-slate-200 bg-slate-50/50 text-xs flex items-center justify-between"
                         >
                           <div>
-                            <span className="font-bold text-slate-900">{exec.actionTaken}</span>
+                            <span className="font-semibold text-slate-900">{exec.actionTaken}</span>
                             <span className="text-slate-500 ml-2">via {exec.triggeredBy}</span>
                           </div>
-                          <span className="text-[11px] font-bold text-slate-400">
+                          <span className="text-[11px] text-slate-400">
                             {format(new Date(exec.executedAt), 'h:mm a')}
                           </span>
                         </div>
@@ -1519,64 +1510,64 @@ export default function App() {
 
           {/* TAB 10: SETTINGS WORKSPACE */}
           {currentTab === 'settings' && (
-            <div className="space-y-6">
-              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass max-w-2xl">
-                <h3 className="text-lg font-black text-slate-900 mb-1 tracking-tight">
+            <div className="space-y-5">
+              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs max-w-2xl">
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-0.5 tracking-tight">
                   User Settings & Data Portability
                 </h3>
-                <p className="text-xs text-assistant-coolGrey mb-6 font-medium">
+                <p className="text-xs text-slate-500 mb-5">
                   Configure working hours, quiet hours, default task duration, and data portability
                 </p>
 
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Work Start Hour (0-23)
                       </label>
                       <input
                         type="number"
                         defaultValue={settings?.workStartHour || 9}
-                        className="w-full px-3.5 py-2 text-xs font-semibold glass-input rounded-xl"
+                        className="w-full px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Work End Hour (1-24)
                       </label>
                       <input
                         type="number"
                         defaultValue={settings?.workEndHour || 18}
-                        className="w-full px-3.5 py-2 text-xs font-semibold glass-input rounded-xl"
+                        className="w-full px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Quiet Hours Start (Hour)
                       </label>
                       <input
                         type="number"
                         defaultValue={settings?.quietHoursStart || 22}
-                        className="w-full px-3.5 py-2 text-xs font-semibold glass-input rounded-xl"
+                        className="w-full px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
                         Quiet Hours End (Hour)
                       </label>
                       <input
                         type="number"
                         defaultValue={settings?.quietHoursEnd || 7}
-                        className="w-full px-3.5 py-2 text-xs font-semibold glass-input rounded-xl"
+                        className="w-full px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white"
                       />
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-200/60 flex flex-col gap-3">
-                    <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                  <div className="pt-4 border-t border-slate-100 flex flex-col gap-2.5">
+                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                       Data Portability & Export (GDPR / CCPA)
                     </span>
                     <button
@@ -1592,9 +1583,9 @@ export default function App() {
                         a.click();
                         toast.success('Export downloaded', 'Full data package exported.');
                       }}
-                      className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-assistant-navy text-white text-xs font-bold hover:bg-slate-800 transition-all shadow-xs"
+                      className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors shadow-xs"
                     >
-                      <Download className="w-4 h-4 text-sky-400" /> Download Complete User Archive (JSON)
+                      <Download className="w-4 h-4 text-white" /> Download Complete User Archive (JSON)
                     </button>
                   </div>
                 </div>

@@ -6,7 +6,7 @@ import {
   CalendarCheck,
   Repeat,
   Briefcase,
-  AlertOctagon,
+  AlertTriangle,
   HeartPulse,
 } from 'lucide-react';
 import { NavTab } from './Sidebar';
@@ -21,13 +21,13 @@ export function BottomNav({ currentTab, onSelectTab, onOpenEmergency }: BottomNa
   const items: Array<{ id: NavTab; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { id: 'dashboard', label: 'Home', icon: LayoutDashboard },
     { id: 'my-day', label: 'My Day', icon: CalendarCheck },
-    { id: 'routines', label: 'Routines', icon: Repeat },
     { id: 'work', label: 'Work', icon: Briefcase },
+    { id: 'routines', label: 'Routines', icon: Repeat },
     { id: 'wellness', label: 'Wellness', icon: HeartPulse },
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-40 glass-panel rounded-2xl border border-white/80 px-2 py-1.5 shadow-2xl backdrop-blur-2xl">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-3 py-1 shadow-lg">
       <div className="flex items-center justify-around">
         {items.map((item) => {
           const Icon = item.icon;
@@ -37,34 +37,30 @@ export function BottomNav({ currentTab, onSelectTab, onOpenEmergency }: BottomNa
             <button
               key={item.id}
               onClick={() => onSelectTab(item.id)}
-              className={`flex flex-col items-center py-1 px-2.5 rounded-xl text-[10px] font-bold transition-all ${
-                isActive
-                  ? 'text-sky-600 scale-105'
-                  : 'text-slate-500 hover:text-slate-900'
+              className={`flex flex-col items-center py-1 px-2 text-[11px] font-medium transition-colors ${
+                isActive ? 'text-blue-600' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
               <div
-                className={`p-1.5 rounded-xl transition-all ${
-                  isActive
-                    ? 'bg-gradient-to-tr from-sky-400 to-sky-500 text-slate-950 shadow-glass-glow'
-                    : 'glass-card text-slate-500'
+                className={`p-1 rounded-md transition-colors ${
+                  isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-500'
                 }`}
               >
                 <Icon className="w-4 h-4" />
               </div>
-              <span className="mt-1">{item.label}</span>
+              <span className="mt-0.5">{item.label}</span>
             </button>
           );
         })}
 
         <button
           onClick={onOpenEmergency}
-          className="flex flex-col items-center py-1 px-2.5 rounded-xl text-[10px] font-bold text-rose-600 hover:scale-105 transition-all"
+          className="flex flex-col items-center py-1 px-2 text-[11px] font-medium text-red-600 hover:text-red-700"
         >
-          <div className="p-1.5 rounded-xl bg-gradient-to-tr from-rose-500 to-red-600 text-white shadow-glass-glow-rose">
-            <AlertOctagon className="w-4 h-4 animate-pulse" />
+          <div className="p-1 rounded-md bg-red-50 text-red-600">
+            <AlertTriangle className="w-4 h-4" />
           </div>
-          <span className="mt-1">Urgent</span>
+          <span className="mt-0.5">Urgent</span>
         </button>
       </div>
     </nav>

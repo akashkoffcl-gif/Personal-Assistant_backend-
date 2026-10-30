@@ -11,11 +11,9 @@ import {
   Moon,
   Sparkles,
   Footprints,
-  Calendar,
   CheckCircle2,
   Clock,
   ArrowRight,
-  TrendingUp,
   Bell,
   BookOpen,
 } from 'lucide-react';
@@ -46,23 +44,21 @@ export function RoutineChecklist({
     return Coffee;
   };
 
-  const daysOfWeek = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
   return (
-    <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
+    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+            <h3 className="text-base font-bold text-slate-900 tracking-tight">
               Habits & Routines
             </h3>
-            <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-700 border border-amber-300/50 flex items-center gap-1 shadow-xs">
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
               <Flame className="w-3 h-3 text-amber-500 fill-amber-500" />
               Daily Tracking
             </span>
           </div>
-          <p className="text-xs text-assistant-coolGrey font-medium">
+          <p className="text-xs text-slate-500 mt-0.5">
             Progressive target tracking, inline goals & smart reminders
           </p>
         </div>
@@ -70,7 +66,7 @@ export function RoutineChecklist({
         {onAddRoutine && (
           <button
             onClick={onAddRoutine}
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-900 glass-button-primary px-3 py-1.5 rounded-xl transition-all shadow-xs"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-lg transition-colors shadow-2xs"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Add Habit</span>
@@ -79,21 +75,21 @@ export function RoutineChecklist({
       </div>
 
       {loading ? (
-        <div className="py-12 text-center text-sm text-slate-400 flex flex-col items-center gap-2">
-          <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+        <div className="py-10 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
+          <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
           <span>Synchronizing daily routines...</span>
         </div>
       ) : occurrences.length === 0 ? (
-        <div className="py-10 text-center glass-card rounded-2xl border border-dashed border-slate-300/80 p-6">
-          <Sparkles className="w-8 h-8 text-amber-400 mx-auto mb-2 animate-bounce" />
-          <h4 className="text-sm font-bold text-slate-700">No habits scheduled for today</h4>
-          <p className="text-xs text-slate-500 mt-1 mb-4">
-            Start building daily habits for steps, hydration, workouts, reading, or mindfulness.
+        <div className="py-8 text-center rounded-lg border border-dashed border-slate-200 p-5 bg-slate-50/50">
+          <Sparkles className="w-7 h-7 text-amber-500 mx-auto mb-1.5" />
+          <h4 className="text-xs font-semibold text-slate-700">No habits scheduled for today</h4>
+          <p className="text-xs text-slate-500 mt-0.5 mb-3">
+            Build daily routines for hydration, walking, study, or mindfulness.
           </p>
           {onAddRoutine && (
             <button
               onClick={onAddRoutine}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-900 glass-button-primary border border-sky-300 shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Create New Routine</span>
@@ -101,7 +97,7 @@ export function RoutineChecklist({
           )}
         </div>
       ) : (
-        <div className="space-y-3.5">
+        <div className="space-y-3">
           {occurrences.map((occ) => {
             const routine = occ.routine;
             const Icon = getRoutineIcon(routine?.title || '', routine?.unit);
@@ -116,36 +112,36 @@ export function RoutineChecklist({
             return (
               <div
                 key={occ.id}
-                className={`p-4 rounded-2xl border transition-all duration-200 select-none ${
+                className={`p-3.5 rounded-lg border transition-colors select-none ${
                   isCompleted
-                    ? 'bg-emerald-50/40 border-emerald-200/80 shadow-xs'
+                    ? 'bg-slate-50/70 border-slate-200'
                     : isPartial
-                    ? 'bg-sky-50/40 border-sky-200/80 shadow-xs'
-                    : 'glass-card border-white/90 hover:border-sky-300 shadow-glass hover:shadow-glass-hover'
+                    ? 'bg-blue-50/20 border-blue-200'
+                    : 'bg-white border-slate-200 hover:border-slate-300'
                 }`}
               >
                 {/* Top Row: Icon, Title & Status Badge */}
-                <div className="flex items-center justify-between gap-3 mb-2.5">
-                  <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border shadow-xs ${
+                      className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 border ${
                         isCompleted
-                          ? 'bg-emerald-500/15 text-emerald-600 border-emerald-300/60'
+                          ? 'bg-emerald-50 text-emerald-600 border-emerald-200'
                           : isPartial
-                          ? 'bg-sky-500/15 text-sky-600 border-sky-300/60'
+                          ? 'bg-blue-50 text-blue-600 border-blue-200'
                           : 'bg-slate-100 text-slate-600 border-slate-200'
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-3.5 h-3.5" />
                     </div>
 
                     <div className="min-w-0">
-                      <h4 className="text-sm font-extrabold text-slate-900 truncate">
+                      <h4 className="text-xs font-semibold text-slate-900 truncate">
                         {routine?.title}
                       </h4>
                       {routine?.targetTime && (
                         <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
-                          <Clock className="w-2.5 h-2.5" /> Target time: {routine.targetTime}
+                          <Clock className="w-2.5 h-2.5" /> Target: {routine.targetTime}
                         </span>
                       )}
                     </div>
@@ -154,78 +150,74 @@ export function RoutineChecklist({
                   {/* Status Badge */}
                   <div className="shrink-0">
                     {isCompleted ? (
-                      <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-500/15 px-2.5 py-0.5 rounded-full border border-emerald-300/60 flex items-center gap-1 shadow-xs">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Done
+                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Done
                       </span>
                     ) : isPartial ? (
-                      <span className="text-[11px] font-extrabold text-sky-700 bg-sky-500/15 px-2.5 py-0.5 rounded-full border border-sky-300/60 shadow-xs">
-                        {progressPercent}% In Progress
+                      <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                        {progressPercent}% Done
                       </span>
                     ) : (
-                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
-                        Goal: {targetQty.toLocaleString()} {unit}
+                      <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                        Target: {targetQty.toLocaleString()} {unit}
                       </span>
                     )}
                   </div>
                 </div>
 
                 {/* Middle: In-Line Progress Bar & Status Text */}
-                <div className="space-y-1.5 mb-3 bg-white/50 p-2.5 rounded-xl border border-white/80 shadow-2xs">
-                  <div className="flex items-center justify-between text-xs font-semibold">
-                    <span className="text-slate-500 font-medium">Daily Goal</span>
-                    <span className="font-extrabold text-slate-800 font-mono">
+                <div className="space-y-1 mb-2.5 bg-slate-50 p-2 rounded-md border border-slate-200/60">
+                  <div className="flex items-center justify-between text-[11px] font-medium">
+                    <span className="text-slate-500">Daily Target</span>
+                    <span className="font-semibold text-slate-800 font-mono">
                       {actualQty.toLocaleString()} / {targetQty.toLocaleString()} {unit}
                     </span>
                   </div>
 
-                  <div className="w-full bg-slate-200/60 rounded-full h-2 overflow-hidden shadow-inner">
+                  <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
-                        isCompleted
-                          ? 'bg-gradient-to-r from-emerald-400 to-teal-500'
-                          : 'bg-gradient-to-r from-sky-400 to-indigo-500'
+                        isCompleted ? 'bg-emerald-600' : 'bg-blue-600'
                       }`}
                       style={{ width: `${Math.max(4, progressPercent)}%` }}
                     />
                   </div>
 
-                  {/* Follow-up reminder note if partial */}
                   {occ.notes && isPartial && (
-                    <div className="text-[10px] text-sky-700 font-semibold flex items-center gap-1 pt-0.5">
-                      <Bell className="w-3 h-3 text-sky-500" />
+                    <div className="text-[10px] text-blue-700 font-medium flex items-center gap-1 pt-0.5">
+                      <Bell className="w-2.5 h-2.5 text-blue-500" />
                       <span>{occ.notes}</span>
                     </div>
                   )}
                 </div>
 
-                {/* Bottom Row: Streak flame + Action Button */}
-                <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/50">
+                {/* Bottom Row: Streak flame + Action Buttons */}
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
                   <div
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold ${
+                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium ${
                       streak > 0
-                        ? 'bg-amber-500/15 text-amber-700 border border-amber-300/60'
+                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
                         : 'text-slate-400'
                     }`}
                   >
                     <Flame
-                      className={`w-3.5 h-3.5 ${
+                      className={`w-3 h-3 ${
                         streak > 0 ? 'text-amber-500 fill-amber-500' : 'text-slate-300'
                       }`}
                     />
                     <span>{streak}d streak</span>
                   </div>
 
-                  {/* Interactive Smart Check-In Button */}
+                  {/* Actions */}
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => onOpenCheckIn?.(occ)}
-                      className="px-3 py-1.5 text-xs font-bold text-slate-800 glass-card hover:border-sky-300 rounded-xl transition-all shadow-xs flex items-center gap-1.5 hover:scale-102 active:scale-95"
+                      className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition-colors flex items-center gap-1 shadow-2xs"
                     >
-                      <span>{isCompleted ? 'Update Progress' : 'Log / Check-In'}</span>
-                      <ArrowRight className="w-3 h-3 text-sky-500" />
+                      <span>{isCompleted ? 'Update' : 'Log / Check-In'}</span>
+                      <ArrowRight className="w-3 h-3 text-slate-400" />
                     </button>
 
-                    {/* Direct Quick Toggle Checkbox */}
                     <button
                       onClick={() =>
                         onRecord(
@@ -234,14 +226,14 @@ export function RoutineChecklist({
                           isCompleted ? 0 : targetQty,
                         )
                       }
-                      className={`w-7 h-7 rounded-xl flex items-center justify-center border transition-all ${
+                      className={`w-6 h-6 rounded-md flex items-center justify-center border transition-colors ${
                         isCompleted
-                          ? 'bg-emerald-500 border-emerald-500 text-white shadow-glass-glow-emerald'
-                          : 'border-slate-300 bg-white hover:border-emerald-500 hover:bg-emerald-50 text-slate-300 hover:text-emerald-500'
+                          ? 'bg-emerald-600 border-emerald-600 text-white'
+                          : 'border-slate-300 bg-white hover:border-emerald-600 hover:bg-emerald-50 text-slate-300 hover:text-emerald-600'
                       }`}
                       title={isCompleted ? 'Reset habit' : 'Complete 100%'}
                     >
-                      <Check className="w-4 h-4 stroke-[3]" />
+                      <Check className="w-3.5 h-3.5 stroke-[3]" />
                     </button>
                   </div>
                 </div>

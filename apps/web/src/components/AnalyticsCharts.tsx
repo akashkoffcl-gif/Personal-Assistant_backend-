@@ -38,9 +38,9 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
 
   if (loading) {
     return (
-      <div className="glass-panel rounded-2xl p-8 text-center text-sm text-slate-400 border border-white/80 flex flex-col items-center gap-2">
-        <div className="w-6 h-6 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
-        <span>Calculating performance analytics from persistent database records...</span>
+      <div className="bg-white rounded-xl p-8 text-center text-xs text-slate-400 border border-slate-200 flex flex-col items-center gap-2">
+        <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <span>Computing analytics from persistent records...</span>
       </div>
     );
   }
@@ -51,12 +51,12 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
   const workStatusBreakdown = data?.workStatusBreakdown || [];
   const wellnessTrends = data?.wellnessTrends || [];
 
-  // Custom Glass Tooltip
-  const CustomGlassTooltip = ({ active, payload, label }: any) => {
+  // Clean Tooltip
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="glass-dark text-white rounded-xl p-3 border border-white/10 shadow-2xl text-xs space-y-1">
-          <p className="font-bold text-sky-300 border-b border-white/10 pb-1 mb-1">{label}</p>
+        <div className="bg-slate-900 text-white rounded-lg p-2.5 shadow-lg border border-slate-800 text-xs space-y-1">
+          <p className="font-semibold text-slate-200 border-b border-slate-800 pb-1 mb-1">{label}</p>
           {payload.map((entry: any, index: number) => (
             <div key={`item-${index}`} className="flex items-center justify-between gap-3">
               <span className="text-slate-300 flex items-center gap-1.5">
@@ -66,7 +66,7 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
                 />
                 {entry.name}:
               </span>
-              <span className="font-bold font-mono text-white">{entry.value}</span>
+              <span className="font-semibold font-mono text-white">{entry.value}</span>
             </div>
           ))}
         </div>
@@ -76,32 +76,32 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
   };
 
   return (
-    <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
+    <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs">
       {/* Header and Range Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-100">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
-              Interactive Performance Analytics
+            <h3 className="text-base font-bold text-slate-900 tracking-tight">
+              Performance Analytics
             </h3>
-            <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-indigo-500/10 text-indigo-700 border border-indigo-300/50">
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-600">
               {days}d Window
             </span>
           </div>
-          <p className="text-xs text-assistant-coolGrey font-medium">
-            Realtime metrics computed from daily summaries & event telemetry
+          <p className="text-xs text-slate-500 mt-0.5">
+            Realtime metrics computed from daily summaries & completed tasks
           </p>
         </div>
 
-        {/* Date Range Selection Glass Pills */}
-        <div className="flex items-center gap-1 bg-white/60 p-1 rounded-xl border border-white/80 shadow-xs">
+        {/* Date Range Selection */}
+        <div className="flex items-center p-0.5 rounded-lg bg-slate-100 border border-slate-200">
           {[7, 14, 30].map((d) => (
             <button
               key={d}
               onClick={() => onSelectDays(d)}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
                 days === d
-                  ? 'bg-gradient-to-r from-sky-400 to-sky-500 text-slate-950 shadow-glass-glow'
+                  ? 'bg-white text-slate-900 shadow-xs font-semibold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -112,13 +112,13 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
       </div>
 
       {/* Chart Navigation Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-200/60 mb-6">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-100 mb-5">
         {[
-          { id: 'trends', label: '1. Completion Trends', icon: TrendingUp },
-          { id: 'routines', label: '2. Habit Consistency', icon: Flame },
-          { id: 'categories', label: '3. Category Breakdown', icon: PieIcon },
-          { id: 'work', label: '4. Work Milestones', icon: BarChart3 },
-          { id: 'wellness', label: '5. Wellness History', icon: Activity },
+          { id: 'trends', label: 'Completion Rate', icon: TrendingUp },
+          { id: 'routines', label: 'Habit Consistency', icon: Flame },
+          { id: 'categories', label: 'Category Breakdown', icon: PieIcon },
+          { id: 'work', label: 'Work Milestones', icon: BarChart3 },
+          { id: 'wellness', label: 'Wellness Trends', icon: Activity },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeChart === tab.id;
@@ -126,13 +126,13 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
             <button
               key={tab.id}
               onClick={() => setActiveChart(tab.id as any)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap border ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap border ${
                 isActive
-                  ? 'bg-assistant-navy text-white border-transparent shadow-xs'
-                  : 'glass-card text-slate-600 hover:text-slate-900 border-white/80'
+                  ? 'bg-slate-900 text-white border-slate-900 font-semibold'
+                  : 'bg-white text-slate-600 hover:bg-slate-50 border-slate-200'
               }`}
             >
-              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-sky-300' : 'text-slate-400'}`} />
+              <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
               <span>{tab.label}</span>
             </button>
           );
@@ -141,41 +141,29 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
 
       {/* CHART 1: COMPLETION TRENDS */}
       {activeChart === 'trends' && (
-        <div className="h-72 w-full">
+        <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={completionTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="rateGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
-                </linearGradient>
-                <linearGradient id="totalGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#38BDF8" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#38BDF8" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748B' }} />
               <YAxis tick={{ fontSize: 11, fill: '#64748B' }} />
-              <Tooltip content={<CustomGlassTooltip />} />
-              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
               <Area
                 type="monotone"
                 dataKey="rate"
                 name="Completion Rate (%)"
-                stroke="#10B981"
-                strokeWidth={2.5}
-                fillOpacity={1}
-                fill="url(#rateGradient)"
+                stroke="#16A34A"
+                strokeWidth={2}
+                fill="#DCFCE7"
               />
               <Area
                 type="monotone"
                 dataKey="completed"
                 name="Tasks Completed"
-                stroke="#38BDF8"
+                stroke="#2563EB"
                 strokeWidth={2}
-                fillOpacity={1}
-                fill="url(#totalGradient)"
+                fill="#DBEAFE"
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -184,24 +172,18 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
 
       {/* CHART 2: ROUTINE ADHERENCE */}
       {activeChart === 'routines' && (
-        <div className="h-72 w-full">
+        <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={routineAdherenceTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="adherenceBar" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#38BDF8" />
-                  <stop offset="100%" stopColor="#0284C7" />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748B' }} />
               <YAxis unit="%" tick={{ fontSize: 11, fill: '#64748B' }} />
-              <Tooltip content={<CustomGlassTooltip />} />
+              <Tooltip content={<CustomTooltip />} />
               <Bar
                 dataKey="adherence"
                 name="Routine Adherence (%)"
-                fill="url(#adherenceBar)"
-                radius={[6, 6, 0, 0]}
+                fill="#2563EB"
+                radius={[4, 4, 0, 0]}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -210,9 +192,9 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
 
       {/* CHART 3: CATEGORY DISTRIBUTION */}
       {activeChart === 'categories' && (
-        <div className="h-72 w-full flex items-center justify-center">
+        <div className="h-64 w-full flex items-center justify-center">
           {categoryDistribution.length === 0 ? (
-            <div className="text-sm text-slate-400">No task category records available.</div>
+            <div className="text-xs text-slate-400">No task category records available.</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -220,9 +202,9 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
                   data={categoryDistribution}
                   cx="50%"
                   cy="50%"
-                  innerRadius={65}
-                  outerRadius={95}
-                  paddingAngle={5}
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={4}
                   dataKey="value"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 >
@@ -230,7 +212,7 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomGlassTooltip />} />
+                <Tooltip content={<CustomTooltip />} />
                 <Legend wrapperStyle={{ fontSize: '11px' }} />
               </PieChart>
             </ResponsiveContainer>
@@ -240,14 +222,14 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
 
       {/* CHART 4: WORK STATUS BREAKDOWN */}
       {activeChart === 'work' && (
-        <div className="h-72 w-full">
+        <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={workStatusBreakdown} layout="vertical" margin={{ top: 10, right: 30, left: 20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" horizontal={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 11, fill: '#64748B' }} />
               <YAxis dataKey="status" type="category" tick={{ fontSize: 11, fill: '#64748B' }} />
-              <Tooltip content={<CustomGlassTooltip />} />
-              <Bar dataKey="count" name="Tasks in Status" radius={[0, 6, 6, 0]}>
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="count" name="Tasks in Status" radius={[0, 4, 4, 0]}>
                 {workStatusBreakdown.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.fill} />
                 ))}
@@ -259,37 +241,37 @@ export function AnalyticsCharts({ data, days, onSelectDays, loading }: Analytics
 
       {/* CHART 5: WELLNESS TRENDS */}
       {activeChart === 'wellness' && (
-        <div className="h-72 w-full">
+        <div className="h-64 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={wellnessTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748B' }} />
               <YAxis tick={{ fontSize: 11, fill: '#64748B' }} />
-              <Tooltip content={<CustomGlassTooltip />} />
-              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
               <Line
                 type="monotone"
                 dataKey="hydration"
                 name="Water Intake (ml)"
-                stroke="#38BDF8"
-                strokeWidth={2.5}
-                dot={{ r: 4, fill: '#38BDF8' }}
+                stroke="#0284C7"
+                strokeWidth={2}
+                dot={{ r: 3, fill: '#0284C7' }}
               />
               <Line
                 type="monotone"
                 dataKey="exercise"
                 name="Exercise (mins)"
-                stroke="#10B981"
-                strokeWidth={2.5}
-                dot={{ r: 4, fill: '#10B981' }}
+                stroke="#16A34A"
+                strokeWidth={2}
+                dot={{ r: 3, fill: '#16A34A' }}
               />
               <Line
                 type="monotone"
                 dataKey="sleep"
                 name="Sleep (hrs)"
-                stroke="#8B5CF6"
-                strokeWidth={2.5}
-                dot={{ r: 4, fill: '#8B5CF6' }}
+                stroke="#7C3AED"
+                strokeWidth={2}
+                dot={{ r: 3, fill: '#7C3AED' }}
               />
             </LineChart>
           </ResponsiveContainer>
