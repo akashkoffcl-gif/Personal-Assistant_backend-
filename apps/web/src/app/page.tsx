@@ -21,6 +21,7 @@ import { TaskDetailDrawer } from '@/components/TaskDetailDrawer';
 import { ProjectModal } from '@/components/ProjectModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { BottomNav } from '@/components/BottomNav';
+import { SmartCheckInModal, SmartCheckInTarget } from '@/components/SmartCheckInModal';
 import {
   TaskCategory,
   TaskStatus,
@@ -81,6 +82,7 @@ export default function App() {
   const [isCreateRoutineModalOpen, setIsCreateRoutineModalOpen] = useState(false);
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [smartCheckInTarget, setSmartCheckInTarget] = useState<SmartCheckInTarget | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -319,6 +321,143 @@ export default function App() {
     onError: (err: any) => toast.error('Evaluation failed', err.message),
   });
 
+  // Smart Habit Check-in & Follow-up Scheduler
+  const handleRecordRoutineProgress = async (
+    occurrenceId: string,
+    actualQuantity: number,
+    reminderTime?: string,
+    notes?: string,
+  ) => {
+    const occ = occurrences.find((o) => o.id === occurrenceId);
+    const targetQty = occ?.routine?.targetQuantity || 1;
+    const isDone = actualQuantity >= targetQty;
+    const status = isDone ? TaskStatus.COMPLETED : TaskStatus.IN_PROGRESS;
+
+    // 1. Record occurrence in permanent database
+    await api.recordOccurrence(occurrenceId, {
+      status,
+      actualQuantity,
+      notes: notes || undefined,
+    });
+
+    // 2. If partial progress and follow-up reminder requested, schedule follow-up task
+    if (!isDone && reminderTime && occ?.routine) {
+      const remaining = Math.max(0, targetQty - actualQuantity);
+      const unit = occ.routine.unit || 'steps';
+      await api.createTask({
+        title: `Complete remaining ${remaining.toLocaleString()} ${unit} (${occ.routine.title})`,
+        category: TaskCategory.ROUTINE,
+        routineId: occ.routine.id,
+        scheduledStartTime: reminderTime,
+        estimatedDurationMinutes: 20,
+        priority: Priority.MEDIUM,
+        schedulingMode: SchedulingMode.FLEXIBLE,
+        notes: `Smart follow-up reminder for habit '${occ.routine.title}'. Current progress: ${actualQuantity.toLocaleString()}/${targetQty.toLocaleString()} ${unit}.`,
+      });
+    }
+
+    // Refresh data across workspaces
+    queryClient.invalidateQueries({ queryKey: ['routine-occurrences'] });
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    queryClient.invalidateQueries({ queryKey: ['tasks-all'] });
+    queryClient.invalidateQueries({ queryKey: ['daily-kpi'] });
+    queryClient.invalidateQueries({ queryKey: ['wellness-summary'] });
+    queryClient.invalidateQueries({ queryKey: ['analytics-trends'] });
+
+    if (isDone) {
+      toast.success('🎉 Goal 100% Achieved!', `${actualQuantity.toLocaleString()} ${occ?.routine?.unit || 'units'} completed today. Streak advanced!`);
+    } else {
+      toast.info(
+        'Progress Saved',
+        `${actualQuantity.toLocaleString()} of ${targetQty.toLocaleString()} logged.${
+          reminderTime ? ` Follow-up reminder set for ${format(new Date(reminderTime), 'h:mm a')}.` : ''
+        }`,
+      );
+    }
+  };
+
+  // Smart Task Check-in & Follow-up Scheduler
+  const handleRecordTaskStatus = async (
+    taskId: string,
+    action: 'complete' | 'partial' | 'snooze' | 'skip',
+    rescheduleTime?: string,
+    notes?: string,
+  ) => {
+    if (action === 'complete') {
+      await api.completeTask(taskId);
+      toast.success('Task Completed', 'Marked done and KPI updated.');
+    } else if (action === 'snooze') {
+      await api.snoozeTask(taskId, 30, notes);
+      toast.info('Task Snoozed', 'Moved forward by 30 minutes.');
+    } else if (action === 'partial') {
+      await api.updateTask(taskId, {
+        status: TaskStatus.IN_PROGRESS,
+        notes: notes || 'Partial progress reported via smart check-in.',
+        scheduledStartTime: rescheduleTime || undefined,
+      });
+      toast.info('Progress Logged', `Follow-up reminder set ${rescheduleTime ? `for ${format(new Date(rescheduleTime), 'h:mm a')}` : 'later'}.`);
+    } else if (action === 'skip') {
+      await api.updateTask(taskId, { status: TaskStatus.SKIPPED, notes: notes || 'Skipped via check-in.' });
+      toast.info('Task Skipped for Today');
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    queryClient.invalidateQueries({ queryKey: ['tasks-all'] });
+    queryClient.invalidateQueries({ queryKey: ['daily-kpi'] });
+    queryClient.invalidateQueries({ queryKey: ['day-plan'] });
+  };
+
+  // Detect pending routine check-in or ended task awaiting follow-up
+  const pendingCheckInItem = useMemo(() => {
+    // 1. Check for any active routine occurrence not yet 100% completed today
+    const pendingRoutine = occurrences.find((occ) => {
+      const target = occ.routine?.targetQuantity || 1;
+      const actual = occ.actualQuantity || 0;
+      return occ.status !== TaskStatus.COMPLETED && actual < target;
+    });
+    if (pendingRoutine && pendingRoutine.routine) {
+      const target = pendingRoutine.routine.targetQuantity || 1;
+      const actual = pendingRoutine.actualQuantity || 0;
+      const unit = pendingRoutine.routine.unit || 'steps';
+      return {
+        message: actual > 0
+          ? `You have logged ${actual.toLocaleString()}/${target.toLocaleString()} ${unit} for '${pendingRoutine.routine.title}'. Time for your follow-up check-in!`
+          : `Daily Habit Check-In: How many ${unit} have you completed today for '${pendingRoutine.routine.title}'?`,
+        target: {
+          type: 'routine' as const,
+          id: pendingRoutine.id,
+          routineId: pendingRoutine.routineId,
+          title: pendingRoutine.routine.title,
+          targetQuantity: pendingRoutine.routine.targetQuantity,
+          actualQuantity: pendingRoutine.actualQuantity,
+          unit: pendingRoutine.routine.unit,
+        },
+      };
+    }
+
+    // 2. Check for any scheduled task whose end time has passed
+    const now = new Date();
+    const pastTask = tasks.find((t) => {
+      if (t.status === TaskStatus.COMPLETED) return false;
+      if (!t.scheduledEndTime) return false;
+      return new Date(t.scheduledEndTime).getTime() <= now.getTime();
+    });
+    if (pastTask) {
+      return {
+        message: `The scheduled slot for '${pastTask.title}' has concluded. Did you finish this task?`,
+        target: {
+          type: 'task' as const,
+          id: pastTask.id,
+          title: pastTask.title,
+          estimatedDurationMinutes: pastTask.estimatedDurationMinutes,
+          scheduledStartTime: pastTask.scheduledStartTime,
+        },
+      };
+    }
+
+    return null;
+  }, [occurrences, tasks]);
+
   // Filtered tasks by search query & optional project selection
   const filteredTaskList = useMemo(() => {
     let list = allTasks;
@@ -442,6 +581,37 @@ export default function App() {
                 </div>
               )}
 
+              {/* Proactive Smart Check-In Assistant Banner */}
+              {pendingCheckInItem && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-500/15 via-indigo-500/15 to-purple-500/15 border border-sky-300/80 shadow-glass-glow backdrop-blur-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-400 to-indigo-500 text-slate-950 flex items-center justify-center shrink-0 shadow-glass-glow font-bold">
+                      <Sparkles className="w-5 h-5 text-slate-950 animate-pulse" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                          Proactive Smart Assistant Check-In
+                        </h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-800 border border-sky-300/60">
+                          Awaiting Response
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-700 font-semibold mt-0.5">
+                        {pendingCheckInItem.message}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSmartCheckInTarget(pendingCheckInItem.target)}
+                    className="px-4 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-glass-glow flex items-center gap-1.5 shrink-0 self-start sm:self-auto hover:scale-102"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Answer & Check-In</span>
+                  </button>
+                </div>
+              )}
+
               {/* Executive KPI Cards */}
               <KpiCards
                 kpi={kpi}
@@ -466,6 +636,15 @@ export default function App() {
                     onSnooze={(id) => snoozeTaskMutation.mutate(id)}
                     onSelectTask={(t) => setSelectedTask(t)}
                     onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
+                    onOpenTaskCheckIn={(task) =>
+                      setSmartCheckInTarget({
+                        type: 'task',
+                        id: task.id,
+                        title: task.title,
+                        estimatedDurationMinutes: task.estimatedDurationMinutes,
+                        scheduledStartTime: task.scheduledStartTime,
+                      })
+                    }
                     loading={tasksLoading}
                   />
 
@@ -484,6 +663,17 @@ export default function App() {
                     occurrences={occurrences}
                     onRecord={(id, status, actualQuantity) =>
                       recordOccurrenceMutation.mutate({ id, status, actualQuantity })
+                    }
+                    onOpenCheckIn={(occ) =>
+                      setSmartCheckInTarget({
+                        type: 'routine',
+                        id: occ.id,
+                        routineId: occ.routineId,
+                        title: occ.routine?.title || 'Habit',
+                        targetQuantity: occ.routine?.targetQuantity,
+                        actualQuantity: occ.actualQuantity,
+                        unit: occ.routine?.unit,
+                      })
                     }
                     onAddRoutine={() => setIsCreateRoutineModalOpen(true)}
                     loading={routinesLoading}
@@ -795,27 +985,89 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {routinesList.map((r) => (
-                    <div
-                      key={r.id}
-                      className="p-5 rounded-2xl glass-card border border-white/90 shadow-glass hover:shadow-glass-hover transition-all duration-300"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-extrabold text-slate-900 text-sm sm:text-base">
-                          {r.title}
-                        </span>
-                        <span className="text-xs font-bold text-amber-700 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-300/60 shadow-xs flex items-center gap-1">
-                          <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500 animate-pulse" />
-                          {r.streakCount} Day Streak
-                        </span>
+                  {routinesList.map((r) => {
+                    const todayOcc = occurrences.find((o) => o.routineId === r.id);
+                    const actualQty = todayOcc?.actualQuantity || 0;
+                    const targetQty = r.targetQuantity || 1;
+                    const unit = r.unit || 'units';
+                    const progressPercent = Math.min(100, Math.round((actualQty / targetQty) * 100));
+                    const isCompleted = todayOcc?.status === TaskStatus.COMPLETED || actualQty >= targetQty;
+
+                    return (
+                      <div
+                        key={r.id}
+                        className="p-5 rounded-2xl glass-card border border-white/90 shadow-glass hover:shadow-glass-hover transition-all duration-300 flex flex-col justify-between gap-4"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <span className="font-extrabold text-slate-900 text-sm sm:text-base">
+                              {r.title}
+                            </span>
+                            <span className="text-xs font-bold text-amber-700 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-300/60 shadow-xs flex items-center gap-1">
+                              <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500 animate-pulse" />
+                              {r.streakCount} Day Streak
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1 font-medium">
+                            Frequency: <span className="font-bold text-slate-700">{r.frequency}</span> • {r.durationMinutes} min
+                            {r.targetTime ? ` • Target: ${r.targetTime}` : ''}
+                            {r.targetQuantity ? ` • Goal: ${r.targetQuantity.toLocaleString()} ${r.unit || ''}` : ''}
+                          </p>
+
+                          {/* Today's Inline Progress */}
+                          <div className="mt-4 p-3 rounded-xl bg-white/60 border border-white/80 space-y-1.5 shadow-2xs">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-slate-500 font-medium">Today&apos;s Status</span>
+                              <span className="font-mono font-bold text-slate-800">
+                                {actualQty.toLocaleString()} / {targetQty.toLocaleString()} {unit}
+                              </span>
+                            </div>
+                            <div className="w-full bg-slate-200/60 rounded-full h-2 overflow-hidden shadow-inner">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  isCompleted
+                                    ? 'bg-gradient-to-r from-emerald-400 to-teal-500'
+                                    : 'bg-gradient-to-r from-sky-400 to-indigo-500'
+                                }`}
+                                style={{ width: `${Math.max(4, progressPercent)}%` }}
+                              />
+                            </div>
+                            {todayOcc?.notes && (
+                              <p className="text-[10px] text-sky-700 font-semibold pt-0.5">
+                                🔔 {todayOcc.notes}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
+                          <span className={`text-[11px] font-bold ${isCompleted ? 'text-emerald-700' : 'text-slate-500'}`}>
+                            {isCompleted ? '✅ Goal achieved today' : `${Math.max(0, targetQty - actualQty).toLocaleString()} ${unit} remaining`}
+                          </span>
+                          <button
+                            onClick={() => {
+                              if (todayOcc) {
+                                setSmartCheckInTarget({
+                                  type: 'routine',
+                                  id: todayOcc.id,
+                                  routineId: r.id,
+                                  title: r.title,
+                                  targetQuantity: r.targetQuantity,
+                                  actualQuantity: todayOcc.actualQuantity,
+                                  unit: r.unit,
+                                });
+                              } else {
+                                toast.info('Habit occurrence active', 'Track today in Command Center.');
+                              }
+                            }}
+                            className="px-3 py-1.5 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-xs flex items-center gap-1.5 hover:scale-102"
+                          >
+                            <span>{isCompleted ? 'Update Progress' : 'Log / Check-In'}</span>
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-xs text-slate-500 mt-2 font-medium">
-                        Frequency: <span className="font-bold text-slate-700">{r.frequency}</span> • {r.durationMinutes} min
-                        {r.targetTime ? ` • Target: ${r.targetTime}` : ''}
-                        {r.targetQuantity ? ` • Goal: ${r.targetQuantity} ${r.unit || ''}` : ''}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1416,6 +1668,15 @@ export default function App() {
           toast.warning('Emergency Replan Applied', `Plan v${res.planVersion} active.`);
           return res;
         }}
+      />
+
+      {/* Proactive Smart Habit & Task Check-In Assistant Modal */}
+      <SmartCheckInModal
+        isOpen={!!smartCheckInTarget}
+        onClose={() => setSmartCheckInTarget(null)}
+        target={smartCheckInTarget}
+        onRecordRoutineProgress={handleRecordRoutineProgress}
+        onRecordTaskStatus={handleRecordTaskStatus}
       />
 
       <ConfirmDialog

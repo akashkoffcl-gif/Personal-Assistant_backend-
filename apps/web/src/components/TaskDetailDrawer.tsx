@@ -206,11 +206,10 @@ export function TaskDetailDrawer({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-3 text-xs font-bold border-b-2 mr-5 transition-all ${
-                  activeTab === tab.id
+                className={`py-3 text-xs font-bold border-b-2 mr-5 transition-all ${activeTab === tab.id
                     ? 'border-sky-500 text-slate-900 font-black'
                     : 'border-transparent text-slate-500 hover:text-slate-800'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -397,26 +396,23 @@ export function TaskDetailDrawer({
                         <div
                           key={st.id}
                           onClick={() => handleToggleSubtask(st.id, st.status)}
-                          className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-                            isSubDone
+                          className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${isSubDone
                               ? 'bg-emerald-50/50 border-emerald-200/70'
                               : 'glass-card border-white/90 hover:border-sky-300 shadow-xs'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
                             <div
-                              className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${
-                                isSubDone
+                              className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${isSubDone
                                   ? 'bg-emerald-500 border-emerald-500 text-white'
                                   : 'border-slate-300 bg-white text-transparent'
-                              }`}
+                                }`}
                             >
                               <Check className="w-3.5 h-3.5 stroke-[3]" />
                             </div>
                             <span
-                              className={`text-xs font-bold truncate ${
-                                isSubDone ? 'line-through text-slate-400' : 'text-slate-900'
-                              }`}
+                              className={`text-xs font-bold truncate ${isSubDone ? 'line-through text-slate-400' : 'text-slate-900'
+                                }`}
                             >
                               {st.title}
                             </span>

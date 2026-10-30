@@ -134,11 +134,10 @@ export function CreateTaskModal({ isOpen, onClose, onSubmit }: CreateTaskModalPr
                   key={mins}
                   type="button"
                   onClick={() => setDurationMinutes(mins)}
-                  className={`py-1.5 text-xs font-bold rounded-xl transition-all border ${
-                    durationMinutes === mins
+                  className={`py-1.5 text-xs font-bold rounded-xl transition-all border ${durationMinutes === mins
                       ? 'bg-sky-500 text-white border-sky-500 shadow-xs scale-102'
                       : 'glass-card text-slate-600 hover:border-sky-300'
-                  }`}
+                    }`}
                 >
                   {mins} min
                 </button>

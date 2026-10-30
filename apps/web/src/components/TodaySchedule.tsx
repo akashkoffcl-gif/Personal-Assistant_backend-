@@ -17,6 +17,7 @@ import {
   Filter,
   CheckCircle2,
   Calendar,
+  Sparkles,
 } from 'lucide-react';
 import { TaskDto, TaskCategory, TaskStatus, Priority, SchedulingMode } from '@assistant/shared';
 import { format } from 'date-fns';
@@ -27,6 +28,7 @@ interface TodayScheduleProps {
   onSnooze: (taskId: string) => void;
   onSelectTask?: (task: TaskDto) => void;
   onOpenCreateTask?: () => void;
+  onOpenTaskCheckIn?: (task: TaskDto) => void;
   loading?: boolean;
 }
 
@@ -36,6 +38,7 @@ export function TodaySchedule({
   onSnooze,
   onSelectTask,
   onOpenCreateTask,
+  onOpenTaskCheckIn,
   loading,
 }: TodayScheduleProps) {
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
@@ -151,11 +154,10 @@ export function TodaySchedule({
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                className={`px-2 py-1 text-[11px] font-bold rounded-lg transition-all ${
-                  statusFilter === s
+                className={`px-2 py-1 text-[11px] font-bold rounded-lg transition-all ${statusFilter === s
                     ? 'bg-white text-slate-900 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
-                }`}
+                  }`}
               >
                 {s === 'ALL' ? 'All' : s === 'PENDING' ? 'Active' : 'Done'}
               </button>
@@ -168,11 +170,10 @@ export function TodaySchedule({
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-xl transition-all whitespace-nowrap border ${
-                  categoryFilter === cat
+                className={`px-2.5 py-1 text-xs font-semibold rounded-xl transition-all whitespace-nowrap border ${categoryFilter === cat
                     ? 'bg-assistant-navy text-white border-transparent shadow-xs scale-102'
                     : 'glass-card text-slate-600 hover:text-slate-900 border-white/80'
-                }`}
+                  }`}
               >
                 {cat === 'ALL' ? 'All' : cat.charAt(0) + cat.slice(1).toLowerCase()}
               </button>
@@ -212,20 +213,19 @@ export function TodaySchedule({
               !isCompleted &&
               t.scheduledEndTime &&
               new Date(t.scheduledEndTime).getTime() < Date.now();
-            const isFixed = t.schedulingMode === SchedulingMode.FIXED || (t.schedulingMode as any) === 'FIXED_APPOINTMENT';
+            const isFixed = t.schedulingMode === SchedulingMode.FIXED || (t.schedulingMode as string) === 'FIXED_APPOINTMENT';
             const subtaskCount = t.subtasks?.length || 0;
             const completedSubtasks = t.subtasks?.filter((s) => s.status === TaskStatus.COMPLETED).length || 0;
 
             return (
               <div
                 key={t.id}
-                className={`p-4 rounded-2xl border transition-all duration-200 select-none group relative overflow-hidden ${
-                  isCompleted
+                className={`p-4 rounded-2xl border transition-all duration-200 select-none group relative overflow-hidden ${isCompleted
                     ? 'bg-emerald-50/40 border-emerald-200/60 opacity-80'
                     : isOverdue
-                    ? 'bg-rose-50/50 border-rose-300/70 shadow-xs hover:border-rose-400'
-                    : 'glass-card border-white/90 hover:border-sky-300 shadow-glass hover:shadow-glass-hover'
-                }`}
+                      ? 'bg-rose-50/50 border-rose-300/70 shadow-xs hover:border-rose-400'
+                      : 'glass-card border-white/90 hover:border-sky-300 shadow-glass hover:shadow-glass-hover'
+                  }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   {/* Left: Interactive Complete Checkbox */}
@@ -235,11 +235,10 @@ export function TodaySchedule({
                         e.stopPropagation();
                         onComplete(t.id);
                       }}
-                      className={`w-6 h-6 rounded-xl flex items-center justify-center border transition-all mt-0.5 shrink-0 ${
-                        isCompleted
+                      className={`w-6 h-6 rounded-xl flex items-center justify-center border transition-all mt-0.5 shrink-0 ${isCompleted
                           ? 'bg-emerald-500 border-emerald-500 text-white shadow-glass-glow-emerald scale-105'
                           : 'border-slate-300 bg-white/80 hover:border-emerald-500 hover:bg-emerald-50 text-transparent hover:scale-110 shadow-xs'
-                      }`}
+                        }`}
                       title={isCompleted ? 'Mark as active' : 'Complete task'}
                     >
                       <Check className="w-4 h-4 stroke-[3]" />
@@ -252,11 +251,10 @@ export function TodaySchedule({
                     >
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span
-                          className={`text-sm font-bold tracking-tight truncate transition-colors ${
-                            isCompleted
+                          className={`text-sm font-bold tracking-tight truncate transition-colors ${isCompleted
                               ? 'line-through text-slate-400'
                               : 'text-slate-900 group-hover:text-assistant-navy'
-                          }`}
+                            }`}
                         >
                           {t.title}
                         </span>
@@ -329,7 +327,21 @@ export function TodaySchedule({
                   </div>
 
                   {/* Right: Quick Action Buttons */}
-                  <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                  <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+                    {!isCompleted && onOpenTaskCheckIn && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenTaskCheckIn(t);
+                        }}
+                        className="px-2.5 py-1 text-xs font-bold rounded-xl glass-card text-sky-700 hover:border-sky-300 transition-all flex items-center gap-1 shadow-xs hover:scale-102"
+                        title="Check in on task completion & follow-ups"
+                      >
+                        <Sparkles className="w-3 h-3 text-sky-500" />
+                        <span>Check-In</span>
+                      </button>
+                    )}
+
                     {!isCompleted && (
                       <button
                         onClick={(e) => {
