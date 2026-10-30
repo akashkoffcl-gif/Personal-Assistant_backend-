@@ -1,7 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Check, Flame, Plus, Droplet, Dumbbell, Coffee, Moon } from 'lucide-react';
+import {
+  Check,
+  Flame,
+  Plus,
+  Droplet,
+  Dumbbell,
+  Coffee,
+  Moon,
+  Sparkles,
+  Calendar,
+  ChevronRight,
+  TrendingUp,
+} from 'lucide-react';
 import { RoutineOccurrenceDto, TaskStatus } from '@assistant/shared';
 
 interface RoutineChecklistProps {
@@ -17,139 +29,180 @@ export function RoutineChecklist({
   onAddRoutine,
   loading,
 }: RoutineChecklistProps) {
-  const [selectedQuantity, setSelectedQuantity] = useState<Record<string, number>>({});
-
   const getRoutineIcon = (title: string) => {
     const lower = title.toLowerCase();
     if (lower.includes('water') || lower.includes('hydration')) return Droplet;
-    if (lower.includes('exercise') || lower.includes('workout') || lower.includes('jog')) return Dumbbell;
-    if (lower.includes('sleep') || lower.includes('wake')) return Moon;
+    if (lower.includes('exercise') || lower.includes('workout') || lower.includes('jog') || lower.includes('gym'))
+      return Dumbbell;
+    if (lower.includes('sleep') || lower.includes('wake') || lower.includes('rest')) return Moon;
     return Coffee;
   };
 
+  const daysOfWeek = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+    <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-base font-bold text-assistant-navy">Personal Routines</h3>
-          <p className="text-xs text-assistant-coolGrey">Daily wellness habits & streaks</p>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+              Habits & Routines
+            </h3>
+            <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-500/10 text-amber-700 border border-amber-300/50 flex items-center gap-1">
+              <Flame className="w-3 h-3 text-amber-500 fill-amber-500" />
+              Daily Streaks
+            </span>
+          </div>
+          <p className="text-xs text-assistant-coolGrey font-medium">
+            Daily wellness consistency & recurring habits
+          </p>
         </div>
 
         {onAddRoutine && (
           <button
             onClick={onAddRoutine}
-            className="flex items-center gap-1 text-xs font-semibold text-assistant-navy bg-assistant-paleSky hover:bg-sky-100 px-2.5 py-1.5 rounded-lg transition-colors border border-sky-200"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-900 glass-button-primary px-3 py-1.5 rounded-xl transition-all shadow-xs"
           >
-            <Plus className="w-3.5 h-3.5 text-assistant-sky stroke-[2.5]" />
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Add Habit</span>
           </button>
         )}
       </div>
 
       {loading ? (
-        <div className="py-8 text-center text-sm text-slate-400">Loading routines...</div>
+        <div className="py-12 text-center text-sm text-slate-400 flex flex-col items-center gap-2">
+          <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+          <span>Synchronizing daily routines...</span>
+        </div>
       ) : occurrences.length === 0 ? (
-        <div className="py-8 text-center text-sm text-assistant-coolGrey bg-slate-50 rounded-lg border border-dashed border-slate-200">
-          No routine occurrences scheduled for today.
+        <div className="py-10 text-center glass-card rounded-2xl border border-dashed border-slate-300/80 p-6">
+          <Sparkles className="w-8 h-8 text-amber-400 mx-auto mb-2 animate-bounce" />
+          <h4 className="text-sm font-bold text-slate-700">No habits scheduled for today</h4>
+          <p className="text-xs text-slate-500 mt-1 mb-4">
+            Start building daily habits for hydration, workouts, reading, or mindfulness.
+          </p>
+          {onAddRoutine && (
+            <button
+              onClick={onAddRoutine}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-900 glass-button-primary border border-sky-300 shadow-xs"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Create New Routine</span>
+            </button>
+          )}
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {occurrences.map((occ) => {
             const isCompleted = occ.status === TaskStatus.COMPLETED;
             const routine = occ.routine;
             const Icon = getRoutineIcon(routine?.title || '');
             const targetQty = routine?.targetQuantity;
             const unit = routine?.unit || '';
+            const streak = routine?.streakCount || 0;
 
             return (
               <div
                 key={occ.id}
-                className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                className={`p-4 rounded-2xl border transition-all duration-200 select-none ${
                   isCompleted
-                    ? 'bg-emerald-50/50 border-emerald-200'
-                    : 'bg-white border-slate-200 hover:border-slate-300'
+                    ? 'bg-emerald-50/40 border-emerald-200/70 shadow-xs'
+                    : 'glass-card border-white/90 hover:border-sky-300 shadow-glass hover:shadow-glass-hover'
                 }`}
               >
-                <div className="flex items-center gap-3 min-w-0">
-                  <button
-                    onClick={() =>
-                      onRecord(
-                        occ.id,
-                        isCompleted ? TaskStatus.TODO : TaskStatus.COMPLETED,
-                        targetQty || undefined,
-                      )
-                    }
-                    className={`w-5 h-5 rounded-md flex items-center justify-center border transition-colors ${
-                      isCompleted
-                        ? 'bg-assistant-green border-assistant-green text-white'
-                        : 'border-slate-300 hover:border-assistant-green hover:bg-emerald-50 text-transparent'
-                    }`}
-                  >
-                    <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                  </button>
-
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-sm font-semibold truncate ${
-                          isCompleted
-                            ? 'line-through text-assistant-coolGrey'
-                            : 'text-assistant-navy'
-                        }`}
-                      >
-                        {routine?.title}
-                      </span>
-                      {routine?.streakCount !== undefined && routine.streakCount > 0 && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded-full">
-                          <Flame className="w-3 h-3 text-amber-500 fill-amber-500" />
-                          {routine.streakCount} streak
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-0.5 text-xs text-assistant-coolGrey">
-                      <Icon className="w-3 h-3 text-assistant-sky" />
-                      <span>{routine?.durationMinutes || 15} min</span>
-                      {targetQty && (
-                        <>
-                          <span>•</span>
-                          <span className="font-medium text-slate-700">
-                            {occ.actualQuantity || targetQty} {unit}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  {!isCompleted && targetQty && unit && (
+                <div className="flex items-center justify-between gap-3">
+                  {/* Left: Complete Checkbox + Title */}
+                  <div className="flex items-center gap-3 min-w-0">
                     <button
                       onClick={() =>
-                        onRecord(occ.id, TaskStatus.COMPLETED, (occ.actualQuantity || 0) + targetQty / 2)
+                        onRecord(
+                          occ.id,
+                          isCompleted ? TaskStatus.TODO : TaskStatus.COMPLETED,
+                          targetQty || undefined,
+                        )
                       }
-                      className="px-2 py-1 text-[11px] font-medium text-assistant-navy bg-assistant-paleSky hover:bg-sky-100 rounded border border-sky-200"
-                      title="Log partial intake"
+                      className={`w-6 h-6 rounded-xl flex items-center justify-center border transition-all shrink-0 ${
+                        isCompleted
+                          ? 'bg-emerald-500 border-emerald-500 text-white shadow-glass-glow-emerald scale-105'
+                          : 'border-slate-300 bg-white/80 hover:border-emerald-500 hover:bg-emerald-50 text-transparent hover:scale-110 shadow-xs'
+                      }`}
+                      title={isCompleted ? 'Mark uncompleted' : 'Complete habit today'}
                     >
-                      + Half
+                      <Check className="w-4 h-4 stroke-[3]" />
                     </button>
-                  )}
-                  <button
-                    onClick={() =>
-                      onRecord(
-                        occ.id,
-                        isCompleted ? TaskStatus.TODO : TaskStatus.COMPLETED,
-                        targetQty || undefined,
-                      )
-                    }
-                    className={`px-2.5 py-1 text-xs font-semibold rounded transition-colors ${
-                      isCompleted
-                        ? 'text-assistant-coolGrey hover:text-assistant-navy'
-                        : 'bg-assistant-sky text-assistant-navy hover:bg-sky-400'
-                    }`}
-                  >
-                    {isCompleted ? 'Undo' : 'Check off'}
-                  </button>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-sm font-bold truncate transition-colors ${
+                            isCompleted ? 'line-through text-slate-400' : 'text-slate-900'
+                          }`}
+                        >
+                          {routine?.title}
+                        </span>
+
+                        <div className="p-1 rounded-lg bg-sky-500/10 text-sky-600 border border-sky-300/40">
+                          <Icon className="w-3 h-3" />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500 font-medium">
+                        {targetQty && (
+                          <span>
+                            Goal: {targetQty} {unit}
+                          </span>
+                        )}
+                        {routine?.targetTime && (
+                          <span>• Target time: {routine.targetTime}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Streak Flame Badge & Weekday Indicators */}
+                  <div className="flex items-center gap-3 shrink-0">
+                    {/* Visual Mon-Sun Indicator dots */}
+                    <div className="hidden sm:flex items-center gap-1 bg-white/60 p-1 rounded-xl border border-white/80 shadow-2xs">
+                      {daysOfWeek.map((day, idx) => {
+                        const isPastDay = idx < new Date().getDay();
+                        const isToday = idx === (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1);
+                        return (
+                          <span
+                            key={idx}
+                            className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-bold ${
+                              isToday
+                                ? isCompleted
+                                  ? 'bg-emerald-500 text-white'
+                                  : 'bg-amber-400 text-slate-900 animate-pulse'
+                                : isPastDay
+                                ? 'bg-slate-200/80 text-slate-600'
+                                : 'text-slate-400'
+                            }`}
+                            title={`${day}: ${isToday ? (isCompleted ? 'Done' : 'Pending') : 'History'}`}
+                          >
+                            {day}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    {/* Streak Badge */}
+                    <div
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-xl font-bold text-xs border shadow-xs ${
+                        streak > 0
+                          ? 'bg-amber-500/15 text-amber-700 border-amber-300/60 shadow-glass-glow'
+                          : 'bg-slate-100 text-slate-400 border-slate-200'
+                      }`}
+                      title={`${streak} consecutive day streak`}
+                    >
+                      <Flame
+                        className={`w-3.5 h-3.5 ${
+                          streak > 0 ? 'text-amber-500 fill-amber-500 animate-bounce' : 'text-slate-300'
+                        }`}
+                      />
+                      <span>{streak}d</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
@@ -159,4 +212,3 @@ export function RoutineChecklist({
     </div>
   );
 }
-

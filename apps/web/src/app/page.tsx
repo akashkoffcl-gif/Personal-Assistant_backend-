@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format, addDays, subDays } from 'date-fns';
+import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
 import { api } from '@/lib/api';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useToast } from '@/components/Toast';
@@ -51,6 +51,14 @@ import {
   RotateCcw,
   Sliders,
   Filter,
+  Sparkles,
+  Layers,
+  ArrowRight,
+  Eye,
+  CheckSquare,
+  Square,
+  BarChart2,
+  CalendarDays,
 } from 'lucide-react';
 
 export default function App() {
@@ -59,9 +67,13 @@ export default function App() {
     new Date().toISOString().split('T')[0],
   );
   const [analyticsDays, setAnalyticsDays] = useState<number>(7);
-  const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month' | 'agenda'>('day');
+  const [calendarView, setCalendarView] = useState<'day' | 'week' | 'agenda'>('day');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTask, setSelectedTask] = useState<TaskDto | null>(null);
+  const [activeKpiFilter, setActiveKpiFilter] = useState<'tasks' | 'routines' | 'work' | 'wellness' | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Modals state
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
@@ -85,6 +97,18 @@ export default function App() {
   const queryClient = useQueryClient();
   const push = usePushNotifications();
   const toast = useToast();
+
+  // Global Ctrl + K search hotkey
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Queries
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useQuery({
@@ -171,7 +195,7 @@ export default function App() {
     refetchDayPlan();
     refetchRules();
     refetchExecutions();
-    toast.info('Data refreshed', 'All workspaces synchronized.');
+    toast.info('Data refreshed', 'All workspaces synchronized with Supabase & Redis.');
   };
 
   // Stepper helpers
@@ -295,28 +319,43 @@ export default function App() {
     onError: (err: any) => toast.error('Evaluation failed', err.message),
   });
 
-  // Filtered tasks by search query
+  // Filtered tasks by search query & optional project selection
   const filteredTaskList = useMemo(() => {
-    if (!searchQuery.trim()) return allTasks;
+    let list = allTasks;
+    if (selectedProjectId) {
+      list = list.filter((t) => t.projectId === selectedProjectId);
+    }
+    if (!searchQuery.trim()) return list;
     const q = searchQuery.toLowerCase();
-    return allTasks.filter(
+    return list.filter(
       (t) =>
         t.title.toLowerCase().includes(q) ||
         (t.description && t.description.toLowerCase().includes(q)),
     );
-  }, [allTasks, searchQuery]);
+  }, [allTasks, searchQuery, selectedProjectId]);
+
+  // Calendar week calculation
+  const weekDays = useMemo(() => {
+    const cur = new Date(selectedDate);
+    const start = startOfWeek(cur, { weekStartsOn: 1 });
+    const end = endOfWeek(cur, { weekStartsOn: 1 });
+    return eachDayOfInterval({ start, end });
+  }, [selectedDate]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
+    <div className="min-h-screen glass-mesh-bg flex flex-col lg:flex-row relative selection:bg-sky-400 selection:text-slate-950">
       {/* 1. Left Sidebar Navigation */}
       <Sidebar
         currentTab={currentTab}
-        onSelectTab={setCurrentTab}
+        onSelectTab={(tab) => {
+          setCurrentTab(tab);
+          setActiveKpiFilter(null);
+        }}
         onOpenEmergency={() => setIsEmergencyModalOpen(true)}
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-0">
+      <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-0">
         <Header
           onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
           onOpenEmergency={() => setIsEmergencyModalOpen(true)}
@@ -325,47 +364,48 @@ export default function App() {
           pushLoading={push.loading}
           pushMessage={push.message}
           onRefresh={refreshAll}
+          onSearchFocus={() => searchInputRef.current?.focus()}
         />
 
-        <main className="flex-1 p-4 sm:p-6 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
           {/* TAB 1: COMMAND CENTER (UNIFIED DASHBOARD VIEW) */}
           {currentTab === 'dashboard' && (
             <div className="space-y-6">
               {/* Daily Context Bar with Today/Prev/Next Stepper */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-assistant-paleSky text-assistant-navy">
-                    <Calendar className="w-5 h-5 text-assistant-sky" />
+              <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-white/80 shadow-glass flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-400/20 to-sky-500/30 text-sky-700 flex items-center justify-center border border-sky-300/50 shadow-xs">
+                    <Calendar className="w-5 h-5 text-sky-600" />
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-assistant-navy">
+                    <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                       {format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')}
                     </h2>
-                    <p className="text-xs text-assistant-coolGrey">
+                    <p className="text-xs text-assistant-coolGrey font-medium">
                       {selectedDate === new Date().toISOString().split('T')[0]
-                        ? 'Today’s Command Center'
-                        : 'Historical / Scheduled View'}
+                        ? 'Today’s Active Operational Context'
+                        : 'Historical / Forward Scheduled View'}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
                   <button
                     onClick={handlePrevDay}
-                    className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-assistant-navy transition-colors"
+                    className="p-2 rounded-xl glass-card hover:border-sky-300 text-slate-700 transition-all hover:scale-105 active:scale-95 shadow-xs"
                     title="Previous Day"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
                     onClick={handleToday}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-assistant-navy text-white hover:bg-slate-800 transition-colors"
+                    className="px-4 py-2 text-xs font-bold rounded-xl bg-assistant-navy text-white hover:bg-slate-800 transition-all hover:scale-102 active:scale-95 shadow-xs"
                   >
                     Today
                   </button>
                   <button
                     onClick={handleNextDay}
-                    className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-assistant-navy transition-colors"
+                    className="p-2 rounded-xl glass-card hover:border-sky-300 text-slate-700 transition-all hover:scale-105 active:scale-95 shadow-xs"
                     title="Next Day"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -374,40 +414,42 @@ export default function App() {
                     type="date"
                     value={selectedDate}
                     onChange={(e) => setSelectedDate(e.target.value)}
-                    className="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700 ml-1"
+                    className="px-3 py-1.5 text-xs font-semibold glass-input rounded-xl text-slate-800 ml-1"
                   />
                 </div>
               </div>
 
               {/* Schedule Collision Alert Banner */}
               {dayPlan?.conflicts && dayPlan.conflicts.length > 0 && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-assistant-red shrink-0 mt-0.5" />
+                <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-300/70 shadow-glass-glow-rose backdrop-blur-xl flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5 animate-pulse" />
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-bold text-assistant-red uppercase tracking-wider">
-                      Schedule Conflict Detected ({dayPlan.conflicts.length})
+                    <h4 className="text-xs font-black text-rose-800 uppercase tracking-wider">
+                      Schedule Conflict Detected ({dayPlan.conflicts.length} Overlapping Slots)
                     </h4>
                     {dayPlan.conflicts.map((c: any, i: number) => (
-                      <p key={i} className="text-xs text-red-700 mt-0.5">
-                        &apos;{c.taskA}&apos; overlaps with &apos;{c.taskB}&apos; by {c.overlapMinutes}m. Adjust times or trigger replanning.
+                      <p key={i} className="text-xs text-rose-700 mt-0.5 font-medium">
+                        &apos;{c.taskA}&apos; collides with &apos;{c.taskB}&apos; by {c.overlapMinutes}m. Adjust times or trigger replanning.
                       </p>
                     ))}
                   </div>
                   <button
                     onClick={() => setIsEmergencyModalOpen(true)}
-                    className="px-3 py-1 text-xs font-bold bg-assistant-red text-white rounded-lg hover:bg-red-700 transition-colors shrink-0"
+                    className="px-3.5 py-1.5 text-xs font-bold bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-all shadow-xs shrink-0"
                   >
-                    Replan
+                    Auto-Replan
                   </button>
                 </div>
               )}
 
-              {/* Executive KPI Cards (Clicking links directly into workspace views) */}
+              {/* Executive KPI Cards */}
               <KpiCards
                 kpi={kpi}
                 wellnessTrendLabel={wellness?.adherenceTrendLabel}
                 loading={kpiLoading}
+                activeFilter={activeKpiFilter}
                 onSelectCard={(cardType) => {
+                  setActiveKpiFilter(cardType);
                   if (cardType === 'tasks' || cardType === 'work') setCurrentTab('work');
                   if (cardType === 'routines') setCurrentTab('routines');
                   if (cardType === 'wellness') setCurrentTab('wellness');
@@ -423,6 +465,7 @@ export default function App() {
                     onComplete={(id) => completeTaskMutation.mutate(id)}
                     onSnooze={(id) => snoozeTaskMutation.mutate(id)}
                     onSelectTask={(t) => setSelectedTask(t)}
+                    onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
                     loading={tasksLoading}
                   />
 
@@ -446,7 +489,7 @@ export default function App() {
                     loading={routinesLoading}
                   />
 
-                  {/* Right Side Widgets */}
+                  {/* Right Side Widgets (Water, Check-in, Focus Timer) */}
                   <RightWidgets
                     tasks={tasks}
                     wellness={wellness}
@@ -461,6 +504,20 @@ export default function App() {
                         unit: 'ml',
                       })
                     }
+                    onQuickCheckIn={(energy, mood) =>
+                      checkInMutation.mutate({
+                        energyScore: energy,
+                        moodScore: mood,
+                        notes: 'Quick check-in from widget',
+                      })
+                    }
+                    onLogBreak={() =>
+                      logMetricMutation.mutate({
+                        type: 'BREAK_COUNT',
+                        value: 1,
+                        unit: 'count',
+                      })
+                    }
                     pushLoading={push.loading}
                   />
                 </div>
@@ -468,104 +525,154 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 2: TASK MANAGEMENT WORKSPACE */}
+          {/* TAB 2: TASK & WORK MANAGEMENT WORKSPACE */}
           {(currentTab === 'my-day' || currentTab === 'work') && (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                   <div>
-                    <h3 className="text-lg font-bold text-assistant-navy">Task & Work Management</h3>
-                    <p className="text-xs text-assistant-coolGrey">
-                      Full lifecycle task management, priorities, deadlines, and project assignments
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                      Task & Work Management
+                    </h3>
+                    <p className="text-xs text-assistant-coolGrey font-medium">
+                      Full lifecycle management, deadlines, priorities, and subtask trees
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setIsCreateTaskModalOpen(true)}
-                      className="px-3.5 py-1.5 text-xs font-semibold bg-assistant-navy text-white rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+                      className="px-4 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-glass-glow flex items-center gap-1.5"
                     >
-                      <Plus className="w-3.5 h-3.5" /> New Task
+                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> New Task
                     </button>
                   </div>
                 </div>
 
-                {/* Search Bar */}
-                <div className="relative mb-4">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search tasks by title or description..."
-                    className="w-full pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-assistant-sky"
-                  />
+                {/* Interactive Search Bar & Project Selector */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                  <div className="sm:col-span-2 relative">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search tasks by title, description or keywords (Ctrl+K)..."
+                      className="w-full pl-10 pr-4 py-2.5 text-xs font-semibold glass-input rounded-xl"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-3 top-2.5 text-xs font-bold text-slate-400 hover:text-slate-600"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+
+                  <div>
+                    <select
+                      value={selectedProjectId || ''}
+                      onChange={(e) => setSelectedProjectId(e.target.value || null)}
+                      className="w-full px-3 py-2.5 text-xs font-bold glass-input rounded-xl text-slate-800"
+                    >
+                      <option value="">All Projects</option>
+                      {projects.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          📁 {p.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
-                {/* Task List Table */}
-                <div className="space-y-2">
+                {/* Task List */}
+                <div className="space-y-2.5">
                   {filteredTaskList.length === 0 ? (
-                    <div className="py-12 text-center text-xs text-assistant-coolGrey bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                      No matching tasks found.
+                    <div className="py-14 text-center glass-card rounded-2xl border border-dashed border-slate-300 p-6">
+                      <CheckCircle2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-xs font-bold text-slate-600">No matching tasks found.</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Try modifying your search or project filter.
+                      </p>
                     </div>
                   ) : (
-                    filteredTaskList.map((t) => (
-                      <div
-                        key={t.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-lg border border-slate-200 bg-white hover:border-sky-300 transition-colors gap-3"
-                      >
+                    filteredTaskList.map((t) => {
+                      const isDone = t.status === TaskStatus.COMPLETED;
+                      return (
                         <div
-                          onClick={() => setSelectedTask(t)}
-                          className="flex-1 cursor-pointer min-w-0"
+                          key={t.id}
+                          className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border transition-all duration-200 select-none ${
+                            isDone
+                              ? 'bg-emerald-50/40 border-emerald-200/60 opacity-80'
+                              : 'glass-card border-white/90 hover:border-sky-300 shadow-glass hover:shadow-glass-hover'
+                          }`}
                         >
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-assistant-navy text-sm hover:text-assistant-sky">
-                              {t.title}
-                            </span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-assistant-navy uppercase">
-                              {t.category}
-                            </span>
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                                t.priority === Priority.URGENT
-                                  ? 'bg-red-100 text-assistant-red'
-                                  : t.priority === Priority.HIGH
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-slate-100 text-slate-700'
-                              }`}
-                            >
-                              {t.priority}
-                            </span>
-                            {t.isOverdue && (
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-100 text-assistant-red">
-                                Overdue
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-assistant-coolGrey mt-1 truncate">
-                            Status: <span className="font-semibold">{t.status}</span> • Duration: {t.estimatedDurationMinutes}m
-                            {t.scheduledStartTime ? ` • Start: ${format(new Date(t.scheduledStartTime), 'MMM d, h:mm a')}` : ' • Flexible'}
-                            {t.deadline ? ` • Due: ${format(new Date(t.deadline), 'MMM d, h:mm a')}` : ''}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          {t.status !== TaskStatus.COMPLETED && (
-                            <button
-                              onClick={() => completeTaskMutation.mutate(t.id)}
-                              className="px-3 py-1 text-xs font-semibold bg-emerald-50 text-assistant-green border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
-                            >
-                              Complete
-                            </button>
-                          )}
-                          <button
+                          <div
                             onClick={() => setSelectedTask(t)}
-                            className="px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                            className="flex-1 cursor-pointer min-w-0"
                           >
-                            Edit
-                          </button>
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <span
+                                className={`font-bold text-sm transition-colors ${
+                                  isDone ? 'line-through text-slate-400' : 'text-slate-900 hover:text-sky-600'
+                                }`}
+                              >
+                                {t.title}
+                              </span>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full glass-pill text-slate-700 uppercase">
+                                {t.category}
+                              </span>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  t.priority === Priority.URGENT
+                                    ? 'bg-rose-500/15 text-rose-700 border border-rose-300/60'
+                                    : t.priority === Priority.HIGH
+                                    ? 'bg-amber-500/15 text-amber-700 border border-amber-300/60'
+                                    : 'glass-pill text-slate-600'
+                                }`}
+                              >
+                                {t.priority}
+                              </span>
+                              {t.project && (
+                                <span
+                                  className="text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs"
+                                  style={{
+                                    backgroundColor: `${t.project.color || '#38BDF8'}15`,
+                                    borderColor: `${t.project.color || '#38BDF8'}40`,
+                                    color: t.project.color || '#0284C7',
+                                  }}
+                                >
+                                  📁 {t.project.title}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500 mt-1 truncate font-medium">
+                              Status: <span className="font-bold text-slate-700">{t.status}</span> • Duration: {t.estimatedDurationMinutes}m
+                              {t.scheduledStartTime ? ` • Start: ${format(new Date(t.scheduledStartTime), 'MMM d, h:mm a')}` : ' • Flexible'}
+                              {t.deadline ? ` • Due: ${format(new Date(t.deadline), 'MMM d, h:mm a')}` : ''}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0">
+                            {!isDone && (
+                              <button
+                                onClick={() => completeTaskMutation.mutate(t.id)}
+                                className="px-3 py-1.5 text-xs font-bold bg-emerald-500/15 text-emerald-700 border border-emerald-300/60 rounded-xl hover:bg-emerald-500/25 transition-all shadow-xs"
+                              >
+                                Complete
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setSelectedTask(t)}
+                              className="px-3 py-1.5 text-xs font-bold text-slate-700 glass-card hover:border-sky-300 rounded-xl transition-all shadow-xs"
+                            >
+                              Edit Details
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -575,65 +682,83 @@ export default function App() {
           {/* TAB 3: PROJECTS WORKSPACE */}
           {currentTab === 'projects' && (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="text-lg font-bold text-assistant-navy">Work & Project Workspaces</h3>
-                    <p className="text-xs text-assistant-coolGrey">
-                      Organize initiatives, track progress, and group linked deliverables
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                      Projects & Workspaces
+                    </h3>
+                    <p className="text-xs text-assistant-coolGrey font-medium">
+                      Organize initiatives, target delivery dates, and group deliverables
                     </p>
                   </div>
                   <button
                     onClick={() => setIsProjectModalOpen(true)}
-                    className="px-3.5 py-1.5 text-xs font-semibold bg-assistant-navy text-white rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+                    className="px-4 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-glass-glow flex items-center gap-1.5"
                   >
-                    <Plus className="w-3.5 h-3.5" /> New Project
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> New Project
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {projects.length === 0 ? (
-                    <div className="col-span-full py-12 text-center text-xs text-assistant-coolGrey bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                      No active projects yet. Create your first project workspace to group tasks.
+                    <div className="col-span-full py-14 text-center glass-card rounded-2xl border border-dashed border-slate-300 p-6">
+                      <FolderKanban className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-xs font-bold text-slate-600">No active projects yet.</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5 mb-3">
+                        Create a project workspace to bundle tasks and measure overall velocity.
+                      </p>
+                      <button
+                        onClick={() => setIsProjectModalOpen(true)}
+                        className="px-3.5 py-1.5 text-xs font-bold text-slate-900 glass-button-primary rounded-xl shadow-xs"
+                      >
+                        Create Project
+                      </button>
                     </div>
                   ) : (
                     projects.map((proj) => (
                       <div
                         key={proj.id}
-                        className="p-4 rounded-xl border border-slate-200 bg-white hover:shadow-md transition-shadow flex flex-col justify-between"
+                        onClick={() => {
+                          setSelectedProjectId(proj.id);
+                          setCurrentTab('work');
+                        }}
+                        className="p-5 rounded-2xl glass-card border border-white/90 shadow-glass hover:shadow-glass-hover transition-all duration-300 flex flex-col justify-between cursor-pointer group"
                       >
                         <div>
-                          <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center justify-between mb-3">
                             <span
-                              className="w-3 h-3 rounded-full"
+                              className="w-4 h-4 rounded-full ring-2 ring-white shadow-xs"
                               style={{ backgroundColor: proj.color }}
                             />
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-assistant-navy uppercase">
+                            <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full glass-pill text-slate-800 uppercase">
                               {proj.status}
                             </span>
                           </div>
-                          <h4 className="font-bold text-sm text-assistant-navy">{proj.title}</h4>
+                          <h4 className="font-extrabold text-base text-slate-900 group-hover:text-sky-600 transition-colors">
+                            {proj.title}
+                          </h4>
                           {proj.description && (
-                            <p className="text-xs text-assistant-coolGrey mt-1 line-clamp-2">
+                            <p className="text-xs text-slate-500 mt-1 line-clamp-2 font-medium">
                               {proj.description}
                             </p>
                           )}
                         </div>
 
-                        <div className="mt-4 pt-3 border-t border-slate-100">
-                          <div className="flex items-center justify-between text-xs text-slate-600 mb-1.5">
+                        <div className="mt-5 pt-3.5 border-t border-slate-200/60">
+                          <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1.5">
                             <span>Progress</span>
-                            <span className="font-bold">{proj.progressPercent || 0}%</span>
+                            <span className="text-sky-600">{proj.progressPercent || 0}%</span>
                           </div>
-                          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div className="w-full bg-slate-200/50 rounded-full h-2 overflow-hidden shadow-inner">
                             <div
-                              className="h-full bg-assistant-navy rounded-full transition-all"
+                              className="h-full rounded-full bg-gradient-to-r from-sky-400 to-indigo-500 transition-all duration-700"
                               style={{ width: `${proj.progressPercent || 0}%` }}
                             />
                           </div>
-                          <div className="flex items-center justify-between text-[11px] text-assistant-coolGrey mt-2">
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2 font-medium">
                             <span>
-                              {proj.completedTasksCount || 0} of {proj.tasksCount || 0} tasks
+                              {proj.completedTasksCount || 0} of {proj.tasksCount || 0} tasks done
                             </span>
                             {proj.targetDate && (
                               <span>Due {format(new Date(proj.targetDate), 'MMM d, yyyy')}</span>
@@ -648,36 +773,44 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 4: ROUTINES WORKSPACE */}
+          {/* TAB 4: ROUTINES & HABITS WORKSPACE */}
           {currentTab === 'routines' && (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h3 className="text-lg font-bold text-assistant-navy">Daily & Weekly Habits</h3>
-                    <p className="text-xs text-assistant-coolGrey">
-                      Permanent recurring definitions, target quantities, duration, and active streaks
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                      Habits & Daily Routines
+                    </h3>
+                    <p className="text-xs text-assistant-coolGrey font-medium">
+                      Permanent recurring habit definitions, target quantities, and streak tracking
                     </p>
                   </div>
                   <button
                     onClick={() => setIsCreateRoutineModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold bg-assistant-navy text-white rounded-lg hover:bg-slate-800 transition-colors"
+                    className="px-4 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-glass-glow flex items-center gap-1.5"
                   >
-                    <Plus className="w-3.5 h-3.5" /> New Routine Definition
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> New Habit
                   </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {routinesList.map((r) => (
-                    <div key={r.id} className="p-4 rounded-xl border border-slate-200 bg-white">
+                    <div
+                      key={r.id}
+                      className="p-5 rounded-2xl glass-card border border-white/90 shadow-glass hover:shadow-glass-hover transition-all duration-300"
+                    >
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-assistant-navy">{r.title}</span>
-                        <span className="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                          🔥 {r.streakCount} streak
+                        <span className="font-extrabold text-slate-900 text-sm sm:text-base">
+                          {r.title}
+                        </span>
+                        <span className="text-xs font-bold text-amber-700 bg-amber-500/15 px-2.5 py-0.5 rounded-full border border-amber-300/60 shadow-xs flex items-center gap-1">
+                          <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500 animate-pulse" />
+                          {r.streakCount} Day Streak
                         </span>
                       </div>
-                      <p className="text-xs text-assistant-coolGrey mt-1">
-                        Frequency: {r.frequency} • {r.durationMinutes} min
+                      <p className="text-xs text-slate-500 mt-2 font-medium">
+                        Frequency: <span className="font-bold text-slate-700">{r.frequency}</span> • {r.durationMinutes} min
                         {r.targetTime ? ` • Target: ${r.targetTime}` : ''}
                         {r.targetQuantity ? ` • Goal: ${r.targetQuantity} ${r.unit || ''}` : ''}
                       </p>
@@ -691,24 +824,26 @@ export default function App() {
           {/* TAB 5: CALENDAR & PLANNING WORKSPACE */}
           {(currentTab === 'planning' || currentTab === 'calendar') && (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                   <div>
-                    <h3 className="text-lg font-bold text-assistant-navy">Calendar & Schedule Planning</h3>
-                    <p className="text-xs text-assistant-coolGrey">
-                      Multi-view agenda, chronological time blocks, and conflict detection (Plan v{dayPlan?.version || 1})
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                      Calendar & Schedule Planning
+                    </h3>
+                    <p className="text-xs text-assistant-coolGrey font-medium">
+                      Multi-view agenda, time blocks, and deterministic conflict detection (Plan v{dayPlan?.version || 1})
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex bg-slate-100 p-1 rounded-lg">
+                    <div className="flex bg-white/60 p-1 rounded-xl border border-white/80 shadow-xs">
                       {(['day', 'week', 'agenda'] as const).map((view) => (
                         <button
                           key={view}
                           onClick={() => setCalendarView(view)}
-                          className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors capitalize ${
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all capitalize ${
                             calendarView === view
-                              ? 'bg-white text-assistant-navy shadow-xs'
-                              : 'text-assistant-coolGrey hover:text-assistant-navy'
+                              ? 'bg-assistant-navy text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
                           }`}
                         >
                           {view}
@@ -719,91 +854,179 @@ export default function App() {
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="px-2.5 py-1 text-xs border border-slate-300 rounded-lg text-slate-700"
+                      className="px-3 py-1.5 text-xs font-semibold glass-input rounded-xl text-slate-800"
                     />
                   </div>
                 </div>
 
-                {/* Time Blocks: Morning, Afternoon, Evening */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                    <h4 className="text-xs font-bold text-assistant-navy uppercase tracking-wider mb-2">
-                      🌅 Morning ({dayPlan?.morningPriorities?.length || 0})
-                    </h4>
-                    <div className="space-y-2">
-                      {dayPlan?.morningPriorities?.map((t: any) => (
-                        <div
-                          key={t.id}
-                          onClick={() => setSelectedTask(t)}
-                          className="p-2.5 rounded bg-white border border-slate-200 text-xs cursor-pointer hover:border-sky-300 transition-colors"
-                        >
-                          <span className="font-semibold text-assistant-navy">{t.title}</span>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            {t.scheduledStartTime ? format(new Date(t.scheduledStartTime), 'h:mm a') : 'Flexible'}
-                          </p>
-                        </div>
-                      ))}
+                {/* VIEW 1: DAY TIME BLOCKS */}
+                {calendarView === 'day' && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-2xl glass-card border border-white/80 shadow-xs">
+                      <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-3 flex items-center justify-between">
+                        <span>🌅 Morning Focus</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 font-bold">
+                          {dayPlan?.morningPriorities?.length || 0}
+                        </span>
+                      </h4>
+                      <div className="space-y-2">
+                        {dayPlan?.morningPriorities?.map((t: any) => (
+                          <div
+                            key={t.id}
+                            onClick={() => setSelectedTask(t)}
+                            className="p-3 rounded-xl glass-card border border-white/90 text-xs cursor-pointer hover:border-sky-300 transition-all shadow-xs"
+                          >
+                            <span className="font-bold text-slate-900">{t.title}</span>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              {t.scheduledStartTime ? format(new Date(t.scheduledStartTime), 'h:mm a') : 'Flexible'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                    <h4 className="text-xs font-bold text-assistant-navy uppercase tracking-wider mb-2">
-                      ☀️ Afternoon ({dayPlan?.afternoonPriorities?.length || 0})
-                    </h4>
-                    <div className="space-y-2">
-                      {dayPlan?.afternoonPriorities?.map((t: any) => (
-                        <div
-                          key={t.id}
-                          onClick={() => setSelectedTask(t)}
-                          className="p-2.5 rounded bg-white border border-slate-200 text-xs cursor-pointer hover:border-sky-300 transition-colors"
-                        >
-                          <span className="font-semibold text-assistant-navy">{t.title}</span>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            {t.scheduledStartTime ? format(new Date(t.scheduledStartTime), 'h:mm a') : 'Flexible'}
-                          </p>
-                        </div>
-                      ))}
+                    <div className="p-4 rounded-2xl glass-card border border-white/80 shadow-xs">
+                      <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-3 flex items-center justify-between">
+                        <span>☀️ Afternoon Sessions</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold">
+                          {dayPlan?.afternoonPriorities?.length || 0}
+                        </span>
+                      </h4>
+                      <div className="space-y-2">
+                        {dayPlan?.afternoonPriorities?.map((t: any) => (
+                          <div
+                            key={t.id}
+                            onClick={() => setSelectedTask(t)}
+                            className="p-3 rounded-xl glass-card border border-white/90 text-xs cursor-pointer hover:border-sky-300 transition-all shadow-xs"
+                          >
+                            <span className="font-bold text-slate-900">{t.title}</span>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              {t.scheduledStartTime ? format(new Date(t.scheduledStartTime), 'h:mm a') : 'Flexible'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
-                    <h4 className="text-xs font-bold text-assistant-navy uppercase tracking-wider mb-2">
-                      🌙 Evening ({dayPlan?.eveningPriorities?.length || 0})
-                    </h4>
-                    <div className="space-y-2">
-                      {dayPlan?.eveningPriorities?.map((t: any) => (
-                        <div
-                          key={t.id}
-                          onClick={() => setSelectedTask(t)}
-                          className="p-2.5 rounded bg-white border border-slate-200 text-xs cursor-pointer hover:border-sky-300 transition-colors"
-                        >
-                          <span className="font-semibold text-assistant-navy">{t.title}</span>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            {t.scheduledStartTime ? format(new Date(t.scheduledStartTime), 'h:mm a') : 'Flexible'}
-                          </p>
-                        </div>
-                      ))}
+                    <div className="p-4 rounded-2xl glass-card border border-white/80 shadow-xs">
+                      <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider mb-3 flex items-center justify-between">
+                        <span>🌙 Evening & Wind Down</span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-bold">
+                          {dayPlan?.eveningPriorities?.length || 0}
+                        </span>
+                      </h4>
+                      <div className="space-y-2">
+                        {dayPlan?.eveningPriorities?.map((t: any) => (
+                          <div
+                            key={t.id}
+                            onClick={() => setSelectedTask(t)}
+                            className="p-3 rounded-xl glass-card border border-white/90 text-xs cursor-pointer hover:border-sky-300 transition-all shadow-xs"
+                          >
+                            <span className="font-bold text-slate-900">{t.title}</span>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                              {t.scheduledStartTime ? format(new Date(t.scheduledStartTime), 'h:mm a') : 'Flexible'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
+
+                {/* VIEW 2: WEEK GRID */}
+                {calendarView === 'week' && (
+                  <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
+                    {weekDays.map((day, idx) => {
+                      const dayStr = day.toISOString().split('T')[0];
+                      const isSelected = isSameDay(day, new Date(selectedDate));
+                      const dayTasks = allTasks.filter(
+                        (t) => t.scheduledStartTime && t.scheduledStartTime.startsWith(dayStr),
+                      );
+
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => setSelectedDate(dayStr)}
+                          className={`p-3 rounded-2xl border transition-all cursor-pointer min-h-40 flex flex-col justify-between ${
+                            isSelected
+                              ? 'bg-sky-500/15 border-sky-400 shadow-glass-glow'
+                              : 'glass-card border-white/80 hover:border-sky-300'
+                          }`}
+                        >
+                          <div>
+                            <span className="text-xs font-bold text-slate-500 block uppercase">
+                              {format(day, 'EEE')}
+                            </span>
+                            <span className="text-base font-black text-slate-900">
+                              {format(day, 'd')}
+                            </span>
+                          </div>
+
+                          <div className="mt-2 space-y-1">
+                            {dayTasks.slice(0, 2).map((dt) => (
+                              <div
+                                key={dt.id}
+                                className="text-[10px] font-bold truncate p-1 rounded bg-white/80 text-slate-800 shadow-2xs"
+                              >
+                                {dt.title}
+                              </div>
+                            ))}
+                            {dayTasks.length > 2 && (
+                              <span className="text-[9px] font-bold text-sky-600 block">
+                                +{dayTasks.length - 2} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* VIEW 3: AGENDA LIST */}
+                {calendarView === 'agenda' && (
+                  <div className="space-y-3">
+                    {tasks.map((t) => (
+                      <div
+                        key={t.id}
+                        onClick={() => setSelectedTask(t)}
+                        className="p-3.5 rounded-2xl glass-card border border-white/90 flex items-center justify-between cursor-pointer hover:border-sky-300 shadow-xs"
+                      >
+                        <div>
+                          <span className="font-bold text-sm text-slate-900">{t.title}</span>
+                          <p className="text-xs text-slate-500 font-medium">
+                            {t.scheduledStartTime
+                              ? `${format(new Date(t.scheduledStartTime), 'h:mm a')} (${t.estimatedDurationMinutes}m)`
+                              : 'Flexible'}
+                          </p>
+                        </div>
+                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-full glass-pill text-slate-700">
+                          {t.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {/* TAB 6: EMERGENCY WORKSPACE */}
+          {/* TAB 6: EMERGENCY AUDIT WORKSPACE */}
           {currentTab === 'emergency' && (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-assistant-navy">Emergency Replanning Audit History</h3>
-                    <p className="text-xs text-assistant-coolGrey">
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                      Emergency Replanning Audit History
+                    </h3>
+                    <p className="text-xs text-assistant-coolGrey font-medium">
                       Historical log of before/after task repositioning events
                     </p>
                   </div>
                   <button
                     onClick={() => setIsEmergencyModalOpen(true)}
-                    className="px-3.5 py-1.5 text-xs font-bold bg-assistant-red text-white rounded-lg hover:bg-red-700 transition-colors"
+                    className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl hover:from-rose-600 hover:to-red-700 transition-all shadow-glass-glow-rose"
                   >
                     🚨 Trigger Emergency
                   </button>
@@ -811,31 +1034,31 @@ export default function App() {
 
                 <div className="space-y-2.5">
                   {scheduleChanges.length === 0 ? (
-                    <p className="text-xs text-assistant-coolGrey py-8 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                    <p className="text-xs text-slate-500 py-10 text-center glass-card rounded-2xl border border-dashed border-slate-300 font-medium">
                       No emergency schedule replans recorded yet.
                     </p>
                   ) : (
                     scheduleChanges.map((change: any) => (
                       <div
                         key={change.id}
-                        className="p-3.5 rounded-lg border border-slate-200 bg-slate-50 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                        className="p-4 rounded-2xl glass-card border border-white/90 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-xs"
                       >
                         <div>
-                          <span className="font-bold text-assistant-navy text-sm">
+                          <span className="font-extrabold text-slate-900 text-sm">
                             {change.taskTitle || 'Task Modified'}
                           </span>
-                          <span className="ml-2 text-[10px] font-semibold bg-red-100 text-assistant-red px-1.5 py-0.5 rounded">
+                          <span className="ml-2 text-[10px] font-bold bg-rose-500/15 text-rose-700 px-2 py-0.5 rounded-full border border-rose-300/60">
                             {change.reason}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-600">
+                        <div className="flex items-center gap-2 text-slate-600 font-semibold">
                           <span>
                             {change.originalStartTime
                               ? format(new Date(change.originalStartTime), 'h:mm a')
                               : 'Unscheduled'}
                           </span>
                           <span>➔</span>
-                          <span className="font-bold text-assistant-navy">
+                          <span className="font-bold text-sky-600">
                             {change.revisedStartTime
                               ? format(new Date(change.revisedStartTime), 'h:mm a')
                               : 'New Slot'}
@@ -849,15 +1072,17 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 7: WELLNESS WORKSPACE */}
+          {/* TAB 7: HEALTH & WELLNESS WORKSPACE */}
           {currentTab === 'wellness' && (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-assistant-navy">Health & Wellness Tracking</h3>
-                    <p className="text-xs text-assistant-coolGrey">
-                      Behavioral insights from routine adherence, hydration, sleep, and self-reported check-ins
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                      Health & Wellness Tracking
+                    </h3>
+                    <p className="text-xs text-assistant-coolGrey font-medium">
+                      Behavioral insights from hydration, exercise, sleep, and self-reported check-ins
                     </p>
                   </div>
                   <button
@@ -875,7 +1100,7 @@ export default function App() {
                         },
                       })
                     }
-                    className="p-2 text-xs font-semibold text-assistant-red hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1"
+                    className="p-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all flex items-center gap-1"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Clear Records
                   </button>
@@ -885,45 +1110,53 @@ export default function App() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                   <button
                     onClick={() => logMetricMutation.mutate({ type: 'HYDRATION', value: 250, unit: 'ml' })}
-                    className="p-3 rounded-lg border border-sky-200 bg-assistant-paleSky hover:bg-sky-100 text-left transition-colors"
+                    className="p-4 rounded-2xl glass-card border border-sky-200/70 hover:border-sky-400 text-left transition-all shadow-xs group"
                   >
-                    <span className="text-xs font-semibold text-assistant-navy">+250ml Water</span>
-                    <p className="text-[11px] text-slate-500 mt-1">Hydration intake</p>
+                    <span className="text-xs font-bold text-sky-700 block group-hover:scale-102 transition-transform">
+                      +250ml Water
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-1 font-medium">Hydration intake</p>
                   </button>
                   <button
                     onClick={() => logMetricMutation.mutate({ type: 'EXERCISE', value: 30, unit: 'minutes' })}
-                    className="p-3 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-left transition-colors"
+                    className="p-4 rounded-2xl glass-card border border-emerald-200/70 hover:border-emerald-400 text-left transition-all shadow-xs group"
                   >
-                    <span className="text-xs font-semibold text-assistant-green">+30m Workout</span>
-                    <p className="text-[11px] text-slate-500 mt-1">Exercise duration</p>
+                    <span className="text-xs font-bold text-emerald-700 block group-hover:scale-102 transition-transform">
+                      +30m Workout
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-1 font-medium">Exercise session</p>
                   </button>
                   <button
                     onClick={() => logMetricMutation.mutate({ type: 'SLEEP', value: 8, unit: 'hours' })}
-                    className="p-3 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-left transition-colors"
+                    className="p-4 rounded-2xl glass-card border border-purple-200/70 hover:border-purple-400 text-left transition-all shadow-xs group"
                   >
-                    <span className="text-xs font-semibold text-indigo-700">+8h Sleep</span>
-                    <p className="text-[11px] text-slate-500 mt-1">Night sleep</p>
+                    <span className="text-xs font-bold text-purple-700 block group-hover:scale-102 transition-transform">
+                      +8h Sleep
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-1 font-medium">Restful sleep</p>
                   </button>
                   <button
                     onClick={() => setIsCheckInModalOpen(true)}
-                    className="p-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-left transition-colors"
+                    className="p-4 rounded-2xl glass-card border border-amber-200/70 hover:border-amber-400 text-left transition-all shadow-xs group"
                   >
-                    <span className="text-xs font-semibold text-assistant-navy">Daily Check-In</span>
-                    <p className="text-[11px] text-slate-500 mt-1">Mood & Energy score</p>
+                    <span className="text-xs font-bold text-amber-700 block group-hover:scale-102 transition-transform">
+                      Daily Check-In
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-1 font-medium">Mood & Energy Score</p>
                   </button>
                 </div>
 
                 {/* Summary Overview */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="p-5 rounded-2xl glass-card border border-white/90 shadow-xs">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-assistant-navy">
-                      Adherence & Consistency
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-800">
+                      Adherence & Consistency Score
                     </span>
-                    <span className="text-xs font-bold text-assistant-sky">
-                      {wellness?.adherenceTrendLabel || 'Insufficient data'}
+                    <span className="text-xs font-bold text-sky-600 bg-sky-50 px-2.5 py-0.5 rounded-full border border-sky-200">
+                      {wellness?.adherenceTrendLabel || 'Sufficient baseline active'}
                     </span>
                   </div>
-                  <p className="text-xs text-assistant-coolGrey">
+                  <p className="text-xs text-slate-500 font-medium">
                     Hydration: {wellness?.hydrationTotalMl || 0}ml • Exercise: {wellness?.exerciseDurationMinutes || 0}m • Sleep: {wellness?.sleepHours || 0}h
                   </p>
                 </div>
@@ -946,19 +1179,21 @@ export default function App() {
           {/* TAB 9: AUTOMATION RULES WORKSPACE */}
           {currentTab === 'automation' && (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
+              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                   <div>
-                    <h3 className="text-lg font-bold text-assistant-navy">Rule-Driven Automation Engine</h3>
-                    <p className="text-xs text-assistant-coolGrey">
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                      Rule-Driven Automation Engine
+                    </h3>
+                    <p className="text-xs text-assistant-coolGrey font-medium">
                       Deterministic background rules, continuous focus break suggestions, and schedule triggers
                     </p>
                   </div>
                   <button
                     onClick={() => evaluateRulesMutation.mutate()}
-                    className="px-3.5 py-1.5 text-xs font-bold bg-assistant-navy text-white rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+                    className="px-4 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-glass-glow flex items-center gap-1.5"
                   >
-                    <Play className="w-3.5 h-3.5 text-assistant-sky" /> Evaluate Rules Now
+                    <Play className="w-3.5 h-3.5 stroke-[2.5]" /> Evaluate Rules Now
                   </button>
                 </div>
 
@@ -967,16 +1202,16 @@ export default function App() {
                   {automationRules.map((rule) => (
                     <div
                       key={rule.id}
-                      className="p-4 rounded-xl border border-slate-200 bg-white flex items-center justify-between gap-4"
+                      className="p-4 rounded-2xl glass-card border border-white/90 flex items-center justify-between gap-4 shadow-xs"
                     >
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-assistant-navy">{rule.name}</span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                          <span className="font-extrabold text-sm text-slate-900">{rule.name}</span>
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full glass-pill text-slate-700">
                             {rule.ruleType}
                           </span>
                         </div>
-                        <p className="text-xs text-assistant-coolGrey mt-1">
+                        <p className="text-xs text-slate-500 mt-1 font-medium">
                           Cooldown: {rule.cooldownMinutes}m
                           {rule.lastExecutedAt
                             ? ` • Last run: ${format(new Date(rule.lastExecutedAt), 'MMM d, h:mm a')}`
@@ -986,10 +1221,10 @@ export default function App() {
 
                       <button
                         onClick={() => toggleRuleMutation.mutate({ id: rule.id, isEnabled: !rule.isEnabled })}
-                        className={`px-3 py-1 text-xs font-bold rounded-lg border transition-colors ${
+                        className={`px-3.5 py-1.5 text-xs font-bold rounded-xl border transition-all ${
                           rule.isEnabled
-                            ? 'bg-emerald-50 text-assistant-green border-emerald-200 hover:bg-emerald-100'
-                            : 'bg-slate-100 text-slate-400 border-slate-200 hover:bg-slate-200'
+                            ? 'bg-emerald-500/15 text-emerald-700 border-emerald-300/60 shadow-glass-glow-emerald'
+                            : 'glass-card text-slate-400 border-slate-200'
                         }`}
                       >
                         {rule.isEnabled ? 'Active' : 'Disabled'}
@@ -1000,25 +1235,25 @@ export default function App() {
 
                 {/* Execution History */}
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-assistant-navy mb-3">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 mb-3">
                     Recent Automation Executions
                   </h4>
                   <div className="space-y-2">
                     {automationExecutions.length === 0 ? (
-                      <p className="text-xs text-assistant-coolGrey py-6 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                      <p className="text-xs text-slate-400 py-8 text-center glass-card rounded-2xl border border-dashed border-slate-300 font-medium">
                         No rule executions recorded yet.
                       </p>
                     ) : (
                       automationExecutions.slice(0, 10).map((exec) => (
                         <div
                           key={exec.id}
-                          className="p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs flex items-center justify-between"
+                          className="p-3.5 rounded-xl glass-card border border-white/80 text-xs flex items-center justify-between shadow-xs"
                         >
                           <div>
-                            <span className="font-semibold text-assistant-navy">{exec.actionTaken}</span>
+                            <span className="font-bold text-slate-900">{exec.actionTaken}</span>
                             <span className="text-slate-500 ml-2">via {exec.triggeredBy}</span>
                           </div>
-                          <span className="text-[11px] text-slate-400">
+                          <span className="text-[11px] font-bold text-slate-400">
                             {format(new Date(exec.executedAt), 'h:mm a')}
                           </span>
                         </div>
@@ -1033,62 +1268,64 @@ export default function App() {
           {/* TAB 10: SETTINGS WORKSPACE */}
           {currentTab === 'settings' && (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 max-w-2xl">
-                <h3 className="text-lg font-bold text-assistant-navy mb-1">User Settings & Preferences</h3>
-                <p className="text-xs text-assistant-coolGrey mb-6">
+              <div className="glass-panel rounded-2xl p-5 sm:p-6 border border-white/80 shadow-glass max-w-2xl">
+                <h3 className="text-lg font-black text-slate-900 mb-1 tracking-tight">
+                  User Settings & Data Portability
+                </h3>
+                <p className="text-xs text-assistant-coolGrey mb-6 font-medium">
                   Configure working hours, quiet hours, default task duration, and data portability
                 </p>
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-assistant-navy mb-1">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         Work Start Hour (0-23)
                       </label>
                       <input
                         type="number"
                         defaultValue={settings?.workStartHour || 9}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg"
+                        className="w-full px-3.5 py-2 text-xs font-semibold glass-input rounded-xl"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-assistant-navy mb-1">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         Work End Hour (1-24)
                       </label>
                       <input
                         type="number"
                         defaultValue={settings?.workEndHour || 18}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg"
+                        className="w-full px-3.5 py-2 text-xs font-semibold glass-input rounded-xl"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-assistant-navy mb-1">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         Quiet Hours Start (Hour)
                       </label>
                       <input
                         type="number"
                         defaultValue={settings?.quietHoursStart || 22}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg"
+                        className="w-full px-3.5 py-2 text-xs font-semibold glass-input rounded-xl"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-assistant-navy mb-1">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         Quiet Hours End (Hour)
                       </label>
                       <input
                         type="number"
                         defaultValue={settings?.quietHoursEnd || 7}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg"
+                        className="w-full px-3.5 py-2 text-xs font-semibold glass-input rounded-xl"
                       />
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 flex flex-col gap-3">
-                    <span className="text-xs font-bold text-assistant-navy uppercase tracking-wider">
-                      Data Portability & Export
+                  <div className="pt-4 border-t border-slate-200/60 flex flex-col gap-3">
+                    <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                      Data Portability & Export (GDPR / CCPA)
                     </span>
                     <button
                       onClick={async () => {
@@ -1103,9 +1340,9 @@ export default function App() {
                         a.click();
                         toast.success('Export downloaded', 'Full data package exported.');
                       }}
-                      className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-assistant-navy text-white text-xs font-semibold hover:bg-slate-800 transition-colors"
+                      className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-assistant-navy text-white text-xs font-bold hover:bg-slate-800 transition-all shadow-xs"
                     >
-                      <Download className="w-4 h-4 text-assistant-sky" /> Download User Archive (JSON)
+                      <Download className="w-4 h-4 text-sky-400" /> Download Complete User Archive (JSON)
                     </button>
                   </div>
                 </div>

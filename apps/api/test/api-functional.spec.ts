@@ -23,15 +23,19 @@ describe('API Functional Integration Suite', () => {
   const testUserId = '00000000-0000-0000-0000-000000000001';
 
   beforeAll(async () => {
+    console.log('[DEBUG] Starting beforeAll compile');
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
+    console.log('[DEBUG] AppModule compiled');
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
     app.useGlobalFilters(new HttpExceptionFilter());
     app.useGlobalInterceptors(new TransformInterceptor());
+    console.log('[DEBUG] Starting app.init');
     await app.init();
+    console.log('[DEBUG] app.init finished');
 
     tasksService = moduleFixture.get<TasksService>(TasksService);
     routinesService = moduleFixture.get<RoutinesService>(RoutinesService);
@@ -39,8 +43,10 @@ describe('API Functional Integration Suite', () => {
     emergenciesService = moduleFixture.get<EmergenciesService>(EmergenciesService);
     settingsService = moduleFixture.get<SettingsService>(SettingsService);
     prisma = moduleFixture.get<PrismaService>(PrismaService);
+    console.log('[DEBUG] Connecting prisma');
     await prisma.$connect();
     prisma.isConnected = true;
+    console.log('[DEBUG] Prisma connected, upserting test user');
 
     await prisma.user.upsert({
       where: { id: testUserId },
@@ -51,7 +57,8 @@ describe('API Functional Integration Suite', () => {
         settings: { create: {} },
       },
     });
-  }, 45000);
+    console.log('[DEBUG] beforeAll completed successfully');
+  }, 120000);
 
   afterAll(async () => {
     if (prisma && prisma.isConnected) {

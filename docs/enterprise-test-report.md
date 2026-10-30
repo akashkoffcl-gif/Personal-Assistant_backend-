@@ -176,3 +176,4 @@ During verification, four subtle infrastructure and operational edge cases were 
    *Symptom:* `expect(parentTask.projectId).toBe(project.id) - received null`  
    *Cause:* `tasks.service.ts` created records without mapping `projectId`, `parentTaskId`, or `notes`.  
    *Fix:* Added explicit field mappings in `tasks.service.ts:create` and `tasks.service.ts:update`.
+

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Heart, Smile, BatteryCharging, Zap, ShieldAlert } from 'lucide-react';
+import { X, Heart, Smile, BatteryCharging, Zap, ShieldAlert, Sparkles } from 'lucide-react';
 
 interface WellnessCheckInModalProps {
   isOpen: boolean;
@@ -49,31 +49,34 @@ export function WellnessCheckInModal({ isOpen, onClose, onSubmit }: WellnessChec
     onChange: (val: number) => void,
     lowLabel: string,
     highLabel: string,
+    activeColorClass: string,
   ) => (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 p-3 rounded-2xl glass-card border border-white/80 shadow-xs">
       <div className="flex items-center justify-between text-xs">
-        <span className="font-semibold text-assistant-navy flex items-center gap-1.5">
+        <span className="font-bold text-slate-800 flex items-center gap-1.5">
           {icon} {label}
         </span>
-        <span className="font-bold text-assistant-sky">{value} / 5</span>
+        <span className="font-extrabold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full border border-sky-200">
+          {value} / 5
+        </span>
       </div>
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-5 gap-1.5">
         {[1, 2, 3, 4, 5].map((score) => (
           <button
             key={score}
             type="button"
             onClick={() => onChange(score)}
-            className={`py-2 text-xs font-bold rounded-lg border transition-all ${
+            className={`py-2 text-xs font-black rounded-xl border transition-all ${
               value === score
-                ? 'bg-assistant-navy text-white border-assistant-navy shadow-xs scale-102'
-                : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                ? `${activeColorClass} text-white shadow-xs scale-105`
+                : 'glass-card text-slate-600 hover:border-sky-300'
             }`}
           >
             {score}
           </button>
         ))}
       </div>
-      <div className="flex justify-between text-[10px] text-assistant-coolGrey px-0.5">
+      <div className="flex justify-between text-[10px] text-slate-400 font-medium px-1">
         <span>{lowLabel}</span>
         <span>{highLabel}</span>
       </div>
@@ -81,86 +84,94 @@ export function WellnessCheckInModal({ isOpen, onClose, onSubmit }: WellnessChec
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between px-6 py-4 bg-assistant-navy text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-md animate-in fade-in duration-150">
+      <div className="glass-panel max-w-md w-full bg-white/90 backdrop-blur-2xl rounded-3xl border border-white/80 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="flex items-center justify-between px-6 py-4 glass-dark text-white border-b border-white/10">
           <div className="flex items-center gap-2">
-            <Heart className="w-5 h-5 text-assistant-sky" />
-            <h3 className="font-bold text-sm sm:text-base">Daily Wellness Check-In</h3>
+            <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-300 flex items-center justify-center border border-rose-400/30">
+              <Heart className="w-4 h-4 text-rose-400 fill-rose-400" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-base tracking-tight text-white">Daily Wellness Check-In</h3>
+              <p className="text-[11px] text-rose-200 font-medium">Energy, Mood & Focus Balance</p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-800 transition-colors">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-xl hover:bg-white/15 transition-all text-white/80 hover:text-white"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
-          <p className="text-xs text-assistant-coolGrey leading-relaxed">
-            Record self-reported subjective indicators to understand energy and focus patterns.
-          </p>
-
           {renderRatingButtons(
-            'Energy Level',
-            <BatteryCharging className="w-4 h-4 text-emerald-600" />,
+            'Mental Energy Level',
+            <Zap className="w-4 h-4 text-amber-500" />,
             energyScore,
             setEnergyScore,
-            'Low Energy',
-            'Fully Energized',
+            '1 - Drained',
+            '5 - Peak Energy',
+            'bg-amber-500 border-amber-500',
           )}
 
           {renderRatingButtons(
-            'Mood Score',
-            <Smile className="w-4 h-4 text-sky-500" />,
+            'Emotional Mood',
+            <Smile className="w-4 h-4 text-emerald-500" />,
             moodScore,
             setMoodScore,
-            'Low / Drained',
-            'Positive / Focused',
+            '1 - Low / Down',
+            '5 - Joyful / Optimistic',
+            'bg-emerald-500 border-emerald-500',
           )}
 
           {renderRatingButtons(
-            'Fatigue Level',
-            <Zap className="w-4 h-4 text-amber-500" />,
+            'Physical Fatigue',
+            <BatteryCharging className="w-4 h-4 text-purple-500" />,
             fatigueScore,
             setFatigueScore,
-            'Well Rested',
-            'Exhausted',
+            '1 - Well Rested',
+            '5 - Exhausted',
+            'bg-purple-500 border-purple-500',
           )}
 
           {renderRatingButtons(
-            'Stress Level',
-            <ShieldAlert className="w-4 h-4 text-assistant-red" />,
+            'Stress & Anxiety',
+            <ShieldAlert className="w-4 h-4 text-rose-500" />,
             stressScore,
             setStressScore,
-            'Calm / Relaxed',
-            'High Pressure',
+            '1 - Calm & Peaceful',
+            '5 - Overwhelmed',
+            'bg-rose-500 border-rose-500',
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-assistant-navy mb-1">
-              Personal Notes / Reflection (Optional)
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              Personal Reflection Notes (Optional)
             </label>
             <textarea
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any context about sleep, focus or workday stress..."
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-assistant-sky"
+              placeholder="What factors influenced your energy, focus, or stress today?..."
+              className="w-full px-3.5 py-2 text-xs glass-input rounded-xl"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-200/60">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-assistant-coolGrey hover:bg-slate-100 rounded-lg transition-colors"
+              className="px-4 py-2 text-xs font-bold text-slate-600 glass-card hover:border-slate-300 rounded-xl transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 text-xs font-bold text-white bg-assistant-navy hover:bg-slate-800 rounded-lg shadow-xs transition-colors flex items-center gap-1.5"
+              className="px-5 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl transition-all shadow-glass-glow disabled:opacity-50"
             >
-              {loading ? 'Saving...' : 'Record Check-In'}
+              {loading ? 'Saving...' : 'Save Check-In'}
             </button>
           </div>
         </form>
@@ -168,4 +179,3 @@ export function WellnessCheckInModal({ isOpen, onClose, onSubmit }: WellnessChec
     </div>
   );
 }
-

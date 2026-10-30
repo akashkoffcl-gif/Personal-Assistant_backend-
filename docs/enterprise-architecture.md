@@ -193,3 +193,4 @@ Deterministic rules enforce productivity best practices without nondeterministic
   - Secondary: Neutral Slate `#64748B`
   - Status: Forest Green (Success), Amber (Pending/Warning), Rose Red (Urgent/Overdue).
 - **Data Portability:** User settings workspace provides one-click JSON data export encompassing tasks, routines, occurrences, wellness entries, events, and schedule history.
+

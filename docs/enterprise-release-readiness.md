@@ -154,3 +154,4 @@ cd apps/web && npm run start -p 3000
 - [x] **CORS Scoping:** API restricts origin headers strictly to configured application domains.
 - [x] **Data Portability Compliance (GDPR/CCPA):** Complete user data export (`/api/v1/settings/export`) extracts all tasks, routines, occurrences, events, wellness entries, and schedule plans.
 - [x] **No Browser Native Dialogs:** Zero usage of blocking `window.prompt()`, `window.alert()`, or `window.confirm()`.
+

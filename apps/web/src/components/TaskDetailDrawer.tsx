@@ -14,9 +14,13 @@ import {
   Plus,
   ArrowRight,
   ShieldAlert,
+  Sparkles,
+  Check,
+  RotateCcw,
 } from 'lucide-react';
 import { format, addMinutes, differenceInMinutes } from 'date-fns';
 import { TaskDto, TaskStatus, Priority, SchedulingMode, TaskCategory } from '@assistant/shared';
+import { api } from '@/lib/api';
 
 interface TaskDetailDrawerProps {
   task: TaskDto | null;
@@ -51,6 +55,7 @@ export function TaskDetailDrawer({
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'subtasks' | 'history'>('details');
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [localSubtasks, setLocalSubtasks] = useState<TaskDto[]>([]);
 
   useEffect(() => {
     if (task) {
@@ -61,6 +66,7 @@ export function TaskDetailDrawer({
       setPriority(task.priority || Priority.MEDIUM);
       setSchedulingMode(task.schedulingMode || SchedulingMode.FLEXIBLE);
       setStatus(task.status || TaskStatus.TODO);
+      setLocalSubtasks(task.subtasks || []);
 
       if (task.scheduledStartTime) {
         setScheduledStartTime(new Date(task.scheduledStartTime).toISOString().slice(0, 16));
@@ -104,12 +110,46 @@ export function TaskDetailDrawer({
     }
   };
 
-  // Handle scheduledStartTime change -> update scheduledEndTime based on current duration
+  // Handle scheduledStartTime change -> update scheduledEndTime
   const handleStartTimeChange = (startStr: string) => {
     setScheduledStartTime(startStr);
     if (startStr && durationMinutes > 0) {
       const newEnd = addMinutes(new Date(startStr), durationMinutes);
       setScheduledEndTime(newEnd.toISOString().slice(0, 16));
+    }
+  };
+
+  const handleAddSubtask = async () => {
+    if (!newSubtaskTitle.trim()) return;
+    try {
+      const subtask = await api.createTask({
+        title: newSubtaskTitle.trim(),
+        parentTaskId: task.id,
+        category: task.category,
+        priority: Priority.MEDIUM,
+        schedulingMode: SchedulingMode.FLEXIBLE,
+        estimatedDurationMinutes: 15,
+      });
+      setLocalSubtasks((prev) => [...prev, subtask]);
+      setNewSubtaskTitle('');
+    } catch (err: any) {
+      console.error('Failed to create subtask:', err);
+    }
+  };
+
+  const handleToggleSubtask = async (subtaskId: string, currentStatus: TaskStatus) => {
+    const newStatus = currentStatus === TaskStatus.COMPLETED ? TaskStatus.TODO : TaskStatus.COMPLETED;
+    try {
+      if (newStatus === TaskStatus.COMPLETED) {
+        await api.completeTask(subtaskId);
+      } else {
+        await api.updateTask(subtaskId, { status: TaskStatus.TODO });
+      }
+      setLocalSubtasks((prev) =>
+        prev.map((s) => (s.id === subtaskId ? { ...s, status: newStatus } : s)),
+      );
+    } catch (err) {
+      console.error('Failed to toggle subtask:', err);
     }
   };
 
@@ -134,59 +174,47 @@ export function TaskDetailDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+    <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/45 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="absolute inset-y-0 right-0 max-w-full flex pl-8">
+        <div className="w-screen max-w-lg glass-panel bg-white/90 backdrop-blur-2xl border-l border-white/80 shadow-2xl flex flex-col animate-in slide-in-from-right duration-250">
           {/* Header */}
-          <div className="px-6 py-4 bg-assistant-navy text-white flex items-center justify-between">
+          <div className="px-6 py-4 glass-dark text-white flex items-center justify-between border-b border-white/10">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold px-2 py-0.5 rounded bg-white/10 uppercase tracking-wider">
+              <span className="text-xs font-extrabold px-2.5 py-0.5 rounded-full bg-white/10 uppercase tracking-wider border border-white/15">
                 {task.category}
               </span>
-              <span className="text-xs text-assistant-sky font-semibold">
+              <span className="text-xs text-sky-300 font-semibold flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-sky-400" />
                 {task.schedulingMode}
               </span>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white"
+              className="p-1.5 rounded-xl hover:bg-white/15 transition-all text-white/80 hover:text-white"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Tab Navigation */}
-          <div className="flex border-b border-slate-200 px-6 bg-slate-50">
-            <button
-              onClick={() => setActiveTab('details')}
-              className={`py-3 text-xs font-bold border-b-2 mr-4 transition-colors ${
-                activeTab === 'details'
-                  ? 'border-assistant-sky text-assistant-navy'
-                  : 'border-transparent text-slate-500 hover:text-assistant-navy'
-              }`}
-            >
-              Task Details
-            </button>
-            <button
-              onClick={() => setActiveTab('subtasks')}
-              className={`py-3 text-xs font-bold border-b-2 mr-4 transition-colors ${
-                activeTab === 'subtasks'
-                  ? 'border-assistant-sky text-assistant-navy'
-                  : 'border-transparent text-slate-500 hover:text-assistant-navy'
-              }`}
-            >
-              Subtasks ({task.subtasks?.length || 0})
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`py-3 text-xs font-bold border-b-2 transition-colors ${
-                activeTab === 'history'
-                  ? 'border-assistant-sky text-assistant-navy'
-                  : 'border-transparent text-slate-500 hover:text-assistant-navy'
-              }`}
-            >
-              History & Audit
-            </button>
+          {/* Glass Tab Navigation */}
+          <div className="flex border-b border-slate-200/80 px-6 bg-white/50 backdrop-blur-md">
+            {[
+              { id: 'details', label: 'Details' },
+              { id: 'subtasks', label: `Subtasks (${localSubtasks.length})` },
+              { id: 'history', label: `History (${taskEvents.length})` },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`py-3 text-xs font-bold border-b-2 mr-5 transition-all ${
+                  activeTab === tab.id
+                    ? 'border-sky-500 text-slate-900 font-black'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           {/* Drawer Body */}
@@ -194,28 +222,28 @@ export function TaskDetailDrawer({
             {activeTab === 'details' && (
               <>
                 <div>
-                  <label className="block text-xs font-semibold text-assistant-navy mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     Task Title *
                   </label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full px-3 py-2 text-sm font-semibold border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-assistant-sky"
+                    className="w-full px-3.5 py-2 text-sm font-bold glass-input rounded-xl"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-assistant-navy mb-1">
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
                       Status
                     </label>
                     <select
                       value={status}
                       onChange={(e) => setStatus(e.target.value as TaskStatus)}
-                      className="w-full px-3 py-2 text-xs font-medium border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-assistant-sky"
+                      className="w-full px-3 py-2 text-xs font-semibold glass-input rounded-xl text-slate-800"
                     >
-                      <option value={TaskStatus.TODO}>To Do</option>
+                      <option value={TaskStatus.TODO}>To Do (Active)</option>
                       <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
                       <option value={TaskStatus.COMPLETED}>Completed</option>
                       <option value={TaskStatus.SKIPPED}>Skipped</option>
@@ -224,13 +252,13 @@ export function TaskDetailDrawer({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-assistant-navy mb-1">
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
                       Priority
                     </label>
                     <select
                       value={priority}
                       onChange={(e) => setPriority(e.target.value as Priority)}
-                      className="w-full px-3 py-2 text-xs font-medium border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-assistant-sky"
+                      className="w-full px-3 py-2 text-xs font-semibold glass-input rounded-xl text-slate-800"
                     >
                       <option value={Priority.LOW}>Low</option>
                       <option value={Priority.MEDIUM}>Medium</option>
@@ -240,16 +268,16 @@ export function TaskDetailDrawer({
                   </div>
                 </div>
 
-                {/* Scheduling Times */}
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                {/* Scheduling Times & Duration Recalculation */}
+                <div className="p-4 rounded-2xl glass-card border border-white/90 space-y-3.5 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-assistant-navy flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5 text-assistant-sky" /> Schedule & Duration
+                    <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-sky-500" /> Schedule & Duration
                     </span>
                     <select
                       value={schedulingMode}
                       onChange={(e) => setSchedulingMode(e.target.value as SchedulingMode)}
-                      className="px-2 py-0.5 text-[11px] font-semibold border border-slate-300 rounded bg-white text-assistant-navy"
+                      className="px-2.5 py-1 text-[11px] font-bold border border-slate-200 rounded-lg bg-white text-slate-800"
                     >
                       <option value={SchedulingMode.FLEXIBLE}>FLEXIBLE (Auto-Movable)</option>
                       <option value={SchedulingMode.FIXED}>FIXED (Immovable Slot)</option>
@@ -257,74 +285,78 @@ export function TaskDetailDrawer({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
                       Scheduled Start Time
                     </label>
                     <input
                       type="datetime-local"
                       value={scheduledStartTime}
                       onChange={(e) => handleStartTimeChange(e.target.value)}
-                      className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white"
+                      className="w-full px-3 py-1.5 text-xs glass-input rounded-xl"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Duration (Minutes)
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[11px] font-bold text-slate-600">
+                          Duration ({durationMinutes}m)
+                        </label>
+                      </div>
                       <input
-                        type="number"
+                        type="range"
                         min="5"
-                        max="720"
+                        max="240"
+                        step="5"
                         value={durationMinutes}
                         onChange={(e) => handleDurationChange(Number(e.target.value))}
-                        className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white"
+                        className="w-full accent-sky-500 cursor-pointer"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
                         Scheduled End Time
                       </label>
                       <input
                         type="datetime-local"
                         value={scheduledEndTime}
                         onChange={(e) => handleEndTimeChange(e.target.value)}
-                        className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white"
+                        className="w-full px-3 py-1.5 text-xs glass-input rounded-xl"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-assistant-navy mb-1">
-                    Description
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Description & Objectives
                   </label>
                   <textarea
                     rows={2}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Task details and context..."
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-assistant-sky"
+                    className="w-full px-3.5 py-2 text-xs glass-input rounded-xl"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-assistant-navy mb-1">
-                    Notes & Checkpoints
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Notes, Links & Checkpoints
                   </label>
                   <textarea
                     rows={3}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Personal notes, links, or scratchpad for this task..."
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-assistant-sky"
+                    placeholder="Scratchpad, notes, or links for this task..."
+                    className="w-full px-3.5 py-2 text-xs glass-input rounded-xl"
                   />
                 </div>
               </>
             )}
 
+            {/* TAB 2: INTERACTIVE SUBTASKS */}
             {activeTab === 'subtasks' && (
               <div className="space-y-4">
                 <div className="flex gap-2">
@@ -332,67 +364,97 @@ export function TaskDetailDrawer({
                     type="text"
                     value={newSubtaskTitle}
                     onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                    placeholder="Add a new subtask..."
-                    className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-assistant-sky"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddSubtask();
+                      }
+                    }}
+                    placeholder="Type subtask and press Enter..."
+                    className="flex-1 px-3.5 py-2 text-xs glass-input rounded-xl"
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      if (newSubtaskTitle.trim()) {
-                        // Create subtask logic
-                        setNewSubtaskTitle('');
-                      }
-                    }}
-                    className="px-3 py-1.5 bg-assistant-navy text-white text-xs font-bold rounded-lg hover:bg-slate-800 flex items-center gap-1"
+                    onClick={handleAddSubtask}
+                    className="px-3.5 py-2 text-xs font-bold text-slate-900 glass-button-primary rounded-xl flex items-center gap-1 shadow-xs"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Add
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> Add
                   </button>
                 </div>
 
                 <div className="space-y-2">
-                  {(!task.subtasks || task.subtasks.length === 0) ? (
-                    <p className="text-xs text-assistant-coolGrey py-8 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                      No subtasks added yet. Break down complex tasks into steps.
-                    </p>
+                  {localSubtasks.length === 0 ? (
+                    <div className="py-10 text-center glass-card rounded-2xl border border-dashed border-slate-300 p-6">
+                      <ListTodo className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                      <p className="text-xs font-semibold text-slate-500">
+                        No subtasks added yet. Break down complex tasks into bite-sized steps.
+                      </p>
+                    </div>
                   ) : (
-                    task.subtasks.map((st) => (
-                      <div
-                        key={st.id}
-                        className="flex items-center justify-between p-2.5 rounded-lg border border-slate-200 bg-white text-xs"
-                      >
-                        <span className={st.status === TaskStatus.COMPLETED ? 'line-through text-slate-400' : 'font-semibold text-assistant-navy'}>
-                          {st.title}
-                        </span>
-                      </div>
-                    ))
+                    localSubtasks.map((st) => {
+                      const isSubDone = st.status === TaskStatus.COMPLETED;
+                      return (
+                        <div
+                          key={st.id}
+                          onClick={() => handleToggleSubtask(st.id, st.status)}
+                          className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+                            isSubDone
+                              ? 'bg-emerald-50/50 border-emerald-200/70'
+                              : 'glass-card border-white/90 hover:border-sky-300 shadow-xs'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${
+                                isSubDone
+                                  ? 'bg-emerald-500 border-emerald-500 text-white'
+                                  : 'border-slate-300 bg-white text-transparent'
+                              }`}
+                            >
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            </div>
+                            <span
+                              className={`text-xs font-bold truncate ${
+                                isSubDone ? 'line-through text-slate-400' : 'text-slate-900'
+                              }`}
+                            >
+                              {st.title}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-bold text-slate-400">
+                            {isSubDone ? 'Done' : 'Active'}
+                          </span>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               </div>
             )}
 
+            {/* TAB 3: LIFECYCLE AUDIT TRAIL */}
             {activeTab === 'history' && (
               <div className="space-y-3">
                 {taskEvents.length === 0 ? (
-                  <p className="text-xs text-assistant-coolGrey py-8 text-center bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                  <p className="text-xs text-slate-400 py-10 text-center glass-card rounded-2xl border border-dashed border-slate-300">
                     No task lifecycle events recorded yet.
                   </p>
                 ) : (
                   taskEvents.map((evt: any, i: number) => (
                     <div
                       key={evt.id || i}
-                      className="p-3 rounded-lg border border-slate-200 bg-slate-50 text-xs flex items-start gap-2.5"
+                      className="p-3 rounded-xl glass-card border border-white/80 text-xs flex items-start gap-2.5 shadow-xs"
                     >
-                      <History className="w-4 h-4 text-assistant-sky shrink-0 mt-0.5" />
+                      <History className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
                       <div className="flex-1 min-w-0">
-                        <span className="font-bold text-assistant-navy block">
-                          {evt.eventType}
-                        </span>
+                        <span className="font-bold text-slate-900 block">{evt.eventType}</span>
                         <p className="text-[11px] text-slate-500 mt-0.5">
                           {format(new Date(evt.createdAt), 'MMM d, yyyy h:mm a')}
                         </p>
                         {evt.previousStatus && evt.newStatus && (
                           <p className="text-[11px] text-slate-600 mt-0.5">
-                            Status changed: <span className="font-semibold">{evt.previousStatus}</span> ➔ <span className="font-semibold text-assistant-navy">{evt.newStatus}</span>
+                            Transition: <span className="font-semibold">{evt.previousStatus}</span>{' '}
+                            ➔ <span className="font-bold text-sky-600">{evt.newStatus}</span>
                           </p>
                         )}
                       </div>
@@ -404,11 +466,11 @@ export function TaskDetailDrawer({
           </div>
 
           {/* Drawer Footer Actions */}
-          <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2">
+          <div className="p-4 glass-panel border-t border-white/80 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => onDelete(task.id)}
-              className="p-2 text-xs font-semibold text-assistant-red hover:bg-red-50 rounded-lg transition-colors flex items-center gap-1.5"
+              className="p-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all flex items-center gap-1.5"
             >
               <Trash2 className="w-4 h-4" /> Delete
             </button>
@@ -418,7 +480,7 @@ export function TaskDetailDrawer({
                 <button
                   type="button"
                   onClick={() => onSnooze(task.id, 15)}
-                  className="px-3 py-1.5 text-xs font-semibold text-assistant-navy bg-white border border-slate-300 hover:bg-slate-100 rounded-lg transition-colors"
+                  className="px-3 py-1.5 text-xs font-bold text-slate-700 glass-card hover:border-sky-300 rounded-xl transition-all shadow-xs"
                 >
                   Snooze 15m
                 </button>
@@ -427,7 +489,7 @@ export function TaskDetailDrawer({
                 type="button"
                 disabled={loading}
                 onClick={handleSave}
-                className="px-4 py-1.5 text-xs font-bold text-white bg-assistant-navy hover:bg-slate-800 rounded-lg shadow-xs transition-colors"
+                className="px-4 py-1.5 text-xs font-bold text-white bg-assistant-navy hover:bg-slate-800 rounded-xl shadow-xs transition-all hover:scale-102 active:scale-95"
               >
                 {loading ? 'Saving...' : 'Save Changes'}
               </button>
@@ -438,4 +500,3 @@ export function TaskDetailDrawer({
     </div>
   );
 }
-
