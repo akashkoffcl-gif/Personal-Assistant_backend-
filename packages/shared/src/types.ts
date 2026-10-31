@@ -224,4 +224,77 @@ export interface AutomationRuleExecutionDto {
   executedAt: string;
 }
 
+// Application Usage Analytics Domain
+export interface UsageEventDto {
+  id: string;
+  userId: string;
+  sessionId?: string | null;
+  eventName: string;
+  module: string;
+  feature: string;
+  action?: string | null;
+  status: string;
+  occurredAt: string;
+  metadata?: Record<string, any> | null;
+}
+
+export interface UsageOverviewDto {
+  totalInteractions: number;
+  activeDays: number;
+  mostUsedModule: string;
+  mostUsedFeature: string;
+  featuresAdoptedCount: number;
+  totalTrackedFeaturesCount: number;
+  featuresAdoptedPercent: number;
+  automationExecutionsCount: number;
+  automationSuccessRatePercent: number;
+  reminderSuccessRatePercent: number;
+  failedActionsCount: number;
+  periodComparisonPercent: number;
+}
+
+export interface UsageTrendPoint {
+  date: string;
+  interactions: number;
+  successful: number;
+  failed: number;
+}
+
+export interface ModuleUsagePoint {
+  module: string;
+  displayName: string;
+  interactions: number;
+  percent: number;
+  color: string;
+}
+
+export interface FeatureAdoptionPoint {
+  feature: string;
+  displayName: string;
+  module: string;
+  interactions: number;
+  activeDays: number;
+  isAdopted: boolean;
+  lastUsedAt: string | null;
+}
+
+export interface AutomationUsageSummary {
+  totalExecutions: number;
+  successfulExecutions: number;
+  failedExecutions: number;
+  cooldownSkips: number;
+  successRatePercent: number;
+  ruleBreakdown: Array<{ ruleId: string; name: string; count: number; successCount: number }>;
+}
+
+export interface ReminderOutcomeSummary {
+  scheduled: number;
+  attempted: number;
+  confirmed: number;
+  failed: number;
+  retryCount: number;
+  deliveryRatePercent: number;
+}
+
+
 

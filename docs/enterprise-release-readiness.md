@@ -155,3 +155,14 @@ cd apps/web && npm run start -p 3000
 - [x] **Data Portability Compliance (GDPR/CCPA):** Complete user data export (`/api/v1/settings/export`) extracts all tasks, routines, occurrences, events, wellness entries, and schedule plans.
 - [x] **No Browser Native Dialogs:** Zero usage of blocking `window.prompt()`, `window.alert()`, or `window.confirm()`.
 
+
+---
+
+## 6. Phase 12 Release Verification: Lavender Design System & Application Usage Telemetry
+
+- **Design System Transition:** Fully adopted the Lavender Enterprise visual design language matching the reference dashboard: `#EAE9FF` canvas, `#F4F3FF` secondary surfaces, `#FFFFFF` cards, `#8B45F5` / `#6935C8` accents, `#202033` primary text, `#74738A` secondary text, and `#E5E2F5` subtle borders.
+- **Grouped 5-Section Sidebar:** `OVERVIEW`, `PRODUCTIVITY`, `INTELLIGENCE`, `WELLNESS`, `SYSTEM`.
+- **Compact Top Header:** Real-time date context, universal search input (`⌘K`), sync status, Web Push notification toggle, Emergency Replanning shortcut, and user profile pill.
+- **Domain B Telemetry Store:** Supabase PostgreSQL `UsageEvent` model active with indexes on `(userId, occurredAt)`, `(userId, module, occurredAt)`, `(userId, feature)`, and `(userId, eventName)`.
+- **Application Usage Analytics Workspace:** Full feature adoption catalog (13 features), module distribution progress bars, daily interaction volume trend bar charts, automation reliability breakdown, web push reminder delivery outcomes, and a filterable/exportable audit event table.
+- **Verification:** 9 test suites passing 100% (58/58 tests), Next.js production build passing with 0 errors.

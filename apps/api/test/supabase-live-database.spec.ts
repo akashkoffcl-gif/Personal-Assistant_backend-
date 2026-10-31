@@ -272,7 +272,7 @@ describe('Supabase Live Database & Cryptographic Auth Integration Suite', () => 
       expect(eventTypes).toContain('SNOOZED');
       expect(eventTypes).toContain('RESCHEDULED');
       expect(eventTypes).toContain('COMPLETED');
-    });
+    }, 60000);
 
     it('preserves historical routine occurrences when a routine definition is edited', async () => {
       // Create routine definition

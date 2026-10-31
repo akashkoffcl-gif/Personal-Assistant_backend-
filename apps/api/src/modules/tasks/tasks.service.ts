@@ -147,6 +147,19 @@ export class TasksService {
     // Invalidate cached dashboard queries
     await this.redis.invalidatePattern(`dashboard:${userId}:*`);
 
+    // Authoritative Usage Analytics Event
+    await (this.prisma as any).usageEvent?.create({
+      data: {
+        userId,
+        eventName: 'task.created',
+        module: 'TASKS',
+        feature: data.parentTaskId ? 'SUBTASK_CREATE' : 'TASK_CREATE',
+        action: 'CREATE',
+        status: 'SUCCESS',
+        metadata: { taskId: task.id, priority: task.priority, category: task.category },
+      },
+    }).catch(() => {});
+
     return task;
   }
 
@@ -192,6 +205,20 @@ export class TasksService {
     }
 
     await this.redis.invalidatePattern(`dashboard:${userId}:*`);
+
+    // Authoritative Usage Analytics Event
+    await (this.prisma as any).usageEvent?.create({
+      data: {
+        userId,
+        eventName: 'task.updated',
+        module: 'TASKS',
+        feature: 'TASK_UPDATE',
+        action: 'UPDATE',
+        status: 'SUCCESS',
+        metadata: { taskId: id },
+      },
+    }).catch(() => {});
+
     return updated;
   }
 
@@ -219,6 +246,19 @@ export class TasksService {
     // Invalidate pending reminders
     await this.remindersService.invalidateTaskReminders(id);
     await this.redis.invalidatePattern(`dashboard:${userId}:*`);
+
+    // Authoritative Usage Analytics Event
+    await (this.prisma as any).usageEvent?.create({
+      data: {
+        userId,
+        eventName: 'task.completed',
+        module: 'TASKS',
+        feature: 'TASK_COMPLETE',
+        action: 'UPDATE',
+        status: 'SUCCESS',
+        metadata: { taskId: id },
+      },
+    }).catch(() => {});
 
     return updated;
   }
@@ -260,6 +300,20 @@ export class TasksService {
     );
 
     await this.redis.invalidatePattern(`dashboard:${userId}:*`);
+
+    // Authoritative Usage Analytics Event
+    await (this.prisma as any).usageEvent?.create({
+      data: {
+        userId,
+        eventName: 'task.rescheduled',
+        module: 'TASKS',
+        feature: 'TASK_RESCHEDULE',
+        action: 'UPDATE',
+        status: 'SUCCESS',
+        metadata: { taskId: id },
+      },
+    }).catch(() => {});
+
     return updated;
   }
 
@@ -298,6 +352,20 @@ export class TasksService {
     );
 
     await this.redis.invalidatePattern(`dashboard:${userId}:*`);
+
+    // Authoritative Usage Analytics Event
+    await (this.prisma as any).usageEvent?.create({
+      data: {
+        userId,
+        eventName: 'task.rescheduled',
+        module: 'TASKS',
+        feature: 'TASK_RESCHEDULE',
+        action: 'UPDATE',
+        status: 'SUCCESS',
+        metadata: { taskId: id },
+      },
+    }).catch(() => {});
+
     return updated;
   }
 

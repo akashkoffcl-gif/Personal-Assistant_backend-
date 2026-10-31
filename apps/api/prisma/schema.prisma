@@ -105,6 +105,7 @@ model User {
   projects              Project[]
   automationRules       AutomationRule[]
   automationRuleExecutions AutomationRuleExecution[]
+  usageEvents           UsageEvent[]
 
   @@map("users")
 }
@@ -500,4 +501,28 @@ model OutboxEvent {
   @@index([status, createdAt])
   @@map("outbox_events")
 }
+
+// 20. UsageEvent Model (Application Usage Analytics)
+model UsageEvent {
+  id             String    @id @default(uuid())
+  userId         String
+  sessionId      String?
+  eventName      String    // e.g. "dashboard.viewed", "task.created", "task.completed", "routine.completed", "emergency.replanned"
+  module         String    // "TASKS", "ROUTINES", "PROJECTS", "CALENDAR", "PLANNING", "WELLNESS", "ANALYTICS", "AUTOMATION", "SETTINGS", "DASHBOARD"
+  feature        String    // e.g. "TASK_CREATE", "TASK_COMPLETE", "HABIT_LOG", "EMERGENCY_REPLAN", "WELLNESS_LOG", "RULE_CREATE", "VIEW_VISIT"
+  action         String?   // "CREATE", "UPDATE", "DELETE", "VIEW", "EXECUTE", "TRIGGER"
+  status         String    @default("SUCCESS") // "SUCCESS", "FAILED", "CANCELLED"
+  occurredAt     DateTime  @default(now()) @db.Timestamptz
+  idempotencyKey String?   @unique
+  metadata       Json?
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, occurredAt])
+  @@index([userId, module, occurredAt])
+  @@index([userId, feature])
+  @@index([userId, eventName])
+  @@map("usage_events")
+}
+
 

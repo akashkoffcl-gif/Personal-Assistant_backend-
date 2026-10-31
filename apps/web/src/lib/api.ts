@@ -98,9 +98,30 @@ export const api = {
   getWellnessSummary: (date: string) => fetcher<WellnessSummaryDto & { checkIn: any }>(`/wellness/summary?date=${date}`),
   clearWellnessRecords: () => fetcher<{ success: boolean }>('/wellness/records', { method: 'DELETE' }),
 
-  // Analytics
+  // Personal Productivity Analytics (Domain A)
   getDailyKpi: (date: string) => fetcher<DailyKpiSummary>(`/analytics/daily?date=${date}`),
   getTrends: (days = 7) => fetcher<any>(`/analytics/trends?days=${days}`),
+
+  // Application Usage Analytics (Domain B)
+  getUsageOverview: (days = 30) => fetcher<any>(`/analytics/usage/overview?days=${days}`),
+  getUsageTrends: (days = 14) => fetcher<any>(`/analytics/usage/trends?days=${days}`),
+  getUsageModules: (days = 30) => fetcher<any>(`/analytics/usage/modules?days=${days}`),
+  getUsageFeatures: (days = 30) => fetcher<any>(`/analytics/usage/features?days=${days}`),
+  getUsageAutomation: (days = 30) => fetcher<any>(`/analytics/usage/automation?days=${days}`),
+  getUsageReminders: (days = 30) => fetcher<any>(`/analytics/usage/reminders?days=${days}`),
+  getUsageEvents: (params?: { page?: number; limit?: number; module?: string; feature?: string; status?: string; startDate?: string; endDate?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.module) q.set('module', params.module);
+    if (params?.feature) q.set('feature', params.feature);
+    if (params?.status) q.set('status', params.status);
+    if (params?.startDate) q.set('startDate', params.startDate);
+    if (params?.endDate) q.set('endDate', params.endDate);
+    return fetcher<any>(`/analytics/usage/events?${q.toString()}`);
+  },
+  recordUsageEvent: (data: { eventName: string; module: string; feature: string; action?: string; status?: string; metadata?: any; idempotencyKey?: string }) =>
+    fetcher<any>('/analytics/usage/events', { method: 'POST', body: JSON.stringify(data) }),
 
   // Settings
   getSettings: () => fetcher<UserSettingsDto>('/settings'),

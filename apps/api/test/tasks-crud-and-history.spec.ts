@@ -62,6 +62,9 @@ describe('Tasks CRUD & Persistent History Unit Tests', () => {
           return memoryEvents.filter((e) => e.taskId === where.taskId && e.userId === where.userId);
         }),
       },
+      usageEvent: {
+        create: jest.fn().mockResolvedValue({ id: 'mock-usage-id' }),
+      },
     };
 
     mockRedis = {

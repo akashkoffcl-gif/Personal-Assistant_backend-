@@ -98,6 +98,7 @@ describe('Authentication & Ownership Verification', () => {
         delete: jest.fn(),
       },
       taskEvent: { create: jest.fn() },
+      usageEvent: { create: jest.fn().mockResolvedValue({}) },
       reminder: { updateMany: jest.fn(), create: jest.fn() },
       outboxEvent: { create: jest.fn() },
     };

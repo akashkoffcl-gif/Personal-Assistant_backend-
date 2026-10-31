@@ -23,6 +23,7 @@ import { ProjectModal } from '@/components/ProjectModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { BottomNav } from '@/components/BottomNav';
 import { SmartCheckInModal, SmartCheckInTarget } from '@/components/SmartCheckInModal';
+import { ApplicationUsageAnalytics } from '@/components/ApplicationUsageAnalytics';
 import {
   TaskCategory,
   TaskStatus,
@@ -64,7 +65,14 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
+  const [currentTab, setCurrentTab] = useState<NavTab>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab') as NavTab | null;
+      if (tab) return tab;
+    }
+    return 'dashboard';
+  });
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0],
   );
@@ -103,6 +111,14 @@ export default function App() {
 
   // Global Ctrl + K search hotkey
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab') as NavTab | null;
+      if (tabParam) {
+        setCurrentTab(tabParam);
+      }
+    }
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
@@ -366,7 +382,7 @@ export default function App() {
     queryClient.invalidateQueries({ queryKey: ['analytics-trends'] });
 
     if (isDone) {
-      toast.success('🎉 Goal 100% Achieved!', `${actualQuantity.toLocaleString()} ${occ?.routine?.unit || 'units'} completed today. Streak advanced!`);
+      toast.success('ðŸŽ‰ Goal 100% Achieved!', `${actualQuantity.toLocaleString()} ${occ?.routine?.unit || 'units'} completed today. Streak advanced!`);
     } else {
       toast.info(
         'Progress Saved',
@@ -483,54 +499,69 @@ export default function App() {
   }, [selectedDate]);
 
   return (
-    <div className="min-h-screen bg-[#ECEEF8] flex flex-col relative selection:bg-[#EDE9FE] selection:text-[#7C3AED]">
-      {/* Top Floating Island Navigation Bar */}
-      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto pb-0">
-        <Header
-          currentTab={currentTab}
-          onSelectTab={(tab) => {
-            setCurrentTab(tab);
-            setActiveKpiFilter(null);
-          }}
-          onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
-          onOpenCreateRoutine={() => setIsCreateRoutineModalOpen(true)}
-          onOpenEmergency={() => setIsEmergencyModalOpen(true)}
-          isPushSubscribed={push.isSubscribed}
-          onTogglePush={push.isSubscribed ? () => {} : push.subscribe}
-          pushLoading={push.loading}
-          pushMessage={push.message}
-          onRefresh={refreshAll}
-          onSearchFocus={() => searchInputRef.current?.focus()}
-        />
-      </div>
+    <div className="min-h-screen bg-[#EAE9FF] flex selection:bg-[#EDE9FE] selection:text-[#6935C8]">
+      {/* Grouped Responsive Lavender Sidebar */}
+      <Sidebar
+        currentTab={currentTab}
+        onSelectTab={(tab) => {
+          setCurrentTab(tab);
+          setActiveKpiFilter(null);
+        }}
+        onOpenEmergency={() => setIsEmergencyModalOpen(true)}
+      />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-8">
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 max-w-[1600px] w-full mx-auto space-y-6">
+      {/* Main Content Column */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        {/* Compact Top Header */}
+        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto pb-0">
+          <Header
+            currentTab={currentTab}
+            onSelectTab={(tab) => {
+              setCurrentTab(tab);
+              setActiveKpiFilter(null);
+            }}
+            onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
+            onOpenCreateRoutine={() => setIsCreateRoutineModalOpen(true)}
+            onOpenEmergency={() => setIsEmergencyModalOpen(true)}
+            isPushSubscribed={push.isSubscribed}
+            onTogglePush={push.isSubscribed ? () => {} : push.subscribe}
+            pushLoading={push.loading}
+            pushMessage={push.message}
+            onRefresh={refreshAll}
+            onSearchFocus={() => searchInputRef.current?.focus()}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            selectedDate={selectedDate}
+          />
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-8">
+          <main className="flex-1 px-4 sm:px-6 lg:px-8 max-w-[1600px] w-full mx-auto space-y-6">
           {/* Proactive Smart Check-In Assistant Banner */}
           {pendingCheckInItem && (
-            <div className="p-4 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div className="p-4 rounded-2xl bg-[#F4F3FF] border border-[#E5E2F5] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#7C3AED] text-white flex items-center justify-center shrink-0 shadow-xs">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#6935C8] to-[#8B45F5] text-white flex items-center justify-center shrink-0 shadow-2xs">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-xs font-bold text-[#5B21B6] uppercase tracking-wider">
+                    <h4 className="text-xs font-bold text-[#6935C8] uppercase tracking-wider">
                       Proactive Assistant Check-In
                     </h4>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#DDD6FE] text-[#4C1D95]">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#EDE9FE] text-[#6935C8]">
                       Awaiting Response
                     </span>
                   </div>
-                  <p className="text-xs text-[#1E1B2E] font-medium mt-0.5">
+                  <p className="text-xs text-[#202033] font-medium mt-0.5">
                     {pendingCheckInItem.message}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setSmartCheckInTarget(pendingCheckInItem.target)}
-                className="px-4 py-2 text-xs font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] rounded-full transition-colors shadow-xs flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
+                className="px-4 py-2 text-xs font-bold text-white bg-[#8B45F5] hover:bg-[#7839D6] rounded-xl transition-all shadow-2xs flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
               >
                 <Clock className="w-3.5 h-3.5" />
                 <span>Answer & Check-In</span>
@@ -540,21 +571,21 @@ export default function App() {
 
           {/* Schedule Collision Alert Banner */}
           {dayPlan?.conflicts && dayPlan.conflicts.length > 0 && (
-            <div className="p-4 rounded-2xl bg-[#FEE2E2] border border-[#FECACA] flex items-start gap-3 shadow-xs">
-              <AlertTriangle className="w-5 h-5 text-[#DC2626] shrink-0 mt-0.5" />
+            <div className="p-4 rounded-2xl bg-[#FFEAEF] border border-[#FECDD6] flex items-start gap-3 shadow-[0_4px_20px_rgba(224,82,104,0.06)]">
+              <AlertTriangle className="w-5 h-5 text-[#E05268] shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <h4 className="text-xs font-bold text-[#991B1B] uppercase tracking-wider">
+                <h4 className="text-xs font-bold text-[#E05268] uppercase tracking-wider">
                   Schedule Conflict Detected ({dayPlan.conflicts.length} Overlapping Slots)
                 </h4>
                 {dayPlan.conflicts.map((c: any, i: number) => (
-                  <p key={i} className="text-xs text-[#B91C1C] font-medium mt-0.5">
+                  <p key={i} className="text-xs text-[#74738A] font-medium mt-0.5">
                     &apos;{c.taskA}&apos; collides with &apos;{c.taskB}&apos; by {c.overlapMinutes}m. Adjust times or trigger replanning.
                   </p>
                 ))}
               </div>
               <button
                 onClick={() => setIsEmergencyModalOpen(true)}
-                className="px-4 py-1.5 text-xs font-bold bg-[#DC2626] text-white rounded-full hover:bg-[#B91C1C] transition-colors shadow-xs shrink-0"
+                className="px-4 py-1.5 text-xs font-bold bg-[#E05268] hover:bg-[#C4384E] text-white rounded-xl transition-all shadow-2xs shrink-0"
               >
                 Auto-Replan
               </button>
@@ -605,8 +636,8 @@ export default function App() {
           {/* TAB 2: TASK & WORK MANAGEMENT WORKSPACE */}
           {(currentTab === 'my-day' || currentTab === 'work') && (
             <div className="space-y-5">
-              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-100">
+              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-[#E5E2F5]">
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Task & Work Management
@@ -618,7 +649,7 @@ export default function App() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setIsCreateTaskModalOpen(true)}
-                      className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
+                      className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#8B45F5] hover:bg-[#7839D6] rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
                     >
                       <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> New Task
                     </button>
@@ -635,7 +666,7 @@ export default function App() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search tasks by title, description or keywords (Ctrl+K)..."
-                      className="w-full pl-9 pr-14 py-2 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-900 focus:outline-none focus:border-blue-600"
+                      className="w-full pl-9 pr-14 py-2 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white text-slate-900 focus:outline-none focus:border-[#8B45F5]"
                     />
                     {searchQuery && (
                       <button
@@ -651,12 +682,12 @@ export default function App() {
                     <select
                       value={selectedProjectId || ''}
                       onChange={(e) => setSelectedProjectId(e.target.value || null)}
-                      className="w-full px-3 py-2 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-800"
+                      className="w-full px-3 py-2 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white text-slate-800"
                     >
                       <option value="">All Projects</option>
                       {projects.map((p) => (
                         <option key={p.id} value={p.id}>
-                          📁 {p.title}
+                          ðŸ“ {p.title}
                         </option>
                       ))}
                     </select>
@@ -666,7 +697,7 @@ export default function App() {
                 {/* Task List */}
                 <div className="space-y-2">
                   {filteredTaskList.length === 0 ? (
-                    <div className="py-10 text-center rounded-lg border border-dashed border-slate-200 p-5 bg-slate-50/50">
+                    <div className="py-10 text-center rounded-lg border border-dashed border-[#E5E2F5] p-5 bg-[#F4F3FF]/50">
                       <CheckCircle2 className="w-7 h-7 text-slate-300 mx-auto mb-1.5" />
                       <p className="text-xs font-semibold text-slate-700">No matching tasks found.</p>
                       <p className="text-[11px] text-slate-400 mt-0.5">
@@ -681,8 +712,8 @@ export default function App() {
                           key={t.id}
                           className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-lg border transition-colors select-none ${
                             isDone
-                              ? 'bg-slate-50/80 border-slate-200 opacity-75'
-                              : 'bg-white border-slate-200 hover:border-slate-300'
+                              ? 'bg-[#F4F3FF]/80 border-[#E5E2F5] opacity-75'
+                              : 'bg-white border-[#E5E2F5] hover:border-slate-300'
                           }`}
                         >
                           <div
@@ -712,15 +743,15 @@ export default function App() {
                                 {t.priority}
                               </span>
                               {t.project && (
-                                <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 border border-[#E5E2F5]">
                                   {t.project.title}
                                 </span>
                               )}
                             </div>
                             <p className="text-[11px] text-slate-500 truncate">
-                              Status: <span className="font-semibold text-slate-700">{t.status}</span> • Duration: {t.estimatedDurationMinutes}m
-                              {t.scheduledStartTime ? ` • Start: ${format(new Date(t.scheduledStartTime), 'MMM d, h:mm a')}` : ' • Flexible'}
-                              {t.deadline ? ` • Due: ${format(new Date(t.deadline), 'MMM d, h:mm a')}` : ''}
+                              Status: <span className="font-semibold text-slate-700">{t.status}</span> â€¢ Duration: {t.estimatedDurationMinutes}m
+                              {t.scheduledStartTime ? ` â€¢ Start: ${format(new Date(t.scheduledStartTime), 'MMM d, h:mm a')}` : ' â€¢ Flexible'}
+                              {t.deadline ? ` â€¢ Due: ${format(new Date(t.deadline), 'MMM d, h:mm a')}` : ''}
                             </p>
                           </div>
 
@@ -735,7 +766,7 @@ export default function App() {
                             )}
                             <button
                               onClick={() => setSelectedTask(t)}
-                              className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition-colors"
+                              className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-[#F4F3FF] border border-[#E5E2F5] rounded-md transition-colors"
                             >
                               Edit Details
                             </button>
@@ -752,8 +783,8 @@ export default function App() {
           {/* TAB 3: PROJECTS WORKSPACE */}
           {currentTab === 'projects' && (
             <div className="space-y-5">
-              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
-                <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
+              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
+                <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#E5E2F5]">
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Projects & Workspaces
@@ -764,7 +795,7 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => setIsProjectModalOpen(true)}
-                    className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#8B45F5] hover:bg-[#7839D6] rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
                   >
                     <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> New Project
                   </button>
@@ -772,7 +803,7 @@ export default function App() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   {projects.length === 0 ? (
-                    <div className="col-span-full py-10 text-center rounded-lg border border-dashed border-slate-200 p-5 bg-slate-50/50">
+                    <div className="col-span-full py-10 text-center rounded-lg border border-dashed border-[#E5E2F5] p-5 bg-[#F4F3FF]/50">
                       <FolderKanban className="w-7 h-7 text-slate-400 mx-auto mb-1.5" />
                       <p className="text-xs font-semibold text-slate-700">No active projects yet.</p>
                       <p className="text-[11px] text-slate-400 mt-0.5 mb-3">
@@ -780,7 +811,7 @@ export default function App() {
                       </p>
                       <button
                         onClick={() => setIsProjectModalOpen(true)}
-                        className="px-3 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs"
+                        className="px-3 py-1.5 text-xs font-semibold text-white bg-[#8B45F5] hover:bg-[#7839D6] rounded-lg transition-colors shadow-xs"
                       >
                         Create Project
                       </button>
@@ -793,7 +824,7 @@ export default function App() {
                           setSelectedProjectId(proj.id);
                           setCurrentTab('work');
                         }}
-                        className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors bg-white shadow-xs flex flex-col justify-between cursor-pointer"
+                        className="p-4 rounded-xl border border-[#E5E2F5] hover:border-slate-300 transition-colors bg-white shadow-xs flex flex-col justify-between cursor-pointer"
                       >
                         <div>
                           <div className="flex items-center justify-between mb-2">
@@ -815,7 +846,7 @@ export default function App() {
                           )}
                         </div>
 
-                        <div className="mt-4 pt-3 border-t border-slate-100">
+                        <div className="mt-4 pt-3 border-t border-[#E5E2F5]">
                           <div className="flex items-center justify-between text-xs font-medium text-slate-700 mb-1">
                             <span>Progress</span>
                             <span className="font-semibold text-blue-600">{proj.progressPercent || 0}%</span>
@@ -846,8 +877,8 @@ export default function App() {
           {/* TAB 4: ROUTINES & HABITS WORKSPACE */}
           {currentTab === 'routines' && (
             <div className="space-y-5">
-              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
-                <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-100">
+              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
+                <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#E5E2F5]">
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Habits & Daily Routines
@@ -858,7 +889,7 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => setIsCreateRoutineModalOpen(true)}
-                    className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#8B45F5] hover:bg-[#7839D6] rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
                   >
                     <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> New Habit
                   </button>
@@ -876,7 +907,7 @@ export default function App() {
                     return (
                       <div
                         key={r.id}
-                        className="p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition-colors bg-white shadow-xs flex flex-col justify-between gap-3"
+                        className="p-4 rounded-xl border border-[#E5E2F5] hover:border-slate-300 transition-colors bg-white shadow-xs flex flex-col justify-between gap-3"
                       >
                         <div>
                           <div className="flex items-center justify-between">
@@ -889,13 +920,13 @@ export default function App() {
                             </span>
                           </div>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            Frequency: <span className="font-semibold text-slate-700">{r.frequency}</span> • {r.durationMinutes} min
-                            {r.targetTime ? ` • Target: ${r.targetTime}` : ''}
-                            {r.targetQuantity ? ` • Goal: ${r.targetQuantity.toLocaleString()} ${r.unit || ''}` : ''}
+                            Frequency: <span className="font-semibold text-slate-700">{r.frequency}</span> â€¢ {r.durationMinutes} min
+                            {r.targetTime ? ` â€¢ Target: ${r.targetTime}` : ''}
+                            {r.targetQuantity ? ` â€¢ Goal: ${r.targetQuantity.toLocaleString()} ${r.unit || ''}` : ''}
                           </p>
 
                           {/* Today's Inline Progress */}
-                          <div className="mt-3 p-2.5 rounded-lg bg-slate-50 border border-slate-200/60 space-y-1">
+                          <div className="mt-3 p-2.5 rounded-lg bg-[#F4F3FF] border border-[#E5E2F5]/60 space-y-1">
                             <div className="flex items-center justify-between text-[11px] font-medium">
                               <span className="text-slate-500">Today&apos;s Status</span>
                               <span className="font-mono font-semibold text-slate-800">
@@ -912,13 +943,13 @@ export default function App() {
                             </div>
                             {todayOcc?.notes && (
                               <p className="text-[10px] text-blue-700 font-medium pt-0.5">
-                                🔔 {todayOcc.notes}
+                                ðŸ”” {todayOcc.notes}
                               </p>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                        <div className="flex items-center justify-between pt-2 border-t border-[#E5E2F5]">
                           <span className={`text-[11px] font-medium ${isCompleted ? 'text-emerald-700' : 'text-slate-500'}`}>
                             {isCompleted ? 'Goal achieved today' : `${Math.max(0, targetQty - actualQty).toLocaleString()} ${unit} remaining`}
                           </span>
@@ -938,7 +969,7 @@ export default function App() {
                                 toast.info('Habit occurrence active', 'Track today in Command Center.');
                               }
                             }}
-                            className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition-colors"
+                            className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-[#F4F3FF] border border-[#E5E2F5] rounded-md transition-colors"
                           >
                             <span>{isCompleted ? 'Update' : 'Log / Check-In'}</span>
                           </button>
@@ -954,8 +985,8 @@ export default function App() {
           {/* TAB 5: CALENDAR & PLANNING WORKSPACE */}
           {(currentTab === 'planning' || currentTab === 'calendar') && (
             <div className="space-y-5">
-              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-100">
+              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-[#E5E2F5]">
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Calendar & Schedule Planning
@@ -965,7 +996,7 @@ export default function App() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex p-0.5 rounded-lg bg-slate-100 border border-slate-200">
+                    <div className="flex p-0.5 rounded-lg bg-slate-100 border border-[#E5E2F5]">
                       {(['day', 'week', 'agenda'] as const).map((view) => (
                         <button
                           key={view}
@@ -984,7 +1015,7 @@ export default function App() {
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-800"
+                      className="px-2.5 py-1 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white text-slate-800"
                     />
                   </div>
                 </div>
@@ -992,7 +1023,7 @@ export default function App() {
                 {/* VIEW 1: DAY TIME BLOCKS */}
                 {calendarView === 'day' && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                    <div className="p-3.5 rounded-lg bg-[#F4F3FF] border border-[#E5E2F5]">
                       <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center justify-between">
                         <span>Morning Focus</span>
                         <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 font-semibold border border-blue-200">
@@ -1004,7 +1035,7 @@ export default function App() {
                           <div
                             key={t.id}
                             onClick={() => setSelectedTask(t)}
-                            className="p-2.5 rounded-md border border-slate-200 bg-white text-xs cursor-pointer hover:border-slate-300 transition-colors shadow-2xs"
+                            className="p-2.5 rounded-md border border-[#E5E2F5] bg-white text-xs cursor-pointer hover:border-slate-300 transition-colors shadow-2xs"
                           >
                             <span className="font-semibold text-slate-900">{t.title}</span>
                             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -1015,7 +1046,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                    <div className="p-3.5 rounded-lg bg-[#F4F3FF] border border-[#E5E2F5]">
                       <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center justify-between">
                         <span>Afternoon Focus</span>
                         <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 font-semibold border border-amber-200">
@@ -1027,7 +1058,7 @@ export default function App() {
                           <div
                             key={t.id}
                             onClick={() => setSelectedTask(t)}
-                            className="p-2.5 rounded-md border border-slate-200 bg-white text-xs cursor-pointer hover:border-slate-300 transition-colors shadow-2xs"
+                            className="p-2.5 rounded-md border border-[#E5E2F5] bg-white text-xs cursor-pointer hover:border-slate-300 transition-colors shadow-2xs"
                           >
                             <span className="font-semibold text-slate-900">{t.title}</span>
                             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -1038,7 +1069,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200">
+                    <div className="p-3.5 rounded-lg bg-[#F4F3FF] border border-[#E5E2F5]">
                       <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center justify-between">
                         <span>Evening Focus</span>
                         <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-semibold">
@@ -1050,7 +1081,7 @@ export default function App() {
                           <div
                             key={t.id}
                             onClick={() => setSelectedTask(t)}
-                            className="p-2.5 rounded-md border border-slate-200 bg-white text-xs cursor-pointer hover:border-slate-300 transition-colors shadow-2xs"
+                            className="p-2.5 rounded-md border border-[#E5E2F5] bg-white text-xs cursor-pointer hover:border-slate-300 transition-colors shadow-2xs"
                           >
                             <span className="font-semibold text-slate-900">{t.title}</span>
                             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -1080,7 +1111,7 @@ export default function App() {
                           className={`p-2.5 rounded-lg border transition-colors cursor-pointer min-h-36 flex flex-col justify-between ${
                             isSelected
                               ? 'bg-blue-50/50 border-blue-600'
-                              : 'bg-white border-slate-200 hover:border-slate-300'
+                              : 'bg-white border-[#E5E2F5] hover:border-slate-300'
                           }`}
                         >
                           <div>
@@ -1120,7 +1151,7 @@ export default function App() {
                       <div
                         key={t.id}
                         onClick={() => setSelectedTask(t)}
-                        className="p-3 rounded-lg border border-slate-200 bg-white flex items-center justify-between cursor-pointer hover:border-slate-300 transition-colors"
+                        className="p-3 rounded-lg border border-[#E5E2F5] bg-white flex items-center justify-between cursor-pointer hover:border-slate-300 transition-colors"
                       >
                         <div>
                           <span className="font-semibold text-xs text-slate-900">{t.title}</span>
@@ -1144,8 +1175,8 @@ export default function App() {
           {/* TAB 6: EMERGENCY AUDIT WORKSPACE */}
           {currentTab === 'emergency' && (
             <div className="space-y-5">
-              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#E5E2F5]">
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Emergency Replanning Audit History
@@ -1164,14 +1195,14 @@ export default function App() {
 
                 <div className="space-y-2">
                   {scheduleChanges.length === 0 ? (
-                    <p className="text-xs text-slate-400 py-8 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50">
+                    <p className="text-xs text-slate-400 py-8 text-center rounded-lg border border-dashed border-[#E5E2F5] bg-[#F4F3FF]">
                       No emergency schedule replans recorded yet.
                     </p>
                   ) : (
                     scheduleChanges.map((change: any) => (
                       <div
                         key={change.id}
-                        className="p-3 rounded-lg border border-slate-200 bg-white text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                        className="p-3 rounded-lg border border-[#E5E2F5] bg-white text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2"
                       >
                         <div>
                           <span className="font-semibold text-slate-900">
@@ -1187,7 +1218,7 @@ export default function App() {
                               ? format(new Date(change.originalStartTime), 'h:mm a')
                               : 'Unscheduled'}
                           </span>
-                          <span>➔</span>
+                          <span>âž”</span>
                           <span className="font-semibold text-blue-600">
                             {change.revisedStartTime
                               ? format(new Date(change.revisedStartTime), 'h:mm a')
@@ -1205,8 +1236,8 @@ export default function App() {
           {/* TAB 7: HEALTH & WELLNESS WORKSPACE */}
           {currentTab === 'wellness' && (
             <div className="space-y-5">
-              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#E5E2F5]">
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Health & Wellness Tracking
@@ -1240,7 +1271,7 @@ export default function App() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
                   <button
                     onClick={() => logMetricMutation.mutate({ type: 'HYDRATION', value: 250, unit: 'ml' })}
-                    className="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-blue-500 text-left transition-colors shadow-2xs"
+                    className="p-3.5 rounded-lg border border-[#E5E2F5] bg-white hover:border-blue-500 text-left transition-colors shadow-2xs"
                   >
                     <span className="text-xs font-semibold text-blue-700 block">
                       +250ml Water
@@ -1249,7 +1280,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => logMetricMutation.mutate({ type: 'EXERCISE', value: 30, unit: 'minutes' })}
-                    className="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-emerald-500 text-left transition-colors shadow-2xs"
+                    className="p-3.5 rounded-lg border border-[#E5E2F5] bg-white hover:border-emerald-500 text-left transition-colors shadow-2xs"
                   >
                     <span className="text-xs font-semibold text-emerald-700 block">
                       +30m Workout
@@ -1258,7 +1289,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => logMetricMutation.mutate({ type: 'SLEEP', value: 8, unit: 'hours' })}
-                    className="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-purple-500 text-left transition-colors shadow-2xs"
+                    className="p-3.5 rounded-lg border border-[#E5E2F5] bg-white hover:border-purple-500 text-left transition-colors shadow-2xs"
                   >
                     <span className="text-xs font-semibold text-purple-700 block">
                       +8h Sleep
@@ -1267,7 +1298,7 @@ export default function App() {
                   </button>
                   <button
                     onClick={() => setIsCheckInModalOpen(true)}
-                    className="p-3.5 rounded-lg border border-slate-200 bg-white hover:border-amber-500 text-left transition-colors shadow-2xs"
+                    className="p-3.5 rounded-lg border border-[#E5E2F5] bg-white hover:border-amber-500 text-left transition-colors shadow-2xs"
                   >
                     <span className="text-xs font-semibold text-amber-700 block">
                       Daily Check-In
@@ -1277,7 +1308,7 @@ export default function App() {
                 </div>
 
                 {/* Summary Overview */}
-                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+                <div className="p-4 rounded-lg bg-[#F4F3FF] border border-[#E5E2F5]">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
                       Adherence & Consistency Status
@@ -1287,7 +1318,7 @@ export default function App() {
                     </span>
                   </div>
                   <p className="text-xs text-slate-600">
-                    Hydration: {wellness?.hydrationTotalMl || 0}ml • Exercise: {wellness?.exerciseDurationMinutes || 0}m • Sleep: {wellness?.sleepHours || 0}h
+                    Hydration: {wellness?.hydrationTotalMl || 0}ml â€¢ Exercise: {wellness?.exerciseDurationMinutes || 0}m â€¢ Sleep: {wellness?.sleepHours || 0}h
                   </p>
                 </div>
               </div>
@@ -1306,11 +1337,18 @@ export default function App() {
             </div>
           )}
 
+          {/* TAB 8B: APPLICATION USAGE ANALYTICS (DOMAIN B) */}
+          {currentTab === 'usage-analytics' && (
+            <div className="space-y-5">
+              <ApplicationUsageAnalytics />
+            </div>
+          )}
+
           {/* TAB 9: AUTOMATION RULES WORKSPACE */}
           {currentTab === 'automation' && (
             <div className="space-y-5">
-              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-slate-100">
+              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-[#E5E2F5]">
                   <div>
                     <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
                       Rule-Driven Automation Engine
@@ -1321,7 +1359,7 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => evaluateRulesMutation.mutate()}
-                    className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#8B45F5] hover:bg-[#7839D6] rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
                   >
                     <Play className="w-3.5 h-3.5 stroke-[2.5]" /> Evaluate Rules Now
                   </button>
@@ -1332,7 +1370,7 @@ export default function App() {
                   {automationRules.map((rule) => (
                     <div
                       key={rule.id}
-                      className="p-3.5 rounded-lg border border-slate-200 bg-white flex items-center justify-between gap-4"
+                      className="p-3.5 rounded-lg border border-[#E5E2F5] bg-white flex items-center justify-between gap-4"
                     >
                       <div>
                         <div className="flex items-center gap-2">
@@ -1344,8 +1382,8 @@ export default function App() {
                         <p className="text-[11px] text-slate-500 mt-0.5">
                           Cooldown: {rule.cooldownMinutes}m
                           {rule.lastExecutedAt
-                            ? ` • Last run: ${format(new Date(rule.lastExecutedAt), 'MMM d, h:mm a')}`
-                            : ' • Not executed yet'}
+                            ? ` â€¢ Last run: ${format(new Date(rule.lastExecutedAt), 'MMM d, h:mm a')}`
+                            : ' â€¢ Not executed yet'}
                         </p>
                       </div>
 
@@ -1354,7 +1392,7 @@ export default function App() {
                         className={`px-3 py-1 text-xs font-semibold rounded-md border transition-colors ${
                           rule.isEnabled
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-slate-100 text-slate-500 border-slate-200'
+                            : 'bg-slate-100 text-slate-500 border-[#E5E2F5]'
                         }`}
                       >
                         {rule.isEnabled ? 'Active' : 'Disabled'}
@@ -1370,14 +1408,14 @@ export default function App() {
                   </h4>
                   <div className="space-y-1.5">
                     {automationExecutions.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-6 text-center rounded-lg border border-dashed border-slate-200 bg-slate-50">
+                      <p className="text-xs text-slate-400 py-6 text-center rounded-lg border border-dashed border-[#E5E2F5] bg-[#F4F3FF]">
                         No rule executions recorded yet.
                       </p>
                     ) : (
                       automationExecutions.slice(0, 10).map((exec) => (
                         <div
                           key={exec.id}
-                          className="p-2.5 rounded-md border border-slate-200 bg-slate-50/50 text-xs flex items-center justify-between"
+                          className="p-2.5 rounded-md border border-[#E5E2F5] bg-[#F4F3FF]/50 text-xs flex items-center justify-between"
                         >
                           <div>
                             <span className="font-semibold text-slate-900">{exec.actionTaken}</span>
@@ -1398,7 +1436,7 @@ export default function App() {
           {/* TAB 10: SETTINGS WORKSPACE */}
           {currentTab === 'settings' && (
             <div className="space-y-5">
-              <div className="bg-white rounded-xl p-5 sm:p-6 border border-slate-200 shadow-xs max-w-2xl">
+              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)] max-w-2xl">
                 <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-0.5 tracking-tight">
                   User Settings & Data Portability
                 </h3>
@@ -1415,7 +1453,7 @@ export default function App() {
                       <input
                         type="number"
                         defaultValue={settings?.workStartHour || 9}
-                        className="w-full px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white"
+                        className="w-full px-3 py-1.5 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white"
                       />
                     </div>
                     <div>
@@ -1425,7 +1463,7 @@ export default function App() {
                       <input
                         type="number"
                         defaultValue={settings?.workEndHour || 18}
-                        className="w-full px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white"
+                        className="w-full px-3 py-1.5 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white"
                       />
                     </div>
                   </div>
@@ -1438,7 +1476,7 @@ export default function App() {
                       <input
                         type="number"
                         defaultValue={settings?.quietHoursStart || 22}
-                        className="w-full px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white"
+                        className="w-full px-3 py-1.5 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white"
                       />
                     </div>
                     <div>
@@ -1448,12 +1486,12 @@ export default function App() {
                       <input
                         type="number"
                         defaultValue={settings?.quietHoursEnd || 7}
-                        className="w-full px-3 py-1.5 text-xs font-medium border border-slate-200 rounded-lg bg-white"
+                        className="w-full px-3 py-1.5 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white"
                       />
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 flex flex-col gap-2.5">
+                  <div className="pt-4 border-t border-[#E5E2F5] flex flex-col gap-2.5">
                     <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                       Data Portability & Export (GDPR / CCPA)
                     </span>
@@ -1470,7 +1508,7 @@ export default function App() {
                         a.click();
                         toast.success('Export downloaded', 'Full data package exported.');
                       }}
-                      className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors shadow-xs"
+                      className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-[#8B45F5] hover:bg-[#7839D6] text-white text-xs font-semibold transition-colors shadow-xs"
                     >
                       <Download className="w-4 h-4 text-white" /> Download Complete User Archive (JSON)
                     </button>
@@ -1572,6 +1610,7 @@ export default function App() {
         onSelectTab={setCurrentTab}
         onOpenEmergency={() => setIsEmergencyModalOpen(true)}
       />
+      </div>
     </div>
   );
 }
