@@ -8,6 +8,7 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useToast } from '@/components/Toast';
 import { Sidebar, NavTab } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
+import { ModernDribbbleDashboard } from '@/components/ModernDribbbleDashboard';
 import { KpiCards } from '@/components/KpiCards';
 import { TodaySchedule } from '@/components/TodaySchedule';
 import { RoutineChecklist } from '@/components/RoutineChecklist';
@@ -482,21 +483,17 @@ export default function App() {
   }, [selectedDate]);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row relative selection:bg-blue-100 selection:text-blue-900">
-      {/* 1. Left Sidebar Navigation */}
-      <Sidebar
-        currentTab={currentTab}
-        onSelectTab={(tab) => {
-          setCurrentTab(tab);
-          setActiveKpiFilter(null);
-        }}
-        onOpenEmergency={() => setIsEmergencyModalOpen(true)}
-      />
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-0">
+    <div className="min-h-screen bg-[#ECEEF8] flex flex-col relative selection:bg-[#EDE9FE] selection:text-[#7C3AED]">
+      {/* Top Floating Island Navigation Bar */}
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto pb-0">
         <Header
+          currentTab={currentTab}
+          onSelectTab={(tab) => {
+            setCurrentTab(tab);
+            setActiveKpiFilter(null);
+          }}
           onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
+          onOpenCreateRoutine={() => setIsCreateRoutineModalOpen(true)}
           onOpenEmergency={() => setIsEmergencyModalOpen(true)}
           isPushSubscribed={push.isSubscribed}
           onTogglePush={push.isSubscribed ? () => {} : push.subscribe}
@@ -505,214 +502,104 @@ export default function App() {
           onRefresh={refreshAll}
           onSearchFocus={() => searchInputRef.current?.focus()}
         />
+      </div>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
-          {/* TAB 1: COMMAND CENTER (UNIFIED DASHBOARD VIEW) */}
-          {currentTab === 'dashboard' && (
-            <div className="space-y-5">
-              {/* Daily Context Bar with Today/Prev/Next Stepper */}
-              <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200 shrink-0">
-                    <Calendar className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight leading-tight">
-                      {format(new Date(selectedDate), 'EEEE, MMMM d, yyyy')}
-                    </h2>
-                    <p className="text-xs text-slate-500 font-medium leading-tight">
-                      {selectedDate === new Date().toISOString().split('T')[0]
-                        ? 'Today’s Active Operational Context'
-                        : 'Historical / Forward Scheduled View'}
-                    </p>
-                  </div>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-8">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 max-w-[1600px] w-full mx-auto space-y-6">
+          {/* Proactive Smart Check-In Assistant Banner */}
+          {pendingCheckInItem && (
+            <div className="p-4 rounded-2xl bg-[#EDE9FE] border border-[#DDD6FE] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#7C3AED] text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <Sparkles className="w-5 h-5 text-white" />
                 </div>
-
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    onClick={handlePrevDay}
-                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
-                    title="Previous Day"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={handleToday}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors shadow-xs"
-                  >
-                    Today
-                  </button>
-                  <button
-                    onClick={handleNextDay}
-                    className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
-                    title="Next Day"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="px-2.5 py-1 text-xs font-medium border border-slate-200 rounded-lg bg-white text-slate-800 ml-1"
-                  />
-                </div>
-              </div>
-
-              {/* Schedule Collision Alert Banner */}
-              {dayPlan?.conflicts && dayPlan.conflicts.length > 0 && (
-                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
-                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-bold text-red-800 uppercase tracking-wider">
-                      Schedule Conflict Detected ({dayPlan.conflicts.length} Overlapping Slots)
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-[#5B21B6] uppercase tracking-wider">
+                      Proactive Assistant Check-In
                     </h4>
-                    {dayPlan.conflicts.map((c: any, i: number) => (
-                      <p key={i} className="text-xs text-red-700 mt-0.5">
-                        &apos;{c.taskA}&apos; collides with &apos;{c.taskB}&apos; by {c.overlapMinutes}m. Adjust times or trigger replanning.
-                      </p>
-                    ))}
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#DDD6FE] text-[#4C1D95]">
+                      Awaiting Response
+                    </span>
                   </div>
-                  <button
-                    onClick={() => setIsEmergencyModalOpen(true)}
-                    className="px-3 py-1 text-xs font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-xs shrink-0"
-                  >
-                    Auto-Replan
-                  </button>
-                </div>
-              )}
-
-              {/* Proactive Smart Check-In Assistant Banner */}
-              {pendingCheckInItem && (
-                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-                      <Sparkles className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-xs font-bold text-blue-900 uppercase tracking-wider">
-                          Proactive Assistant Check-In
-                        </h4>
-                        <span className="text-[10px] font-semibold px-2 py-0.2 rounded bg-blue-100 text-blue-800 border border-blue-200">
-                          Awaiting Response
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-700 mt-0.5">
-                        {pendingCheckInItem.message}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setSmartCheckInTarget(pendingCheckInItem.target)}
-                    className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>Answer & Check-In</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Executive KPI Cards */}
-              <KpiCards
-                kpi={kpi}
-                wellnessTrendLabel={wellness?.adherenceTrendLabel}
-                loading={kpiLoading}
-                activeFilter={activeKpiFilter}
-                onSelectCard={(cardType) => {
-                  setActiveKpiFilter(cardType);
-                  if (cardType === 'tasks' || cardType === 'work') setCurrentTab('work');
-                  if (cardType === 'routines') setCurrentTab('routines');
-                  if (cardType === 'wellness') setCurrentTab('wellness');
-                }}
-              />
-
-              {/* Main Schedule & Checklist Grid */}
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <div className="xl:col-span-2 space-y-6">
-                  {/* Today's Schedule */}
-                  <TodaySchedule
-                    tasks={tasks}
-                    onComplete={(id) => completeTaskMutation.mutate(id)}
-                    onSnooze={(id) => snoozeTaskMutation.mutate(id)}
-                    onSelectTask={(t) => setSelectedTask(t)}
-                    onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
-                    onOpenTaskCheckIn={(task) =>
-                      setSmartCheckInTarget({
-                        type: 'task',
-                        id: task.id,
-                        title: task.title,
-                        estimatedDurationMinutes: task.estimatedDurationMinutes,
-                        scheduledStartTime: task.scheduledStartTime,
-                      })
-                    }
-                    loading={tasksLoading}
-                  />
-
-                  {/* Interactive Analytics Charts */}
-                  <AnalyticsCharts
-                    data={trends}
-                    days={analyticsDays}
-                    onSelectDays={setAnalyticsDays}
-                    loading={trendsLoading}
-                  />
-                </div>
-
-                <div className="space-y-6">
-                  {/* Personal Routine Checklist */}
-                  <RoutineChecklist
-                    occurrences={occurrences}
-                    onRecord={(id, status, actualQuantity) =>
-                      recordOccurrenceMutation.mutate({ id, status, actualQuantity })
-                    }
-                    onOpenCheckIn={(occ) =>
-                      setSmartCheckInTarget({
-                        type: 'routine',
-                        id: occ.id,
-                        routineId: occ.routineId,
-                        title: occ.routine?.title || 'Habit',
-                        targetQuantity: occ.routine?.targetQuantity,
-                        actualQuantity: occ.actualQuantity,
-                        unit: occ.routine?.unit,
-                      })
-                    }
-                    onAddRoutine={() => setIsCreateRoutineModalOpen(true)}
-                    loading={routinesLoading}
-                  />
-
-                  {/* Right Side Widgets (Water, Check-in, Focus Timer) */}
-                  <RightWidgets
-                    tasks={tasks}
-                    wellness={wellness}
-                    isPushSubscribed={push.isSubscribed}
-                    onTestPush={push.testNotification}
-                    onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
-                    onOpenEmergency={() => setIsEmergencyModalOpen(true)}
-                    onLogHydration={(amount) =>
-                      logMetricMutation.mutate({
-                        type: 'HYDRATION',
-                        value: amount,
-                        unit: 'ml',
-                      })
-                    }
-                    onQuickCheckIn={(energy, mood) =>
-                      checkInMutation.mutate({
-                        energyScore: energy,
-                        moodScore: mood,
-                        notes: 'Quick check-in from widget',
-                      })
-                    }
-                    onLogBreak={() =>
-                      logMetricMutation.mutate({
-                        type: 'BREAK_COUNT',
-                        value: 1,
-                        unit: 'count',
-                      })
-                    }
-                    pushLoading={push.loading}
-                  />
+                  <p className="text-xs text-[#1E1B2E] font-medium mt-0.5">
+                    {pendingCheckInItem.message}
+                  </p>
                 </div>
               </div>
+              <button
+                onClick={() => setSmartCheckInTarget(pendingCheckInItem.target)}
+                className="px-4 py-2 text-xs font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] rounded-full transition-colors shadow-xs flex items-center gap-1.5 shrink-0 self-start sm:self-auto"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Answer & Check-In</span>
+              </button>
             </div>
+          )}
+
+          {/* Schedule Collision Alert Banner */}
+          {dayPlan?.conflicts && dayPlan.conflicts.length > 0 && (
+            <div className="p-4 rounded-2xl bg-[#FEE2E2] border border-[#FECACA] flex items-start gap-3 shadow-xs">
+              <AlertTriangle className="w-5 h-5 text-[#DC2626] shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <h4 className="text-xs font-bold text-[#991B1B] uppercase tracking-wider">
+                  Schedule Conflict Detected ({dayPlan.conflicts.length} Overlapping Slots)
+                </h4>
+                {dayPlan.conflicts.map((c: any, i: number) => (
+                  <p key={i} className="text-xs text-[#B91C1C] font-medium mt-0.5">
+                    &apos;{c.taskA}&apos; collides with &apos;{c.taskB}&apos; by {c.overlapMinutes}m. Adjust times or trigger replanning.
+                  </p>
+                ))}
+              </div>
+              <button
+                onClick={() => setIsEmergencyModalOpen(true)}
+                className="px-4 py-1.5 text-xs font-bold bg-[#DC2626] text-white rounded-full hover:bg-[#B91C1C] transition-colors shadow-xs shrink-0"
+              >
+                Auto-Replan
+              </button>
+            </div>
+          )}
+
+          {/* TAB 1: MODERN DRIBBLE DASHBOARD (COMMAND CENTER) */}
+          {currentTab === 'dashboard' && (
+            <ModernDribbbleDashboard
+              tasks={tasks}
+              occurrences={occurrences}
+              kpi={kpi}
+              wellnessSummary={wellness}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              onCompleteTask={(id) => completeTaskMutation.mutate(id)}
+              onSnoozeTask={(id) => snoozeTaskMutation.mutate(id)}
+              onSelectTask={(t) => setSelectedTask(t)}
+              onOpenTaskCheckIn={(task) =>
+                setSmartCheckInTarget({
+                  type: 'task',
+                  id: task.id,
+                  title: task.title,
+                  estimatedDurationMinutes: task.estimatedDurationMinutes,
+                  scheduledStartTime: task.scheduledStartTime,
+                })
+              }
+              onOpenRoutineCheckIn={(occ) =>
+                setSmartCheckInTarget({
+                  type: 'routine',
+                  id: occ.id,
+                  routineId: occ.routineId,
+                  title: occ.routine?.title || 'Habit',
+                  targetQuantity: occ.routine?.targetQuantity,
+                  actualQuantity: occ.actualQuantity,
+                  unit: occ.routine?.unit,
+                })
+              }
+              onOpenEmergency={() => setIsEmergencyModalOpen(true)}
+              onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
+              onOpenCreateRoutine={() => setIsCreateRoutineModalOpen(true)}
+              onOpenWellnessCheckIn={() => setIsCheckInModalOpen(true)}
+              onNavigateTab={(tab) => setCurrentTab(tab as any)}
+              loading={tasksLoading || routinesLoading}
+            />
           )}
 
           {/* TAB 2: TASK & WORK MANAGEMENT WORKSPACE */}

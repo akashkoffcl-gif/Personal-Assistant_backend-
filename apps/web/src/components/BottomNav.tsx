@@ -38,12 +38,12 @@ export function BottomNav({ currentTab, onSelectTab, onOpenEmergency }: BottomNa
               key={item.id}
               onClick={() => onSelectTab(item.id)}
               className={`flex flex-col items-center py-1 px-2 text-[11px] font-medium transition-colors ${
-                isActive ? 'text-blue-600' : 'text-slate-500 hover:text-slate-900'
+                isActive ? 'text-[#7C3AED]' : 'text-[#717182] hover:text-[#18181B]'
               }`}
             >
               <div
-                className={`p-1 rounded-md transition-colors ${
-                  isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-500'
+                className={`p-1 rounded-full transition-colors ${
+                  isActive ? 'bg-[#EDE9FE] text-[#7C3AED]' : 'text-[#717182]'
                 }`}
               >
                 <Icon className="w-4 h-4" />
