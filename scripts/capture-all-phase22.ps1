@@ -39,3 +39,4 @@ foreach ($vp in $viewports) {
   Remove-Item -Path $tempProfile -Recurse -Force -ErrorAction SilentlyContinue
 }
 Write-Host "All Phase 22 captures complete!"
+

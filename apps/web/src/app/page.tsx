@@ -25,6 +25,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { NotificationCenterDrawer } from '@/components/NotificationCenterDrawer';
 import { BottomNav } from '@/components/BottomNav';
 import { SmartCheckInModal, SmartCheckInTarget } from '@/components/SmartCheckInModal';
+import { FollowUpPromptModal, FollowUpItem } from '@/components/FollowUpPromptModal';
 import { ApplicationUsageAnalytics } from '@/components/ApplicationUsageAnalytics';
 import {
   TaskCategory,
@@ -119,6 +120,20 @@ export default function App() {
     }
   }, [isAuthLoading, isAuthenticated, router]);
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+  const [activeFollowUp, setActiveFollowUp] = useState<FollowUpItem | null>(null);
+
+  // Automated Follow-Ups query (Phase 23 Engine)
+  const { data: pendingFollowUps = [], refetch: refetchFollowUps } = useQuery({
+    queryKey: ['pending-follow-ups'],
+    queryFn: () => api.getPendingFollowUps(),
+    refetchInterval: 15000,
+  });
+
+  useEffect(() => {
+    if (pendingFollowUps && pendingFollowUps.length > 0 && !activeFollowUp) {
+      setActiveFollowUp(pendingFollowUps[0]);
+    }
+  }, [pendingFollowUps, activeFollowUp]);
 
   // Centralized in-app notification center query
   const { data: notificationsData, refetch: refetchNotifications } = useQuery({
@@ -1662,6 +1677,23 @@ export default function App() {
         target={smartCheckInTarget}
         onRecordRoutineProgress={handleRecordRoutineProgress}
         onRecordTaskStatus={handleRecordTaskStatus}
+      />
+
+      {/* Automated Task & Routine Follow-Up Modal (Phase 23) */}
+      <FollowUpPromptModal
+        isOpen={!!activeFollowUp}
+        item={activeFollowUp}
+        onClose={() => setActiveFollowUp(null)}
+        onSuccess={(action) => {
+          toast.success('Follow-Up Response Recorded', `Status updated: ${action.replace('_', ' ')}`);
+          queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['routines'] });
+          queryClient.invalidateQueries({ queryKey: ['command-center-analytics'] });
+          queryClient.invalidateQueries({ queryKey: ['daily-kpi'] });
+          refetchFollowUps();
+          refetchTasks();
+          refetchRoutines();
+        }}
       />
 
       <ConfirmDialog

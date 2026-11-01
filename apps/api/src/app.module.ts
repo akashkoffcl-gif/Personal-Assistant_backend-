@@ -16,6 +16,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { OutboxModule } from './modules/outbox/outbox.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { AutomationModule } from './modules/automation/automation.module';
+import { FollowUpsModule } from './modules/follow-ups/follow-ups.module';
 import { WorkerModule } from './worker/worker.module';
 
 @Module({
@@ -35,6 +36,7 @@ import { WorkerModule } from './worker/worker.module';
     OutboxModule,
     ProjectsModule,
     AutomationModule,
+    FollowUpsModule,
     WorkerModule,
   ],
   providers: [PrismaService, RedisService],

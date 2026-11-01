@@ -118,6 +118,8 @@ export function ModernDribbbleDashboard({
   const userName = profile?.fullName?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || 'Selma';
 
   const [overviewTimeRange, setOverviewTimeRange] = useState<'7' | '30' | '90'>('7');
+  const [showCompletedSeries, setShowCompletedSeries] = useState(true);
+  const [showScheduledSeries, setShowScheduledSeries] = useState(true);
   const [projectTab, setProjectTab] = useState<'projects' | 'tasks'>('projects');
   const [analyticsFooterTab, setAnalyticsFooterTab] = useState<'weekly' | 'monthly' | 'custom'>('weekly');
   const [hoveredChartDay, setHoveredChartDay] = useState<OverviewChartDay | null>(null);
@@ -639,14 +641,26 @@ export function ModernDribbbleDashboard({
 
               {/* Legend */}
               <div className="flex flex-wrap items-center gap-2 text-[9px] text-[#74738A] mb-1 shrink-0">
-                <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowCompletedSeries(!showCompletedSeries)}
+                  className={`flex items-center gap-1 cursor-pointer transition-opacity ${
+                    showCompletedSeries ? 'opacity-100' : 'opacity-40 line-through'
+                  }`}
+                  title="Click to toggle completed tasks series"
+                >
                   <span className="w-2 h-2 rounded-xs bg-[#C4B5FD]" />
                   <span className="font-medium text-[#202033]">Tasks Completed</span>
-                </div>
-                <div className="flex items-center gap-1">
+                </button>
+                <button
+                  onClick={() => setShowScheduledSeries(!showScheduledSeries)}
+                  className={`flex items-center gap-1 cursor-pointer transition-opacity ${
+                    showScheduledSeries ? 'opacity-100' : 'opacity-40 line-through'
+                  }`}
+                  title="Click to toggle scheduled tasks series"
+                >
                   <span className="w-2 h-2 rounded-xs bg-[#8B45F5]" />
                   <span className="font-medium text-[#202033]">Tasks Scheduled</span>
-                </div>
+                </button>
                 <div className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] ring-1 ring-[#10B981]/30" />
                   <span className="font-medium text-[#202033]">Completion Rate</span>
@@ -721,19 +735,23 @@ export function ModernDribbbleDashboard({
                         {/* Dual Pillars */}
                         <div className="w-full flex justify-center items-end gap-0.5 h-[80px] sm:h-[95px] 2xl:h-[110px]">
                           {/* Completed Bar */}
-                          <div
-                            style={{ height: `${compHeight}%` }}
-                            className={`w-2 sm:w-2.5 max-w-[10px] rounded-t-xs transition-all duration-300 ${
-                              isSelected ? 'bg-[#8B45F5]' : 'bg-[#C4B5FD] group-hover:bg-[#A78BFA]'
-                            }`}
-                          />
+                          {showCompletedSeries && (
+                            <div
+                              style={{ height: `${compHeight}%` }}
+                              className={`w-2 sm:w-2.5 max-w-[10px] rounded-t-xs transition-all duration-300 ${
+                                isSelected ? 'bg-[#8B45F5]' : 'bg-[#C4B5FD] group-hover:bg-[#A78BFA]'
+                              }`}
+                            />
+                          )}
                           {/* Scheduled Bar */}
-                          <div
-                            style={{ height: `${schedHeight}%` }}
-                            className={`w-2 sm:w-2.5 max-w-[10px] rounded-t-xs transition-all duration-300 ${
-                              isSelected ? 'bg-[#6935C8]' : 'bg-[#8B45F5] group-hover:bg-[#7839D6]'
-                            }`}
-                          />
+                          {showScheduledSeries && (
+                            <div
+                              style={{ height: `${schedHeight}%` }}
+                              className={`w-2 sm:w-2.5 max-w-[10px] rounded-t-xs transition-all duration-300 ${
+                                isSelected ? 'bg-[#6935C8]' : 'bg-[#8B45F5] group-hover:bg-[#7839D6]'
+                              }`}
+                            />
+                          )}
                         </div>
 
                         {/* Line Dot */}

@@ -47,25 +47,97 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   return {};
 }
 
-async function fetcher<T>(endpoint: string, options?: RequestInit): Promise<T> {
+interface FetcherOptions extends RequestInit {
+  timeoutMs?: number;
+  retries?: number;
+  idempotencyKey?: string;
+}
+
+/**
+ * Resilient fetcher with request timeout, exponential backoff with jitter for idempotent requests,
+ * and graceful error handling.
+ */
+async function fetcher<T>(endpoint: string, options?: FetcherOptions): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
-  const authHeaders = await getAuthHeaders();
+  const method = (options?.method || 'GET').toUpperCase();
+  const isIdempotent = method === 'GET' || Boolean(options?.idempotencyKey);
+  const maxRetries = options?.retries !== undefined ? options.retries : (isIdempotent ? 2 : 0);
+  const timeoutMs = options?.timeoutMs || 12000;
 
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...authHeaders,
-      ...options?.headers,
-    },
-  });
+  let attempt = 0;
+  let lastError: Error | null = null;
 
-  const json = await res.json();
-  if (!res.ok) {
-    throw new Error(json.message || 'API request failed');
+  while (attempt <= maxRetries) {
+    const controller = new AbortController();
+    const timeoutTimer = setTimeout(() => {
+      controller.abort();
+    }, timeoutMs);
+
+    // Merge external signal if passed
+    if (options?.signal) {
+      options.signal.addEventListener('abort', () => controller.abort());
+    }
+
+    try {
+      const authHeaders = await getAuthHeaders();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...authHeaders,
+        ...(options?.idempotencyKey ? { 'Idempotency-Key': options.idempotencyKey } : {}),
+        ...((options?.headers as Record<string, string>) || {}),
+      };
+
+      const res = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers,
+      });
+
+      clearTimeout(timeoutTimer);
+
+      // Handle 204 No Content
+      if (res.status === 204) {
+        return {} as T;
+      }
+
+      const text = await res.text();
+      let json: any = {};
+      try {
+        json = text ? JSON.parse(text) : {};
+      } catch {
+        json = { message: text || `HTTP error ${res.status}` };
+      }
+
+      if (!res.ok) {
+        // If 5xx transient server error on an idempotent request, retry
+        if (res.status >= 500 && attempt < maxRetries && isIdempotent) {
+          attempt++;
+          const jitter = Math.floor(Math.random() * 300);
+          const delay = Math.min(1000 * Math.pow(2, attempt) + jitter, 4000);
+          await new Promise((r) => setTimeout(r, delay));
+          continue;
+        }
+
+        throw new Error(json.message || `API request failed with status ${res.status}`);
+      }
+
+      return (json.data !== undefined ? json.data : json) as T;
+    } catch (err: any) {
+      clearTimeout(timeoutTimer);
+      lastError = err?.name === 'AbortError' ? new Error(`Request timed out after ${timeoutMs}ms`) : err;
+
+      if (attempt < maxRetries && isIdempotent) {
+        attempt++;
+        const jitter = Math.floor(Math.random() * 300);
+        const delay = Math.min(1000 * Math.pow(2, attempt) + jitter, 4000);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+      break;
+    }
   }
 
-  return (json.data !== undefined ? json.data : json) as T;
+  throw lastError || new Error('Network request failed');
 }
 
 export const api = {
@@ -102,6 +174,21 @@ export const api = {
   completeOccurrence: (id: string, actualQuantity?: number) =>
     fetcher<RoutineOccurrenceDto>(`/routines/occurrences/${id}/complete`, { method: 'POST', body: JSON.stringify({ actualQuantity }) }),
   deleteRoutine: (id: string) => fetcher<{ success: boolean }>(`/routines/${id}`, { method: 'DELETE' }),
+
+  // Automated Follow-Ups (Phase 23 Engine)
+  getPendingFollowUps: () => fetcher<any[]>('/follow-ups/pending'),
+  respondToFollowUp: (data: {
+    followUpId?: string;
+    taskId?: string;
+    routineId?: string;
+    occurrenceId?: string;
+    action: 'COMPLETED' | 'PARTIALLY_COMPLETED' | 'STILL_WORKING' | 'RESCHEDULE' | 'SKIPPED';
+    progressPercent?: number;
+    revisedEndTime?: string;
+    rescheduleDate?: string;
+    actualQuantity?: number;
+    notes?: string;
+  }) => fetcher<any>('/follow-ups/respond', { method: 'POST', body: JSON.stringify(data) }),
 
   // Day-Specific Planning
   getDayPlan: (date: string) => fetcher<any>(`/plans/${date}`),

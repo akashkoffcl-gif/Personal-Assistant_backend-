@@ -215,8 +215,90 @@ export class WorkerService implements OnModuleInit, OnModuleDestroy {
           });
         }
       }
+
+      // Reconcile automated task & routine follow-ups (Phase 23)
+      await this.reconcileAutomatedFollowUps(now);
     } catch (err: any) {
       this.logger.error(`Reconciliation run error: ${err?.message}`);
+    }
+  }
+
+  /**
+   * Phase 23: Automatic Task & Routine Follow-up Engine
+   */
+  async reconcileAutomatedFollowUps(now: Date) {
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    // 1. Incomplete tasks whose scheduled end time has arrived
+    const endedTasks = await this.prisma.task.findMany({
+      where: {
+        scheduledEndTime: { lte: now, gte: twentyFourHoursAgo },
+        status: { in: [TaskStatus.TODO, TaskStatus.IN_PROGRESS] },
+      },
+      include: { user: { include: { settings: true } } },
+      take: 10,
+    });
+
+    for (const task of endedTasks) {
+      // Check if user has follow-ups enabled & check quiet hours
+      const userSettings = task.user.settings;
+      if (userSettings) {
+        const currentHour = now.getUTCHours();
+        const inQuietHours =
+          userSettings.quietHoursStart > userSettings.quietHoursEnd
+            ? currentHour >= userSettings.quietHoursStart || currentHour < userSettings.quietHoursEnd
+            : currentHour >= userSettings.quietHoursStart && currentHour < userSettings.quietHoursEnd;
+
+        if (inQuietHours && task.priority !== 'URGENT') {
+          continue; // Respect quiet hours
+        }
+      }
+
+      // Check idempotency: Ensure follow-up notification does not already exist
+      const existingNotification = await this.prisma.inAppNotification.findFirst({
+        where: {
+          userId: task.userId,
+          category: 'FOLLOW_UP',
+          actionUrl: `/?tab=dashboard&followup=task-${task.id}`,
+        },
+      });
+
+      if (!existingNotification) {
+        const endTimeFormatted = task.scheduledEndTime
+          ? new Date(task.scheduledEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : 'recently';
+
+        await this.prisma.inAppNotification.create({
+          data: {
+            userId: task.userId,
+            title: `Task Time Ended: ${task.title}`,
+            message: `Scheduled window ended at ${endTimeFormatted}. How did it go?`,
+            category: 'FOLLOW_UP',
+            severity: 'INFO',
+            actionUrl: `/?tab=dashboard&followup=task-${task.id}`,
+            metadata: {
+              type: 'TASK_FOLLOW_UP',
+              taskId: task.id,
+              taskTitle: task.title,
+              category: task.category,
+              scheduledStartTime: task.scheduledStartTime,
+              scheduledEndTime: task.scheduledEndTime,
+            },
+          },
+        });
+
+        // Trigger push if user is away and push is enabled
+        if (userSettings?.enablePush !== false) {
+          await this.notificationsService.notifyUser(task.userId, {
+            title: `⏰ Task Follow-up: ${task.title}`,
+            body: `Your scheduled task ended. Tap to record progress or reschedule.`,
+            taskId: task.id,
+            category: task.category,
+          });
+        }
+
+        this.logger.log(`Created automated follow-up event for task ${task.id} (user: ${task.userId}).`);
+      }
     }
   }
 
