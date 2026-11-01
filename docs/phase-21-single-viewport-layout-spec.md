@@ -78,3 +78,4 @@ lg:h-screen lg:max-h-screen lg:overflow-hidden p-2 sm:p-2.5 lg:px-3.5 lg:py-2 ma
 - **Mobile (`< 768px`):**
   - Single-column flow with smooth scrolling.
   - Horizontally swipeable KPI cards or compact 2-column metric grid.
+
