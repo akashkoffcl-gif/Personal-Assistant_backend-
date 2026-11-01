@@ -101,3 +101,4 @@ flowchart TD
   - Column 2: Projects & Tasks with Active Projects / Recent Tasks tabs and progress bars.
   - Column 3: Wellness & Habit Insights with 2x2 metric matrix and SVG trend curve.
   - Column 4: Recent Activity chronological audit trail with relative timestamps.
+

@@ -544,9 +544,19 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#EAE9FF] flex flex-col selection:bg-[#EDE9FE] selection:text-[#6935C8] overflow-x-hidden">
+    <div
+      className={`min-h-screen bg-[#EAE9FF] flex flex-col selection:bg-[#EDE9FE] selection:text-[#6935C8] ${
+        currentTab === 'dashboard'
+          ? 'lg:h-screen lg:max-h-screen lg:overflow-hidden p-2 sm:p-2.5 lg:px-3.5 lg:py-2 max-w-[1760px] w-full mx-auto'
+          : 'overflow-x-hidden'
+      }`}
+    >
       {/* Shared Horizontal Enterprise Navbar */}
-      <div className="p-3 sm:p-5 lg:p-6 max-w-[1680px] w-full mx-auto pb-0">
+      <div
+        className={`w-full mx-auto ${
+          currentTab === 'dashboard' ? 'p-0 mb-1.5 sm:mb-2' : 'p-3 sm:p-5 lg:p-6 max-w-[1680px] pb-0'
+        }`}
+      >
         <HorizontalNavbar
           currentTab={currentTab}
           onSelectTab={(tab) => {
@@ -571,8 +581,18 @@ export default function App() {
       </div>
 
       {/* Main Content Area — Full Width Layout */}
-      <div className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-8">
-        <main className="flex-1 px-3 sm:px-5 lg:px-6 max-w-[1680px] w-full mx-auto space-y-6">
+      <div
+        className={`flex-1 flex flex-col min-w-0 ${
+          currentTab === 'dashboard' ? 'min-h-0 overflow-hidden pb-0' : 'pb-16 lg:pb-8'
+        }`}
+      >
+        <main
+          className={`flex-1 w-full mx-auto ${
+            currentTab === 'dashboard'
+              ? 'min-h-0 flex flex-col overflow-hidden space-y-0 px-0'
+              : 'px-3 sm:px-5 lg:px-6 max-w-[1680px] space-y-6'
+          }`}
+        >
           {/* Proactive Smart Check-In Assistant Banner */}
           {pendingCheckInItem && (
             <div className="p-4 rounded-2xl bg-[#F4F3FF] border border-[#E5E2F5] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_4px_20px_rgba(139,69,245,0.04)]">

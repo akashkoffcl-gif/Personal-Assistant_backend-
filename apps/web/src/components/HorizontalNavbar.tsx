@@ -158,8 +158,8 @@ export function HorizontalNavbar({
   const activeSecondaryItem = secondaryNavItems.find((item) => item.id === currentTab);
 
   return (
-    <header className="sticky top-0 z-40 select-none mb-6">
-      <div className="bg-white rounded-2xl border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.06)] px-3 sm:px-4 lg:px-5 py-2 flex items-center justify-between gap-2 sm:gap-3 h-[60px] sm:h-[64px]">
+    <header className="sticky top-0 z-40 select-none">
+      <div className="bg-white rounded-2xl border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.06)] px-3 sm:px-4 lg:px-5 py-1.5 flex items-center justify-between gap-2 sm:gap-3 h-[52px] sm:h-[56px]">
         {/* =========================================================================
             LEFT SECTION: PRODUCT LOGO & IDENTITY
            ========================================================================= */}
