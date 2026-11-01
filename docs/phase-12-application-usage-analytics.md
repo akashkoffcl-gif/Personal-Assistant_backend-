@@ -91,3 +91,4 @@ The platform tracks 13 core capabilities across the lifecycle:
 - **Section C (Feature Adoption):** 13-feature grid with Adopted (`#16A36A`) or Pending (`#74738A`) status badges, interaction counts, and last used timestamps.
 - **Section D & E (Operational Reliability):** Automation engine evaluation breakdown (total, success, cooldown skips) and web push delivery metrics.
 - **Section F (Event Audit Log):** Paginated, filterable event log with module dropdown, status filter, search input, and JSON export button.
+

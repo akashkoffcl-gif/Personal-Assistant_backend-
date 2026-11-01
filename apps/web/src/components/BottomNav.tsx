@@ -10,7 +10,7 @@ import {
   HeartPulse,
   Activity,
 } from 'lucide-react';
-import { NavTab } from './Sidebar';
+import { NavTab } from './HorizontalNavbar';
 
 interface BottomNavProps {
   currentTab: NavTab;

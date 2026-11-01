@@ -6,8 +6,7 @@ import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, is
 import { api } from '@/lib/api';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useToast } from '@/components/Toast';
-import { Sidebar, NavTab } from '@/components/Sidebar';
-import { Header } from '@/components/Header';
+import { HorizontalNavbar, NavTab } from '@/components/HorizontalNavbar';
 import { ModernDribbbleDashboard } from '@/components/ModernDribbbleDashboard';
 import { KpiCards } from '@/components/KpiCards';
 import { TodaySchedule } from '@/components/TodaySchedule';
@@ -499,45 +498,33 @@ export default function App() {
   }, [selectedDate]);
 
   return (
-    <div className="min-h-screen bg-[#EAE9FF] flex selection:bg-[#EDE9FE] selection:text-[#6935C8]">
-      {/* Grouped Responsive Lavender Sidebar */}
-      <Sidebar
-        currentTab={currentTab}
-        onSelectTab={(tab) => {
-          setCurrentTab(tab);
-          setActiveKpiFilter(null);
-        }}
-        onOpenEmergency={() => setIsEmergencyModalOpen(true)}
-      />
+    <div className="min-h-screen bg-[#EAE9FF] flex flex-col selection:bg-[#EDE9FE] selection:text-[#6935C8] overflow-x-hidden">
+      {/* Shared Horizontal Enterprise Navbar */}
+      <div className="p-3 sm:p-5 lg:p-6 max-w-[1680px] w-full mx-auto pb-0">
+        <HorizontalNavbar
+          currentTab={currentTab}
+          onSelectTab={(tab) => {
+            setCurrentTab(tab);
+            setActiveKpiFilter(null);
+          }}
+          onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
+          onOpenCreateRoutine={() => setIsCreateRoutineModalOpen(true)}
+          onOpenEmergency={() => setIsEmergencyModalOpen(true)}
+          isPushSubscribed={push.isSubscribed}
+          onTogglePush={push.isSubscribed ? () => {} : push.subscribe}
+          pushLoading={push.loading}
+          pushMessage={push.message}
+          onRefresh={refreshAll}
+          onSearchFocus={() => searchInputRef.current?.focus()}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedDate={selectedDate}
+        />
+      </div>
 
-      {/* Main Content Column */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        {/* Compact Top Header */}
-        <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto pb-0">
-          <Header
-            currentTab={currentTab}
-            onSelectTab={(tab) => {
-              setCurrentTab(tab);
-              setActiveKpiFilter(null);
-            }}
-            onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
-            onOpenCreateRoutine={() => setIsCreateRoutineModalOpen(true)}
-            onOpenEmergency={() => setIsEmergencyModalOpen(true)}
-            isPushSubscribed={push.isSubscribed}
-            onTogglePush={push.isSubscribed ? () => {} : push.subscribe}
-            pushLoading={push.loading}
-            pushMessage={push.message}
-            onRefresh={refreshAll}
-            onSearchFocus={() => searchInputRef.current?.focus()}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            selectedDate={selectedDate}
-          />
-        </div>
-
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-8">
-          <main className="flex-1 px-4 sm:px-6 lg:px-8 max-w-[1600px] w-full mx-auto space-y-6">
+      {/* Main Content Area — Full Width Layout */}
+      <div className="flex-1 flex flex-col min-w-0 pb-16 lg:pb-8">
+        <main className="flex-1 px-3 sm:px-5 lg:px-6 max-w-[1680px] w-full mx-auto space-y-6">
           {/* Proactive Smart Check-In Assistant Banner */}
           {pendingCheckInItem && (
             <div className="p-4 rounded-2xl bg-[#F4F3FF] border border-[#E5E2F5] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
@@ -1610,7 +1597,6 @@ export default function App() {
         onSelectTab={setCurrentTab}
         onOpenEmergency={() => setIsEmergencyModalOpen(true)}
       />
-      </div>
     </div>
   );
 }
