@@ -84,3 +84,4 @@ if (dto.routineId) {
 1. BullMQ redis jobs for reminders and replanning serialize payload with explicit `{ userId, taskId }`.
 2. Notification workers verify that the targeted task or reminder belongs to the recipient user before dispatching web push payloads.
 3. System jobs (service role) bypass RLS using database superuser credentials only for global event synchronization.
+

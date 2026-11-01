@@ -177,3 +177,4 @@ CREATE POLICY "Users can manage own notifications" ON "in_app_notifications"
 -- 3. Grants for service_role and postgres roles (background queue workers & pooler)
 GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres;
 GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+

@@ -223,6 +223,11 @@ export default function App() {
     enabled: !!selectedTask?.id,
   });
 
+  const { data: commandCenterData, refetch: refetchCommandCenter } = useQuery({
+    queryKey: ['command-center-analytics', selectedDate],
+    queryFn: () => api.getCommandCenterAnalytics(selectedDate, 7),
+  });
+
   const refreshAll = () => {
     refetchTasks();
     refetchAllTasks();
@@ -232,6 +237,7 @@ export default function App() {
     refetchKpi();
     refetchWellness();
     refetchTrends();
+    refetchCommandCenter();
     refetchChanges();
     refetchDayPlan();
     refetchRules();
@@ -630,6 +636,7 @@ export default function App() {
               wellnessSummary={wellness}
               projects={projects}
               trends={trends}
+              commandCenterData={commandCenterData}
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
               onCompleteTask={(id) => completeTaskMutation.mutate(id)}
@@ -658,6 +665,9 @@ export default function App() {
               onOpenEmergency={() => setIsEmergencyModalOpen(true)}
               onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
               onOpenCreateRoutine={() => setIsCreateRoutineModalOpen(true)}
+              onOpenCreateProject={() => setIsProjectModalOpen(true)}
+              onOpenCreateReminder={() => setIsCreateTaskModalOpen(true)}
+              onOpenCreateEvent={() => setIsCreateTaskModalOpen(true)}
               onOpenWellnessCheckIn={() => setIsCheckInModalOpen(true)}
               onNavigateTab={(tab) => setCurrentTab(tab as any)}
               loading={tasksLoading || routinesLoading}

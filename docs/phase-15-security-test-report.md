@@ -59,3 +59,4 @@ Time:        32.418 s
 - **Subtask Hierarchy Boundary:** User B cannot attach subtasks to User A's parent task (throws `403 Forbidden`).
 - **Routine Boundary:** User B cannot link User A's routine occurrence (throws `403 Forbidden`).
 - **Legitimate Associations:** User B creating a task inside their own project succeeds with HTTP 201.
+

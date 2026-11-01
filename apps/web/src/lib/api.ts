@@ -164,6 +164,8 @@ export const api = {
   // Personal Productivity Analytics (Domain A)
   getDailyKpi: (date: string) => fetcher<DailyKpiSummary>(`/analytics/daily?date=${date}`),
   getTrends: (days = 7) => fetcher<any>(`/analytics/trends?days=${days}`),
+  getCommandCenterAnalytics: (date: string, range = 7) =>
+    fetcher<any>(`/analytics/command-center?date=${date}&range=${range}`),
 
   // Application Usage Analytics (Domain B)
   getUsageOverview: (days = 30) => fetcher<any>(`/analytics/usage/overview?days=${days}`),

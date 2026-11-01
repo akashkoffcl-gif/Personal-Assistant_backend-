@@ -94,3 +94,4 @@ When a user logs out:
 2. `queryClient.clear()` wipes all cached queries, preventing the next user on the shared browser from observing prior tenant data.
 3. Local storage auth tokens are purged.
 4. Window redirects to `/login`.
+

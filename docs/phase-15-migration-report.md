@@ -34,3 +34,4 @@ The migration `3_multi_user_rls_policies/migration.sql` was applied cleanly to t
 - [x] Existing single-tenant records intact and queryable under test user context.
 - [x] New user registrations successfully create isolated tenant records.
 - [x] API test suite runs with 100% pass rate.
+

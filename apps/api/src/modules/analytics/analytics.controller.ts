@@ -24,5 +24,16 @@ export class AnalyticsController {
   ) {
     return this.analyticsService.getTrends(user.id, days ? Number(days) : 7);
   }
+
+  @Get('command-center')
+  async getCommandCenter(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('date') date?: string,
+    @Query('range') range?: number,
+  ) {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    const rangeDays = range ? Number(range) : 7;
+    return this.analyticsService.getCommandCenterData(user.id, targetDate, rangeDays);
+  }
 }
 
