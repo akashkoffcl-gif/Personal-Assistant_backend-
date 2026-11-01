@@ -602,6 +602,8 @@ export default function App() {
               occurrences={occurrences}
               kpi={kpi}
               wellnessSummary={wellness}
+              projects={projects}
+              trends={trends}
               selectedDate={selectedDate}
               onSelectDate={setSelectedDate}
               onCompleteTask={(id) => completeTaskMutation.mutate(id)}

@@ -95,3 +95,4 @@ All remaining browser-native modal calls have been eliminated:
 - `window.alert()` ➔ Replaced with `toast.error()` / `toast.warning()`.
 - `window.prompt()` ➔ Replaced with accessible inline modals ([`SmartCheckInModal.tsx`](file:///D:/PT/apps/web/src/components/SmartCheckInModal.tsx)).
 - `window.confirm()` ➔ Replaced with accessible [`ConfirmDialog.tsx`](file:///D:/PT/apps/web/src/components/ConfirmDialog.tsx) featuring keyboard focus traps, Esc key dismiss, and explicit destructive action styling.
+
