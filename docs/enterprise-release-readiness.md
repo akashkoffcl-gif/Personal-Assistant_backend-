@@ -19,6 +19,7 @@
 | **Background Processing** | BullMQ queue with transactional outbox reconciler, quiet hours, state revalidation | **READY** | Worker suite passed 6/6 tests |
 | **Automation Engine** | Deterministic rule evaluator with cooldown enforcement and execution history | **READY** | 5/5 automation tests passed; DB records verified |
 | **Frontend UI/UX** | Phase 14 Horizontal Enterprise Navbar, Marketer lavender design, zero sidebar | **READY** | Verified across 6 viewports (1920x1080 to 390x844); Next.js build clean |
+| **Notifications** | Phase 16 Sonner Toastify & Centralized In-App Notification Center | **READY** | 10/10 test pass rate, live Supabase persistence, multi-tenant isolation |
 | **Code Quality** | Strict TypeScript, zero ESLint warnings, all automated test suites passing | **READY** | 100% test pass rate across unit, live DB, and e2e suites |
 
 ---

@@ -82,3 +82,4 @@ With the vertical sidebar removed, the Command Center layout expands to the full
 - Compact Laptop (1366×768): [phase14_1366x768.png](file:///D:/PT/docs/screenshots/phase14_1366x768.png)
 - Tablet (768×1024): [phase14_768x1024.png](file:///D:/PT/docs/screenshots/phase14_768x1024.png)
 - Mobile (390×844): [phase14_390x844.png](file:///D:/PT/docs/screenshots/phase14_390x844.png)
+

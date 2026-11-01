@@ -140,6 +140,21 @@ export class NotificationsService {
       category?: string;
     },
   ) {
+    // 1. Always create persistent In-App Notification record so it appears in Notification Center
+    try {
+      await this.createInAppNotification(userId, {
+        title: notification.title,
+        message: notification.body,
+        category: notification.category || 'REMINDERS',
+        severity: 'INFO',
+        actionUrl: notification.taskId ? `/work?task=${notification.taskId}` : undefined,
+        metadata: { taskId: notification.taskId },
+      });
+    } catch (err: any) {
+      this.logger.warn(`Failed to persist in-app notification: ${err?.message}`);
+    }
+
+    // 2. Dispatch Web Push if active subscriptions exist
     if (!this.prisma.isConnected) {
       this.logger.log(`[Push Notification Mock] User: ${userId} - ${notification.title}: ${notification.body}`);
       return { deliveredCount: 0 };
@@ -159,6 +174,113 @@ export class NotificationsService {
     }
 
     return { deliveredCount: delivered, totalSubscriptions: subscriptions.length };
+  }
+
+  // Persistent In-App Notification Center Methods
+  async createInAppNotification(
+    userId: string,
+    data: {
+      title: string;
+      message: string;
+      category?: string;
+      severity?: string;
+      actionUrl?: string;
+      metadata?: Record<string, any>;
+    },
+  ) {
+    if (!this.prisma.isConnected) {
+      return {
+        id: 'mock-notif-' + Date.now(),
+        userId,
+        ...data,
+        category: data.category || 'SYSTEM',
+        severity: data.severity || 'INFO',
+        readAt: null,
+        createdAt: new Date(),
+      };
+    }
+
+    return this.prisma.inAppNotification.create({
+      data: {
+        userId,
+        title: data.title,
+        message: data.message,
+        category: data.category || 'SYSTEM',
+        severity: data.severity || 'INFO',
+        actionUrl: data.actionUrl,
+        metadata: data.metadata || {},
+      },
+    });
+  }
+
+  async getNotifications(
+    userId: string,
+    options?: {
+      category?: string;
+      unreadOnly?: boolean;
+      limit?: number;
+    },
+  ) {
+    if (!this.prisma.isConnected) {
+      return { unreadCount: 0, totalCount: 0, notifications: [] };
+    }
+
+    const where: any = { userId };
+    if (options?.category && options.category !== 'ALL') {
+      where.category = options.category;
+    }
+    if (options?.unreadOnly) {
+      where.readAt = null;
+    }
+
+    const [notifications, unreadCount, totalCount] = await Promise.all([
+      this.prisma.inAppNotification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: options?.limit || 50,
+      }),
+      this.prisma.inAppNotification.count({
+        where: { userId, readAt: null },
+      }),
+      this.prisma.inAppNotification.count({
+        where: { userId },
+      }),
+    ]);
+
+    return {
+      unreadCount,
+      totalCount,
+      notifications,
+    };
+  }
+
+  async markAsRead(userId: string, notificationId: string) {
+    if (!this.prisma.isConnected) return { success: true };
+
+    await this.prisma.inAppNotification.updateMany({
+      where: { id: notificationId, userId },
+      data: { readAt: new Date() },
+    });
+    return { success: true };
+  }
+
+  async markAllAsRead(userId: string) {
+    if (!this.prisma.isConnected) return { success: true, count: 0 };
+
+    const result = await this.prisma.inAppNotification.updateMany({
+      where: { userId, readAt: null },
+      data: { readAt: new Date() },
+    });
+    return { success: true, count: result.count };
+  }
+
+  async deleteNotification(userId: string, notificationId: string) {
+    if (!this.prisma.isConnected) return { success: true };
+
+    await this.prisma.inAppNotification.deleteMany({
+      where: { id: notificationId, userId },
+    });
+    return { success: true };
   }
 }
 

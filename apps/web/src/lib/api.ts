@@ -86,11 +86,23 @@ export const api = {
   getScheduleChanges: () => fetcher<ScheduleChangeDto[]>('/schedule-changes'),
   cancelEmergency: (id: string) => fetcher<{ success: boolean }>(`/emergencies/${id}/cancel`, { method: 'POST' }),
 
-  // Notifications
+  // Notifications & In-App Center
   getVapidPublicKey: () => fetcher<{ publicKey: string }>('/notifications/vapid-public-key'),
   subscribePush: (payload: PushSubscriptionPayload) =>
     fetcher<{ success: boolean; subscription: any }>('/notifications/subscribe', { method: 'POST', body: JSON.stringify(payload) }),
   sendTestPush: () => fetcher<any>('/notifications/test', { method: 'POST' }),
+  getNotifications: (params?: { category?: string; unreadOnly?: boolean; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.category) q.set('category', params.category);
+    if (params?.unreadOnly !== undefined) q.set('unreadOnly', String(params.unreadOnly));
+    if (params?.limit) q.set('limit', String(params.limit));
+    return fetcher<{ unreadCount: number; totalCount: number; notifications: any[] }>(`/notifications?${q.toString()}`);
+  },
+  markNotificationRead: (id: string) => fetcher<{ success: boolean }>(`/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllNotificationsRead: () => fetcher<{ success: boolean; count: number }>('/notifications/read-all', { method: 'POST' }),
+  deleteNotification: (id: string) => fetcher<{ success: boolean }>(`/notifications/${id}`, { method: 'DELETE' }),
+  createInAppNotification: (data: { title: string; message: string; category?: string; severity?: string; actionUrl?: string; metadata?: any }) =>
+    fetcher<{ success: boolean; notification: any }>('/notifications/in-app', { method: 'POST', body: JSON.stringify(data) }),
 
   // Wellness
   logWellnessMetric: (data: any) => fetcher<WellnessMetricDto>('/wellness/metrics', { method: 'POST', body: JSON.stringify(data) }),

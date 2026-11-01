@@ -106,6 +106,7 @@ model User {
   automationRules       AutomationRule[]
   automationRuleExecutions AutomationRuleExecution[]
   usageEvents           UsageEvent[]
+  notifications         InAppNotification[]
 
   @@map("users")
 }
@@ -524,5 +525,27 @@ model UsageEvent {
   @@index([userId, eventName])
   @@map("usage_events")
 }
+
+// 21. InAppNotification Model (Persistent Centralized Notification Center)
+model InAppNotification {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  category  String    @default("SYSTEM") // TASKS, ROUTINES, REMINDERS, SCHEDULE_CONFLICT, AUTOMATION, WELLNESS, SYSTEM
+  severity  String    @default("INFO")   // SUCCESS, INFO, WARNING, ERROR
+  actionUrl String?
+  metadata  Json?
+  readAt    DateTime? @db.Timestamptz
+  createdAt DateTime  @default(now()) @db.Timestamptz
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@index([userId, category])
+  @@map("in_app_notifications")
+}
+
 
 

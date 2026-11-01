@@ -57,6 +57,8 @@ export interface HorizontalNavbarProps {
   searchQuery?: string;
   onSearchChange?: (val: string) => void;
   selectedDate?: string;
+  onOpenNotifications?: () => void;
+  unreadNotificationsCount?: number;
 }
 
 interface NavItem {
@@ -83,6 +85,8 @@ export function HorizontalNavbar({
   searchQuery = '',
   onSearchChange,
   selectedDate,
+  onOpenNotifications,
+  unreadNotificationsCount = 0,
 }: HorizontalNavbarProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
@@ -358,20 +362,22 @@ export function HorizontalNavbar({
             <span className="whitespace-nowrap">Emergency Replan</span>
           </button>
 
-          {/* Web Push Notification Toggle */}
+          {/* Notification Center Trigger & Push Status */}
           <button
-            onClick={onTogglePush}
+            onClick={onOpenNotifications || onTogglePush}
             disabled={pushLoading}
             className={`w-9 h-9 rounded-full border border-[#E5E2F5] bg-white hover:bg-[#F4F4FD] flex items-center justify-center shadow-2xs transition-all relative ${
-              isPushSubscribed ? 'text-[#8B45F5]' : 'text-[#717182]'
+              unreadNotificationsCount > 0 ? 'text-[#8B45F5]' : isPushSubscribed ? 'text-[#18181B]' : 'text-[#717182]'
             }`}
-            title={pushMessage || (isPushSubscribed ? 'Push Notifications Active' : 'Enable Web Push')}
-            aria-label="Push Notifications"
+            title={unreadNotificationsCount > 0 ? `${unreadNotificationsCount} unread notification(s)` : 'Notification Center'}
+            aria-label="Notification Center"
           >
             {isPushSubscribed ? <BellRing className="w-4 h-4 text-[#8B45F5]" /> : <Bell className="w-4 h-4 text-[#18181B]" />}
-            {isPushSubscribed && (
+            {unreadNotificationsCount > 0 ? (
+              <span className="w-2 h-2 rounded-full bg-[#E05268] absolute top-1.5 right-1.5 ring-2 ring-white animate-pulse" />
+            ) : isPushSubscribed ? (
               <span className="w-1.5 h-1.5 rounded-full bg-[#16A36A] absolute top-2 right-2" />
-            )}
+            ) : null}
           </button>
 
           {/* Sync Refresh Button */}

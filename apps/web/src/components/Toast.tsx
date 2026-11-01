@@ -1,89 +1,262 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { CheckCircle2, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Toaster as SonnerToaster, toast as sonnerToast } from 'sonner';
+import { CheckCircle2, AlertCircle, AlertTriangle, Info, Loader2 } from 'lucide-react';
 
-export type ToastType = 'success' | 'error' | 'warning' | 'info';
+// ============================================================================
+// 1. TYPES & CONTRACTS
+// ============================================================================
+export type ToastType = 'success' | 'error' | 'warning' | 'info' | 'loading';
 
-export interface ToastItem {
-  id: string;
-  type: ToastType;
-  title: string;
-  message?: string;
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
 }
 
-interface ToastContextType {
-  toast: (options: { type: ToastType; title: string; message?: string }) => void;
-  success: (title: string, message?: string) => void;
-  error: (title: string, message?: string) => void;
-  warning: (title: string, message?: string) => void;
-  info: (title: string, message?: string) => void;
+export interface ToastOptions {
+  id?: string | number;
+  duration?: number;
+  action?: ToastAction;
+  cancel?: ToastAction;
+  onDismiss?: () => void;
+  onAutoClose?: () => void;
+  className?: string;
+  preventDuplicate?: boolean;
 }
 
-const ToastContext = createContext<ToastContextType | undefined>(undefined);
-
-export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-
-  const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
-
-  const addToast = useCallback(
-    ({ type, title, message }: { type: ToastType; title: string; message?: string }) => {
-      const id = Math.random().toString(36).substring(2, 9);
-      setToasts((prev) => [...prev, { id, type, title, message }]);
-
-      // Auto dismiss after 4 seconds
-      setTimeout(() => {
-        removeToast(id);
-      }, 4000);
-    },
-    [removeToast],
-  );
-
-  const success = useCallback((title: string, message?: string) => addToast({ type: 'success', title, message }), [addToast]);
-  const error = useCallback((title: string, message?: string) => addToast({ type: 'error', title, message }), [addToast]);
-  const warning = useCallback((title: string, message?: string) => addToast({ type: 'warning', title, message }), [addToast]);
-  const info = useCallback((title: string, message?: string) => addToast({ type: 'info', title, message }), [addToast]);
-
-  return (
-    <ToastContext.Provider value={{ toast: addToast, success, error, warning, info }}>
-      {children}
-      {/* Toast Notification Container */}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none p-2 sm:p-0">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            className="pointer-events-auto flex items-start gap-2.5 p-3 rounded-lg bg-white border border-slate-200 shadow-lg text-slate-900 transition-all transform animate-in slide-in-from-bottom-2 duration-200"
-          >
-            {t.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />}
-            {t.type === 'error' && <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />}
-            {t.type === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />}
-            {t.type === 'info' && <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />}
-
-            <div className="flex-1 min-w-0">
-              <h5 className="text-xs font-semibold leading-tight text-slate-900">{t.title}</h5>
-              {t.message && <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{t.message}</p>}
-            </div>
-
-            <button
-              onClick={() => removeToast(t.id)}
-              className="text-slate-400 hover:text-slate-700 p-0.5 rounded transition-colors"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
-      </div>
-    </ToastContext.Provider>
-  );
+export interface ToastPromiseOptions<T> {
+  loading: string;
+  success: string | ((data: T) => string);
+  error: string | ((error: any) => string);
+  description?: string | ((data: T) => string);
+  finally?: () => void;
 }
+
+// ============================================================================
+// 2. DEDUPLICATION ENGINE
+// ============================================================================
+const recentToasts = new Map<string, number>();
+const DEDUPE_WINDOW_MS = 1200;
+
+function shouldDedupe(key: string): boolean {
+  const now = Date.now();
+  const lastTime = recentToasts.get(key);
+  if (lastTime && now - lastTime < DEDUPE_WINDOW_MS) {
+    return true;
+  }
+  recentToasts.set(key, now);
+  // Housekeeping: remove old keys
+  if (recentToasts.size > 50) {
+    recentToasts.forEach((time, k) => {
+      if (now - time > 10000) recentToasts.delete(k);
+    });
+  }
+  return false;
+}
+
+// ============================================================================
+// 3. UNIFIED GLOBAL TOAST API
+// ============================================================================
+export const toast = {
+  success: (title: string, descriptionOrOptions?: string | ToastOptions, options?: ToastOptions) => {
+    const isDesc = typeof descriptionOrOptions === 'string';
+    const description = isDesc ? descriptionOrOptions : undefined;
+    const opts = (isDesc ? options : descriptionOrOptions) || {};
+
+    const dedupeKey = `success:${title}:${description || ''}`;
+    if (opts.preventDuplicate !== false && shouldDedupe(dedupeKey)) return '';
+
+    return sonnerToast.success(title, {
+      description,
+      duration: opts.duration || 4000,
+      id: opts.id,
+      action: opts.action,
+      cancel: opts.cancel,
+      onDismiss: opts.onDismiss,
+      onAutoClose: opts.onAutoClose,
+      icon: <CheckCircle2 className="w-4 h-4 text-[#16A36A] stroke-[2.4] shrink-0" />,
+    });
+  },
+
+  error: (title: string, descriptionOrOptions?: string | ToastOptions, options?: ToastOptions) => {
+    const isDesc = typeof descriptionOrOptions === 'string';
+    const description = isDesc ? descriptionOrOptions : undefined;
+    const opts = (isDesc ? options : descriptionOrOptions) || {};
+
+    const dedupeKey = `error:${title}:${description || ''}`;
+    if (opts.preventDuplicate !== false && shouldDedupe(dedupeKey)) return '';
+
+    return sonnerToast.error(title, {
+      description,
+      duration: opts.duration || 5000,
+      id: opts.id,
+      action: opts.action,
+      cancel: opts.cancel,
+      onDismiss: opts.onDismiss,
+      onAutoClose: opts.onAutoClose,
+      icon: <AlertCircle className="w-4 h-4 text-[#E05268] stroke-[2.4] shrink-0" />,
+    });
+  },
+
+  warning: (title: string, descriptionOrOptions?: string | ToastOptions, options?: ToastOptions) => {
+    const isDesc = typeof descriptionOrOptions === 'string';
+    const description = isDesc ? descriptionOrOptions : undefined;
+    const opts = (isDesc ? options : descriptionOrOptions) || {};
+
+    const dedupeKey = `warning:${title}:${description || ''}`;
+    if (opts.preventDuplicate !== false && shouldDedupe(dedupeKey)) return '';
+
+    return sonnerToast.warning(title, {
+      description,
+      duration: opts.duration || 4500,
+      id: opts.id,
+      action: opts.action,
+      cancel: opts.cancel,
+      onDismiss: opts.onDismiss,
+      onAutoClose: opts.onAutoClose,
+      icon: <AlertTriangle className="w-4 h-4 text-[#F59E0B] stroke-[2.4] shrink-0" />,
+    });
+  },
+
+  info: (title: string, descriptionOrOptions?: string | ToastOptions, options?: ToastOptions) => {
+    const isDesc = typeof descriptionOrOptions === 'string';
+    const description = isDesc ? descriptionOrOptions : undefined;
+    const opts = (isDesc ? options : descriptionOrOptions) || {};
+
+    const dedupeKey = `info:${title}:${description || ''}`;
+    if (opts.preventDuplicate !== false && shouldDedupe(dedupeKey)) return '';
+
+    return sonnerToast.info(title, {
+      description,
+      duration: opts.duration || 4000,
+      id: opts.id,
+      action: opts.action,
+      cancel: opts.cancel,
+      onDismiss: opts.onDismiss,
+      onAutoClose: opts.onAutoClose,
+      icon: <Info className="w-4 h-4 text-[#8B45F5] stroke-[2.4] shrink-0" />,
+    });
+  },
+
+  loading: (title: string, descriptionOrOptions?: string | ToastOptions, options?: ToastOptions) => {
+    const isDesc = typeof descriptionOrOptions === 'string';
+    const description = isDesc ? descriptionOrOptions : undefined;
+    const opts = (isDesc ? options : descriptionOrOptions) || {};
+
+    return sonnerToast.loading(title, {
+      description,
+      id: opts.id,
+      action: opts.action,
+      icon: <Loader2 className="w-4 h-4 text-[#8B45F5] animate-spin shrink-0" />,
+    });
+  },
+
+  promise: <T,>(promise: Promise<T> | (() => Promise<T>), data: ToastPromiseOptions<T>) => {
+    return sonnerToast.promise(promise, {
+      loading: data.loading,
+      success: data.success,
+      error: data.error,
+      finally: data.finally,
+    });
+  },
+
+  dismiss: (toastId?: string | number) => {
+    sonnerToast.dismiss(toastId);
+  },
+};
+
+// ============================================================================
+// 4. REACT CONTEXT & HOOK FOR SEAMLESS COMPONENT ACCESS
+// ============================================================================
+interface ToastContextValue {
+  toast: typeof toast;
+  success: (title: string, message?: string, options?: ToastOptions) => string | number;
+  error: (title: string, message?: string, options?: ToastOptions) => string | number;
+  warning: (title: string, message?: string, options?: ToastOptions) => string | number;
+  info: (title: string, message?: string, options?: ToastOptions) => string | number;
+  loading: (title: string, message?: string, options?: ToastOptions) => string | number;
+  promise: typeof toast.promise;
+  dismiss: typeof toast.dismiss;
+}
+
+const ToastContext = createContext<ToastContextValue>({
+  toast,
+  success: toast.success,
+  error: toast.error,
+  warning: toast.warning,
+  info: toast.info,
+  loading: toast.loading,
+  promise: toast.promise,
+  dismiss: toast.dismiss,
+});
 
 export function useToast() {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
-  }
-  return context;
+  return useContext(ToastContext);
+}
+
+// ============================================================================
+// 5. GLOBAL TOAST PROVIDER & LAVENDER ENTERPRISE TOASTER
+// ============================================================================
+export function ToastProvider({ children }: { children: React.ReactNode }) {
+  const [position, setPosition] = useState<'top-right' | 'top-center'>('top-right');
+
+  // Dynamically adapt positioning: top-right on desktop, top-center on mobile
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth < 640) {
+        setPosition('top-center');
+      } else {
+        setPosition('top-right');
+      }
+    }
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const contextValue: ToastContextValue = {
+    toast,
+    success: toast.success,
+    error: toast.error,
+    warning: toast.warning,
+    info: toast.info,
+    loading: toast.loading,
+    promise: toast.promise,
+    dismiss: toast.dismiss,
+  };
+
+  return (
+    <ToastContext.Provider value={contextValue}>
+      {children}
+      <SonnerToaster
+        position={position}
+        expand={true}
+        closeButton={true}
+        visibleToasts={4}
+        toastOptions={{
+          style: {
+            background: '#FFFFFF',
+            border: '1px solid #E5E2F5',
+            borderRadius: '18px',
+            color: '#18181B',
+            boxShadow: '0 12px 35px rgba(24, 27, 46, 0.08)',
+            padding: '12px 16px',
+            fontSize: '13px',
+          },
+          classNames: {
+            toast: 'group lavender-enterprise-toast',
+            title: 'text-xs sm:text-sm font-bold text-[#18181B] tracking-tight leading-snug',
+            description: 'text-[11px] sm:text-xs text-[#717182] font-medium leading-relaxed mt-0.5',
+            actionButton:
+              'bg-[#18181B] hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all shadow-2xs',
+            cancelButton:
+              'bg-[#F4F4FD] hover:bg-[#EBEBF5] text-[#717182] hover:text-[#18181B] text-[11px] font-semibold px-3 py-1.5 rounded-xl transition-all',
+            closeButton:
+              'bg-white hover:bg-[#F4F4FD] border border-[#E5E2F5] text-[#717182] hover:text-[#18181B] rounded-full p-1 transition-colors shadow-2xs',
+          },
+        }}
+      />
+    </ToastContext.Provider>
+  );
 }

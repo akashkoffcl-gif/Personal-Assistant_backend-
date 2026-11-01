@@ -1,10 +1,12 @@
 import {
   Controller,
   Post,
+  Patch,
   Delete,
   Get,
   Body,
   Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -19,6 +21,65 @@ import { PushSubscriptionPayload } from '@assistant/shared';
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
+  // ---------------------------------------------------------------------------
+  // Centralized Persistent In-App Notification Center
+  // ---------------------------------------------------------------------------
+  @Get()
+  async getNotifications(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('category') category?: string,
+    @Query('unreadOnly') unreadOnly?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.notificationsService.getNotifications(user.id, {
+      category,
+      unreadOnly: unreadOnly === 'true',
+      limit: limit ? parseInt(limit, 10) : 50,
+    });
+  }
+
+  @Patch(':id/read')
+  async markAsRead(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') notificationId: string,
+  ) {
+    return this.notificationsService.markAsRead(user.id, notificationId);
+  }
+
+  @Post('read-all')
+  @HttpCode(HttpStatus.OK)
+  async markAllAsRead(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationsService.markAllAsRead(user.id);
+  }
+
+  @Delete(':id')
+  async deleteNotification(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') notificationId: string,
+  ) {
+    return this.notificationsService.deleteNotification(user.id, notificationId);
+  }
+
+  @Post('in-app')
+  async createInApp(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body()
+    body: {
+      title: string;
+      message: string;
+      category?: string;
+      severity?: string;
+      actionUrl?: string;
+      metadata?: Record<string, any>;
+    },
+  ) {
+    const notif = await this.notificationsService.createInAppNotification(user.id, body);
+    return { success: true, notification: notif };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Web Push Subscriptions & Infrastructure
+  // ---------------------------------------------------------------------------
   @Get('vapid-public-key')
   getVapidKey() {
     return {

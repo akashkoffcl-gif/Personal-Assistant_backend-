@@ -296,5 +296,36 @@ export interface ReminderOutcomeSummary {
   deliveryRatePercent: number;
 }
 
+// Persistent Centralized Application Notifications
+export type NotificationCategory =
+  | 'TASKS'
+  | 'ROUTINES'
+  | 'REMINDERS'
+  | 'SCHEDULE_CONFLICT'
+  | 'AUTOMATION'
+  | 'WELLNESS'
+  | 'SYSTEM';
+
+export type NotificationSeverity = 'SUCCESS' | 'INFO' | 'WARNING' | 'ERROR';
+
+export interface InAppNotificationDto {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  category: NotificationCategory;
+  severity: NotificationSeverity;
+  actionUrl?: string | null;
+  metadata?: Record<string, any> | null;
+  readAt?: string | null;
+  createdAt: string;
+}
+
+export interface NotificationCenterSummary {
+  unreadCount: number;
+  totalCount: number;
+  notifications: InAppNotificationDto[];
+}
+
 
 

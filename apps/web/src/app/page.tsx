@@ -20,6 +20,7 @@ import { WellnessCheckInModal } from '@/components/WellnessCheckInModal';
 import { TaskDetailDrawer } from '@/components/TaskDetailDrawer';
 import { ProjectModal } from '@/components/ProjectModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { NotificationCenterDrawer } from '@/components/NotificationCenterDrawer';
 import { BottomNav } from '@/components/BottomNav';
 import { SmartCheckInModal, SmartCheckInTarget } from '@/components/SmartCheckInModal';
 import { ApplicationUsageAnalytics } from '@/components/ApplicationUsageAnalytics';
@@ -107,6 +108,14 @@ export default function App() {
   const queryClient = useQueryClient();
   const push = usePushNotifications();
   const toast = useToast();
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+
+  // Centralized in-app notification center query
+  const { data: notificationsData, refetch: refetchNotifications } = useQuery({
+    queryKey: ['in-app-notifications-summary'],
+    queryFn: () => api.getNotifications({ limit: 10 }),
+    refetchInterval: 12000,
+  });
 
   // Global Ctrl + K search hotkey
   useEffect(() => {
@@ -115,6 +124,9 @@ export default function App() {
       const tabParam = params.get('tab') as NavTab | null;
       if (tabParam) {
         setCurrentTab(tabParam);
+      }
+      if (params.get('notifications') === 'open') {
+        setIsNotificationCenterOpen(true);
       }
     }
 
@@ -125,6 +137,7 @@ export default function App() {
       }
     };
     window.addEventListener('keydown', handleKeyDown);
+
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
@@ -213,6 +226,7 @@ export default function App() {
     refetchDayPlan();
     refetchRules();
     refetchExecutions();
+    refetchNotifications();
     toast.info('Data refreshed', 'All workspaces synchronized with Supabase & Redis.');
   };
 
@@ -519,6 +533,8 @@ export default function App() {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           selectedDate={selectedDate}
+          onOpenNotifications={() => setIsNotificationCenterOpen(true)}
+          unreadNotificationsCount={notificationsData?.unreadCount || 0}
         />
       </div>
 
@@ -1484,16 +1500,24 @@ export default function App() {
                     </span>
                     <button
                       onClick={async () => {
-                        const data = await api.exportUserData();
-                        const blob = new Blob([JSON.stringify(data, null, 2)], {
-                          type: 'application/json',
+                        const exportJob = (async () => {
+                          const data = await api.exportUserData();
+                          const blob = new Blob([JSON.stringify(data, null, 2)], {
+                            type: 'application/json',
+                          });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `personal-assistant-export-${new Date().toISOString()}.json`;
+                          a.click();
+                          return data;
+                        })();
+
+                        toast.promise(exportJob, {
+                          loading: 'Preparing comprehensive archive...',
+                          success: 'Export package downloaded successfully!',
+                          error: (err: any) => `Export failed: ${err?.message || 'API error'}`,
                         });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `personal-assistant-export-${new Date().toISOString()}.json`;
-                        a.click();
-                        toast.success('Export downloaded', 'Full data package exported.');
                       }}
                       className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-[#8B45F5] hover:bg-[#7839D6] text-white text-xs font-semibold transition-colors shadow-xs"
                     >
@@ -1589,6 +1613,17 @@ export default function App() {
         isDestructive={confirmDialog.isDestructive}
         onConfirm={confirmDialog.onConfirm}
         onCancel={() => setConfirmDialog((p) => ({ ...p, isOpen: false }))}
+      />
+
+      {/* Persistent Centralized In-App Notification Center Drawer */}
+      <NotificationCenterDrawer
+        isOpen={isNotificationCenterOpen}
+        onClose={() => setIsNotificationCenterOpen(false)}
+        isPushSubscribed={push.isSubscribed}
+        onTogglePush={push.isSubscribed ? () => {} : push.subscribe}
+        pushLoading={push.loading}
+        onNavigateTab={(tab) => setCurrentTab(tab as any)}
+        initialNotifications={notificationsData?.notifications || []}
       />
 
       {/* Bottom Mobile Navigation */}
