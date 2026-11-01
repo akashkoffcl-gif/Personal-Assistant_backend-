@@ -33,3 +33,4 @@ The visual presentation adheres strictly to the Lavender Enterprise design token
   - Priority item: `#FFF6ED` background, `#FFEDD5` border, `👑`
 - **Circular Progress Gauge:** `#FF647C` (Coral Red) over `#F4F4FD` track
 - **Typography:** Inter / system font with high-contrast `#18181B` titles and `#717182` secondary labels.
+

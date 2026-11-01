@@ -3,6 +3,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useToast } from '@/components/Toast';
@@ -65,6 +67,8 @@ import {
 } from 'lucide-react';
 
 export default function App() {
+  const router = useRouter();
+  const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [currentTab, setCurrentTab] = useState<NavTab>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -108,6 +112,12 @@ export default function App() {
   const queryClient = useQueryClient();
   const push = usePushNotifications();
   const toast = useToast();
+
+  useEffect(() => {
+    if (!isAuthLoading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isAuthLoading, isAuthenticated, router]);
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
 
   // Centralized in-app notification center query
@@ -510,6 +520,22 @@ export default function App() {
     const end = endOfWeek(cur, { weekStartsOn: 1 });
     return eachDayOfInterval({ start, end });
   }, [selectedDate]);
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-[#EAE9FF] flex flex-col items-center justify-center p-6">
+        <div className="w-14 h-14 rounded-2xl bg-[#8B45F5] text-white flex items-center justify-center font-extrabold text-2xl shadow-lg shadow-[#8B45F5]/30 mb-4 animate-bounce">
+          M
+        </div>
+        <h2 className="text-sm font-extrabold text-[#18181B] tracking-tight">Personal Assistant</h2>
+        <p className="text-xs text-[#717182] font-medium mt-1">Synchronizing secure user workspace...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#EAE9FF] flex flex-col selection:bg-[#EDE9FE] selection:text-[#6935C8] overflow-x-hidden">

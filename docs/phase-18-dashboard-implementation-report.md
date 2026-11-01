@@ -127,3 +127,4 @@ Automated headless Chrome captures verified the responsive layout across all 6 t
 - `docs/phase-18-dashboard-implementation-report.md` — Implementation report
 - `docs/phase-18-dashboard-qa-report.md` — Quality assurance and verification report
 - `docs/screenshots/phase18_*` — Multi-viewport visual captures
+

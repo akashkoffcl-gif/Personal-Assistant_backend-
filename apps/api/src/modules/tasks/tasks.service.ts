@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { RedisService } from '../../common/redis.service';
 import { RemindersService } from '../reminders/reminders.service';
@@ -99,6 +99,34 @@ export class TasksService {
       return { id: 'mock-task-id', userId, ...data, status: TaskStatus.TODO, createdAt: new Date() };
     }
 
+    // Strict Cross-User Isolation: Validate parent-child ownership
+    if (data.projectId) {
+      const project = await this.prisma.project.findFirst({
+        where: { id: data.projectId, userId },
+      });
+      if (!project) {
+        throw new ForbiddenException('Cannot link task to a project not owned by you.');
+      }
+    }
+
+    if (data.parentTaskId) {
+      const parentTask = await this.prisma.task.findFirst({
+        where: { id: data.parentTaskId, userId },
+      });
+      if (!parentTask) {
+        throw new ForbiddenException('Cannot link subtask to a parent task not owned by you.');
+      }
+    }
+
+    if (data.routineId) {
+      const routine = await this.prisma.routine.findFirst({
+        where: { id: data.routineId, userId },
+      });
+      if (!routine) {
+        throw new ForbiddenException('Cannot link task to a routine not owned by you.');
+      }
+    }
+
     const task = await this.prisma.task.create({
       data: {
         userId,
@@ -166,6 +194,34 @@ export class TasksService {
   async update(userId: string, id: string, data: any) {
     const existing = await this.findOne(userId, id);
 
+    // Strict Cross-User Isolation: Validate parent-child ownership if updated
+    if (data.projectId) {
+      const project = await this.prisma.project.findFirst({
+        where: { id: data.projectId, userId },
+      });
+      if (!project) {
+        throw new ForbiddenException('Cannot link task to a project not owned by you.');
+      }
+    }
+
+    if (data.parentTaskId) {
+      const parentTask = await this.prisma.task.findFirst({
+        where: { id: data.parentTaskId, userId },
+      });
+      if (!parentTask) {
+        throw new ForbiddenException('Cannot link subtask to a parent task not owned by you.');
+      }
+    }
+
+    if (data.routineId) {
+      const routine = await this.prisma.routine.findFirst({
+        where: { id: data.routineId, userId },
+      });
+      if (!routine) {
+        throw new ForbiddenException('Cannot link task to a routine not owned by you.');
+      }
+    }
+
     const updateData: any = {};
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined) updateData.description = data.description;
@@ -176,6 +232,9 @@ export class TasksService {
     if (data.scheduledStartTime !== undefined) updateData.scheduledStartTime = data.scheduledStartTime ? new Date(data.scheduledStartTime) : null;
     if (data.scheduledEndTime !== undefined) updateData.scheduledEndTime = data.scheduledEndTime ? new Date(data.scheduledEndTime) : null;
     if (data.deadline !== undefined) updateData.deadline = data.deadline ? new Date(data.deadline) : null;
+    if (data.projectId !== undefined) updateData.projectId = data.projectId;
+    if (data.parentTaskId !== undefined) updateData.parentTaskId = data.parentTaskId;
+    if (data.routineId !== undefined) updateData.routineId = data.routineId;
 
     const updated = await this.prisma.task.update({
       where: { id },
