@@ -153,3 +153,4 @@ All queries enforce tenant boundaries via:
 1. **Application Layer:** Explicit `where: { userId }` parameter injection in every Prisma query.
 2. **Database Layer:** Supabase PostgreSQL Row Level Security (RLS) policies (`auth.uid() = user_id`) across all 20 tables preventing any cross-tenant data leakage even in raw SQL queries.
 3. **Cache Layer:** Cache keys are strictly prefixed with `{userId}`, guaranteeing no cross-account cache collisions.
+

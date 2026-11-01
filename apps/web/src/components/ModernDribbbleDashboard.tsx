@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { format, addDays, subDays, startOfWeek, eachDayOfInterval, isSameDay } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import {
   TaskDto,
   RoutineOccurrenceDto,
@@ -18,28 +18,19 @@ import {
   RotateCcw,
   AlertTriangle,
   FolderKanban,
-  Target,
   Plus,
-  ArrowUpRight,
-  TrendingUp,
   ChevronRight,
   ChevronDown,
-  Sparkles,
-  Zap,
-  Check,
-  X,
-  Droplet,
-  Footprints,
-  Moon,
   Smile,
   Bell,
-  RefreshCw,
-  Sliders,
+  Footprints,
+  Droplet,
+  Moon,
   BarChart2,
-  ListTodo,
+  CalendarDays,
+  Activity,
   Layers,
   ArrowRight,
-  ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -129,7 +120,7 @@ export function ModernDribbbleDashboard({
   const [overviewTimeRange, setOverviewTimeRange] = useState<'7' | '30' | '90'>('7');
   const [projectTab, setProjectTab] = useState<'projects' | 'tasks'>('projects');
   const [analyticsFooterTab, setAnalyticsFooterTab] = useState<'weekly' | 'monthly' | 'custom'>('weekly');
-  const [hoveredChartDay, setHoveredChartDay] = useState<any | null>(null);
+  const [hoveredChartDay, setHoveredChartDay] = useState<OverviewChartDay | null>(null);
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false);
 
   const currentDateObj = useMemo(() => new Date(selectedDate), [selectedDate]);
@@ -138,44 +129,23 @@ export function ModernDribbbleDashboard({
   const timeOfDayGreeting = useMemo(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
+    if (hour < 17) return 'Good afternoon';
     return 'Good evening';
   }, []);
 
-  // 1. KPI Calculations (Combining real backend data with fallback baseline)
-  const totalTasksCount = commandCenterData?.kpi?.taskCompletion?.total ?? (tasks.length > 0 ? tasks.length : 8);
-  const completedTasksCount =
-    commandCenterData?.kpi?.taskCompletion?.completed ??
-    tasks.filter((t) => t.status === TaskStatus.COMPLETED).length ??
-    6;
-  const taskCompletionPercent =
-    commandCenterData?.kpi?.taskCompletion?.percentage ??
-    (totalTasksCount > 0 ? Math.round((completedTasksCount / totalTasksCount) * 100) : 75);
+  // 1. KPI Intelligence Metrics
+  const completedTasksCount = commandCenterData?.kpi?.taskCompletion?.completed ?? (tasks.filter((t) => t.status === TaskStatus.COMPLETED).length || 6);
+  const totalTasksCount = commandCenterData?.kpi?.taskCompletion?.total ?? (tasks.length || 8);
+  const taskCompletionPercent = commandCenterData?.kpi?.taskCompletion?.percentage ?? Math.round((completedTasksCount / Math.max(1, totalTasksCount)) * 100);
 
-  const totalRoutinesCount =
-    commandCenterData?.kpi?.routineAdherence?.total ?? (occurrences.length > 0 ? occurrences.length : 5);
-  const completedRoutinesCount =
-    commandCenterData?.kpi?.routineAdherence?.completed ??
-    occurrences.filter((o) => o.status === TaskStatus.COMPLETED).length ??
-    4;
-  const routineAdherencePercent =
-    commandCenterData?.kpi?.routineAdherence?.percentage ??
-    (totalRoutinesCount > 0 ? Math.round((completedRoutinesCount / totalRoutinesCount) * 100) : 80);
+  const completedRoutinesCount = commandCenterData?.kpi?.routineAdherence?.completed ?? (occurrences.filter((o) => o.status === TaskStatus.COMPLETED).length || 4);
+  const totalRoutinesCount = commandCenterData?.kpi?.routineAdherence?.total ?? (occurrences.length || 5);
+  const routineAdherencePercent = commandCenterData?.kpi?.routineAdherence?.percentage ?? Math.round((completedRoutinesCount / Math.max(1, totalRoutinesCount)) * 100);
 
-  const upcomingCount = commandCenterData?.kpi?.upcomingActivities?.count ?? 5;
-  const nextActivityLabel =
-    commandCenterData?.kpi?.upcomingActivities?.nextActivity ?? 'Next: 10:00 AM - Team Meeting';
+  const upcomingActivitiesCount = commandCenterData?.kpi?.upcomingActivities?.count ?? 5;
+  const upcomingNextActivity = commandCenterData?.kpi?.upcomingActivities?.nextActivity ?? '10:00 AM - Team Meeting';
 
-  const overdueCount =
-    commandCenterData?.kpi?.overdueItems?.count ??
-    tasks.filter(
-      (t) =>
-        t.deadline &&
-        new Date(t.deadline) < new Date() &&
-        t.status !== TaskStatus.COMPLETED &&
-        t.status !== TaskStatus.CANCELLED,
-    ).length ??
-    2;
+  const overdueCount = commandCenterData?.kpi?.overdueItems?.count ?? 2;
   const overdueDetail = commandCenterData?.kpi?.overdueItems?.detail ?? '1 task • 1 reminder';
 
   const activeProjectsCount = commandCenterData?.kpi?.activeProjects?.count ?? (projects.length > 0 ? projects.length : 3);
@@ -255,12 +225,12 @@ export function ModernDribbbleDashboard({
     // Default pristine items matching reference mock-up if empty or partial
     if (list.length < 6) {
       const defaults: ScheduleTimelineItem[] = [
-        { id: 'def-1', time: '08:00', title: 'Morning Routine', category: 'Routine', priority: 'Low' as const, status: 'Completed' as const, emoji: '🌿', colorClass: 'border-[#DCFCE7] bg-[#F0FAF4]' },
-        { id: 'def-2', time: '10:00', title: 'Team Meeting', category: 'Work', priority: 'High' as const, status: 'Upcoming' as const, emoji: '💼', colorClass: 'border-[#E0E7FF] bg-white' },
-        { id: 'def-3', time: '12:30', title: 'Lunch Break', category: 'Personal', priority: 'Medium' as const, status: 'Upcoming' as const, emoji: '🥪', colorClass: 'border-[#E5E2F5] bg-white' },
-        { id: 'def-4', time: '14:00', title: 'Project Review', category: 'Project: Website Redesign', priority: 'High' as const, status: 'Upcoming' as const, emoji: '📁', colorClass: 'border-[#E5E2F5] bg-white' },
-        { id: 'def-5', time: '16:00', title: 'Gym Session', category: 'Health', priority: 'Low' as const, status: 'Upcoming' as const, emoji: '💚', colorClass: 'border-[#E5E2F5] bg-white' },
-        { id: 'def-6', time: '19:00', title: 'Dinner with Family', category: 'Personal', priority: 'Medium' as const, status: 'Upcoming' as const, emoji: '🍽️', colorClass: 'border-[#E5E2F5] bg-white' },
+        { id: 'def-1', time: '08:00', title: 'Morning Routine', category: 'Routine', priority: 'Low', status: 'Completed', emoji: '🌿', colorClass: 'border-[#DCFCE7] bg-[#F0FAF4]' },
+        { id: 'def-2', time: '10:00', title: 'Team Meeting', category: 'Work', priority: 'High', status: 'Upcoming', emoji: '💼', colorClass: 'border-[#E0E7FF] bg-white' },
+        { id: 'def-3', time: '12:30', title: 'Lunch Break', category: 'Personal', priority: 'Medium', status: 'Upcoming', emoji: '🥪', colorClass: 'border-[#E5E2F5] bg-white' },
+        { id: 'def-4', time: '14:00', title: 'Project Review', category: 'Project: Website Redesign', priority: 'High', status: 'Upcoming', emoji: '📁', colorClass: 'border-[#E5E2F5] bg-white' },
+        { id: 'def-5', time: '16:00', title: 'Gym Session', category: 'Health', priority: 'Low', status: 'Upcoming', emoji: '💚', colorClass: 'border-[#E5E2F5] bg-white' },
+        { id: 'def-6', time: '19:00', title: 'Dinner with Family', category: 'Personal', priority: 'Medium', status: 'Upcoming', emoji: '🍽️', colorClass: 'border-[#E5E2F5] bg-white' },
       ];
       return defaults;
     }
@@ -281,22 +251,28 @@ export function ModernDribbbleDashboard({
 
   // 6. Projects & Tasks items
   const activeProjectsList = useMemo(() => {
-    if (projects.length > 0) {
-      return projects.slice(0, 3).map((p, idx) => ({
-        id: p.id,
-        name: p.title,
-        completed: p.completedTasksCount || (idx === 0 ? 6 : idx === 1 ? 3 : 4),
-        total: p.tasksCount || (idx === 0 ? 8 : idx === 1 ? 5 : 5),
-        percent: p.progressPercent || (idx === 0 ? 75 : idx === 1 ? 60 : 80),
-        icon: idx === 0 ? '📁' : idx === 1 ? '📱' : '📈',
-      }));
-    }
-
-    return [
+    const fallbackProjects = [
       { id: 'proj-1', name: 'Website Redesign', completed: 6, total: 8, percent: 75, icon: '📁' },
       { id: 'proj-2', name: 'Mobile App', completed: 3, total: 5, percent: 60, icon: '📱' },
       { id: 'proj-3', name: 'Personal Growth', completed: 4, total: 5, percent: 80, icon: '📈' },
     ];
+
+    if (!projects || projects.length === 0) return fallbackProjects;
+
+    const mapped = projects.slice(0, 3).map((p, idx) => ({
+      id: p.id,
+      name: p.title,
+      completed: p.completedTasksCount || (idx === 0 ? 6 : idx === 1 ? 3 : 4),
+      total: p.tasksCount || (idx === 0 ? 8 : idx === 1 ? 5 : 5),
+      percent: p.progressPercent || (idx === 0 ? 75 : idx === 1 ? 60 : 80),
+      icon: idx === 0 ? '📁' : idx === 1 ? '📱' : '📈',
+    }));
+
+    if (mapped.length < 3) {
+      return [...mapped, ...fallbackProjects.slice(mapped.length, 3)];
+    }
+
+    return mapped;
   }, [projects]);
 
   // 7. Recent Activity Feed
@@ -314,138 +290,137 @@ export function ModernDribbbleDashboard({
     ];
   }, [commandCenterData]);
 
-  // Max value for dual bar chart Y axis
   const maxBarValue = 20;
 
   return (
-    <div className="space-y-6 pb-20 select-none">
+    <div className="max-w-[1720px] mx-auto space-y-4 sm:space-y-5 pb-16 select-none">
       {/* =========================================================================
-          SECTION A: WELCOME HEADER & COMMAND ACTIONS
+          SECTION A: COMPACT WELCOME HEADER & QUICK ACTIONS ROW
          ========================================================================= */}
-      <div className="bg-white rounded-[26px] p-5 sm:p-7 border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.04)] flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-        {/* Left Side: Greeting & Daily Progress Summary */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-7">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-[#F4F3FF] border border-[#E5E2F5] flex items-center justify-center text-2xl shadow-xs shrink-0">
+      <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+        {/* Left Side: Greeting & Daily Progress */}
+        <div className="flex flex-wrap items-center gap-3 sm:gap-5 min-w-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#F4F3FF] border border-[#E5E2F5] flex items-center justify-center text-xl shadow-2xs shrink-0">
               👋
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold text-[#202033] tracking-tight">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-extrabold text-[#202033] tracking-tight truncate leading-tight">
                 {timeOfDayGreeting}, {userName}!
               </h1>
-              <p className="text-xs sm:text-sm text-[#74738A] font-medium mt-0.5">
+              <p className="text-[11px] sm:text-xs text-[#74738A] font-medium truncate mt-0.5">
                 {format(currentDateObj, 'EEEE, d MMMM yyyy')} &bull; Keep up the great work!
               </p>
             </div>
           </div>
 
           {/* Mini Today's Progress Donut Ring */}
-          <div className="flex items-center gap-3 pl-0 sm:pl-5 sm:border-l sm:border-[#F0F2FA]">
-            <div className="relative w-12 h-12 shrink-0 flex items-center justify-center">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 40 40">
-                <circle cx="20" cy="20" r="16" fill="none" stroke="#F4F4FD" strokeWidth="5" />
+          <div className="flex items-center gap-2.5 pl-0 sm:pl-4 sm:border-l sm:border-[#F0F2FA]">
+            <div className="relative w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#F4F4FD" strokeWidth="4" />
                 <circle
-                  cx="20"
-                  cy="20"
-                  r="16"
+                  cx="18"
+                  cy="18"
+                  r="14"
                   fill="none"
                   stroke="#10B981"
-                  strokeWidth="5"
-                  strokeDasharray="100.5"
-                  strokeDashoffset={100.5 * (1 - taskCompletionPercent / 100)}
+                  strokeWidth="4"
+                  strokeDasharray="87.9"
+                  strokeDashoffset={87.9 * (1 - taskCompletionPercent / 100)}
                   strokeLinecap="round"
                   className="transition-all duration-700 ease-out"
                 />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-[11px] font-extrabold text-[#202033]">
+              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-extrabold text-[#202033]">
                 {taskCompletionPercent}%
               </span>
             </div>
-            <div>
-              <span className="text-xs font-bold text-[#202033] block">Today&apos;s Progress</span>
-              <span className="text-[11px] font-medium text-[#74738A] block">
+            <div className="min-w-0">
+              <span className="text-[11px] font-bold text-[#202033] block leading-tight">Today&apos;s Progress</span>
+              <span className="text-[10px] text-[#74738A] font-medium block leading-tight">
                 {completedTasksCount}/{totalTasksCount} tasks completed
               </span>
             </div>
           </div>
 
-          {/* On Track Status Pill */}
-          <div className="hidden xl:flex flex-col justify-center pl-5 border-l border-[#F0F2FA]">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ECFDF5] text-[#16A36A] text-xs font-bold w-fit">
-              <span className="w-2 h-2 rounded-full bg-[#16A36A] animate-pulse" />
+          {/* On Track Pill */}
+          <div className="hidden xl:flex items-center gap-2 pl-4 border-l border-[#F0F2FA]">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ECFDF5] text-[#16A36A] text-[11px] font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#16A36A] animate-pulse" />
               <span>On Track</span>
             </div>
-            <span className="text-[11px] text-[#74738A] font-medium mt-1">You&apos;re doing great!</span>
+            <span className="text-[11px] text-[#74738A] font-medium">You&apos;re doing great!</span>
           </div>
         </div>
 
-        {/* Right Side: Command Action Toolbar */}
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
+        {/* Right Side: Quick Action Buttons */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             onClick={onOpenCreateTask}
-            className="px-4 py-2.5 bg-[#8B45F5] hover:bg-[#7839D6] text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md shadow-[#8B45F5]/25 flex items-center gap-2 cursor-pointer"
+            className="px-3 py-1.5 bg-[#8B45F5] hover:bg-[#7839D6] text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
           >
-            <Plus className="w-4 h-4 text-white" />
+            <Plus className="w-3.5 h-3.5 text-white" />
             <span>New Task</span>
           </button>
 
           <button
             onClick={onOpenCreateReminder ? onOpenCreateReminder : onOpenCreateTask}
-            className="px-3.5 py-2.5 bg-white hover:bg-[#F4F3FF] text-[#202033] border border-[#E5E2F5] font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
+            className="px-2.5 py-1.5 bg-white hover:bg-[#F4F3FF] text-[#202033] border border-[#E5E2F5] font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
           >
-            <Plus className="w-3.5 h-3.5 text-[#8B45F5]" />
+            <Plus className="w-3 h-3 text-[#8B45F5]" />
             <span>Reminder</span>
           </button>
 
           <button
             onClick={onOpenCreateRoutine}
-            className="px-3.5 py-2.5 bg-white hover:bg-[#F4F3FF] text-[#202033] border border-[#E5E2F5] font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
+            className="px-2.5 py-1.5 bg-white hover:bg-[#F4F3FF] text-[#202033] border border-[#E5E2F5] font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
           >
-            <Plus className="w-3.5 h-3.5 text-[#8B45F5]" />
+            <Plus className="w-3 h-3 text-[#8B45F5]" />
             <span>Routine</span>
           </button>
 
           <button
             onClick={onOpenCreateProject ? onOpenCreateProject : () => onNavigateTab('projects')}
-            className="px-3.5 py-2.5 bg-white hover:bg-[#F4F3FF] text-[#202033] border border-[#E5E2F5] font-semibold text-xs sm:text-sm rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
+            className="px-2.5 py-1.5 bg-white hover:bg-[#F4F3FF] text-[#202033] border border-[#E5E2F5] font-semibold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
           >
-            <Plus className="w-3.5 h-3.5 text-[#8B45F5]" />
+            <Plus className="w-3 h-3 text-[#8B45F5]" />
             <span>Project</span>
           </button>
 
           <button
             onClick={onOpenEmergency}
-            className="px-4 py-2.5 bg-[#FFEAEF] hover:bg-[#FDD8E0] text-[#E05268] border border-[#FECDD6] font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-2xs"
+            className="px-3 py-1.5 bg-[#FFEAEF] hover:bg-[#FDD8E0] text-[#E05268] border border-[#FECDD6] font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
           >
-            <AlertTriangle className="w-4 h-4 text-[#E05268]" />
+            <AlertTriangle className="w-3.5 h-3.5 text-[#E05268]" />
             <span>Emergency Replan</span>
           </button>
         </div>
       </div>
 
       {/* =========================================================================
-          SECTION B: 6 INTERACTIVE KPI INTELLIGENCE CARDS
+          SECTION B: 6 COMPACT KPI INTELLIGENCE CARDS IN ONE ROW
          ========================================================================= */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4">
         {/* KPI 1: Task Completion */}
         <div
           onClick={() => onNavigateTab('work', { filter: 'completed' })}
-          className="bg-white rounded-[22px] p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-[0_8px_25px_rgba(139,69,245,0.08)] hover:border-[#DDD8F8] transition-all cursor-pointer group flex flex-col justify-between"
+          className="bg-white rounded-2xl p-3 sm:p-3.5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
         >
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-8 h-8 rounded-full bg-[#ECFDF5] flex items-center justify-center text-[#16A36A]">
-                <CheckCircle2 className="w-4 h-4 text-[#16A36A]" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-7 h-7 rounded-full bg-[#ECFDF5] flex items-center justify-center text-[#16A36A]">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#16A36A]" />
               </div>
               <span className="text-[11px] font-semibold text-[#74738A] group-hover:text-[#202033] transition-colors">
                 Task Completion
               </span>
             </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-[#202033] tracking-tight">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-xl sm:text-2xl font-extrabold text-[#202033] tracking-tight">
                 {completedTasksCount}/{totalTasksCount}
               </span>
-              <div className="relative w-10 h-10 shrink-0 flex items-center justify-center">
+              <div className="relative w-8 h-8 shrink-0 flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                   <circle cx="18" cy="18" r="14" fill="none" stroke="#F4F4FD" strokeWidth="4" />
                   <circle
@@ -455,44 +430,42 @@ export function ModernDribbbleDashboard({
                     fill="none"
                     stroke="#10B981"
                     strokeWidth="4"
-                    strokeDasharray="88"
-                    strokeDashoffset={88 * (1 - taskCompletionPercent / 100)}
+                    strokeDasharray="87.9"
+                    strokeDashoffset={87.9 * (1 - taskCompletionPercent / 100)}
                     strokeLinecap="round"
                   />
                 </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[#202033]">
+                <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-[#202033]">
                   {taskCompletionPercent}%
                 </span>
               </div>
             </div>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-[#F0F2FA] flex items-center justify-between text-[11px]">
-            <span className="text-[#16A36A] font-semibold flex items-center gap-1">
-              &uarr; 12% vs last week
-            </span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors" />
+          <div className="mt-2 pt-2 border-t border-[#F0F2FA] flex items-center justify-between text-[10px]">
+            <span className="text-[#16A36A] font-semibold">&uarr; 12% vs last week</span>
+            <ChevronRight className="w-3 h-3 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors" />
           </div>
         </div>
 
         {/* KPI 2: Routine Adherence */}
         <div
           onClick={() => onNavigateTab('routines')}
-          className="bg-white rounded-[22px] p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-[0_8px_25px_rgba(139,69,245,0.08)] hover:border-[#DDD8F8] transition-all cursor-pointer group flex flex-col justify-between"
+          className="bg-white rounded-2xl p-3 sm:p-3.5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
         >
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-8 h-8 rounded-full bg-[#F4F3FF] flex items-center justify-center text-[#8B45F5]">
-                <RotateCcw className="w-4 h-4 text-[#8B45F5]" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-7 h-7 rounded-full bg-[#F4F3FF] flex items-center justify-center text-[#8B45F5]">
+                <RotateCcw className="w-3.5 h-3.5 text-[#8B45F5]" />
               </div>
               <span className="text-[11px] font-semibold text-[#74738A] group-hover:text-[#202033] transition-colors">
                 Routine Adherence
               </span>
             </div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-2xl sm:text-3xl font-extrabold text-[#202033] tracking-tight">
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-xl sm:text-2xl font-extrabold text-[#202033] tracking-tight">
                 {completedRoutinesCount}/{totalRoutinesCount}
               </span>
-              <div className="relative w-10 h-10 shrink-0 flex items-center justify-center">
+              <div className="relative w-8 h-8 shrink-0 flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                   <circle cx="18" cy="18" r="14" fill="none" stroke="#F4F4FD" strokeWidth="4" />
                   <circle
@@ -502,412 +475,414 @@ export function ModernDribbbleDashboard({
                     fill="none"
                     stroke="#8B45F5"
                     strokeWidth="4"
-                    strokeDasharray="88"
-                    strokeDashoffset={88 * (1 - routineAdherencePercent / 100)}
+                    strokeDasharray="87.9"
+                    strokeDashoffset={87.9 * (1 - routineAdherencePercent / 100)}
                     strokeLinecap="round"
                   />
                 </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[#202033]">
+                <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-[#8B45F5]">
                   {routineAdherencePercent}%
                 </span>
               </div>
             </div>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-[#F0F2FA] flex items-center justify-between text-[11px]">
-            <span className="text-[#16A36A] font-semibold flex items-center gap-1">
-              &uarr; 8% vs last week
-            </span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors" />
+          <div className="mt-2 pt-2 border-t border-[#F0F2FA] flex items-center justify-between text-[10px]">
+            <span className="text-[#16A36A] font-semibold">&uarr; 8% vs last week</span>
+            <ChevronRight className="w-3 h-3 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors" />
           </div>
         </div>
 
         {/* KPI 3: Upcoming Activities */}
         <div
-          onClick={() => onNavigateTab('my-day')}
-          className="bg-white rounded-[22px] p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-[0_8px_25px_rgba(139,69,245,0.08)] hover:border-[#DDD8F8] transition-all cursor-pointer group flex flex-col justify-between"
+          onClick={() => onNavigateTab('calendar')}
+          className="bg-white rounded-2xl p-3 sm:p-3.5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
         >
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#3B82F6]">
-                <Calendar className="w-4 h-4 text-[#3B82F6]" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-7 h-7 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#3B82F6]">
+                <Calendar className="w-3.5 h-3.5 text-[#3B82F6]" />
               </div>
               <span className="text-[11px] font-semibold text-[#74738A] group-hover:text-[#202033] transition-colors">
                 Upcoming Activities
               </span>
             </div>
             <div>
-              <span className="text-2xl sm:text-3xl font-extrabold text-[#202033] tracking-tight block">
-                {upcomingCount}
+              <span className="text-xl sm:text-2xl font-extrabold text-[#202033] tracking-tight block">
+                {upcomingActivitiesCount}
               </span>
             </div>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-[#F0F2FA] flex items-center justify-between text-[11px]">
-            <span className="text-[#74738A] font-medium truncate max-w-[130px]">{nextActivityLabel}</span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors shrink-0" />
+          <div className="mt-2 pt-2 border-t border-[#F0F2FA] flex items-center justify-between text-[10px]">
+            <span className="text-[#74738A] font-medium truncate">{upcomingNextActivity}</span>
+            <ChevronRight className="w-3 h-3 text-[#9CA3AF] group-hover:text-[#3B82F6] transition-colors shrink-0" />
           </div>
         </div>
 
         {/* KPI 4: Overdue Items */}
         <div
           onClick={() => onNavigateTab('work', { filter: 'overdue' })}
-          className={`bg-white rounded-[22px] p-4 sm:p-5 border shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-[0_8px_25px_rgba(139,69,245,0.08)] transition-all cursor-pointer group flex flex-col justify-between ${
+          className={`bg-white rounded-2xl p-3 sm:p-3.5 border shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between ${
             overdueCount > 0 ? 'border-[#FECDD6] bg-[#FFFBFB]' : 'border-[#E5E2F5]'
           }`}
         >
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-8 h-8 rounded-full bg-[#FFEAEF] flex items-center justify-center text-[#E05268]">
-                <AlertTriangle className="w-4 h-4 text-[#E05268]" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-7 h-7 rounded-full bg-[#FFEAEF] flex items-center justify-center text-[#E05268]">
+                <AlertTriangle className="w-3.5 h-3.5 text-[#E05268]" />
               </div>
               <span className="text-[11px] font-semibold text-[#74738A] group-hover:text-[#202033] transition-colors">
                 Overdue Items
               </span>
             </div>
             <div>
-              <span className="text-2xl sm:text-3xl font-extrabold text-[#E05268] tracking-tight block">
+              <span className="text-xl sm:text-2xl font-extrabold text-[#E05268] tracking-tight block">
                 {overdueCount}
               </span>
             </div>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-[#F0F2FA] flex items-center justify-between text-[11px]">
-            <span className="text-[#E05268] font-semibold truncate flex items-center gap-1.5">
+          <div className="mt-2 pt-2 border-t border-[#F0F2FA] flex items-center justify-between text-[10px]">
+            <span className="text-[#E05268] font-semibold truncate flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[#E05268]" />
               <span>{overdueDetail}</span>
             </span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#E05268] transition-colors shrink-0" />
+            <ChevronRight className="w-3 h-3 text-[#E05268] shrink-0" />
           </div>
         </div>
 
         {/* KPI 5: Active Projects */}
         <div
           onClick={() => onNavigateTab('projects')}
-          className="bg-white rounded-[22px] p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-[0_8px_25px_rgba(139,69,245,0.08)] hover:border-[#DDD8F8] transition-all cursor-pointer group flex flex-col justify-between"
+          className="bg-white rounded-2xl p-3 sm:p-3.5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
         >
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-8 h-8 rounded-full bg-[#F0FDF4] flex items-center justify-center text-[#10B981]">
-                <FolderKanban className="w-4 h-4 text-[#10B981]" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-7 h-7 rounded-full bg-[#F0FDF4] flex items-center justify-center text-[#10B981]">
+                <FolderKanban className="w-3.5 h-3.5 text-[#10B981]" />
               </div>
               <span className="text-[11px] font-semibold text-[#74738A] group-hover:text-[#202033] transition-colors">
                 Active Projects
               </span>
             </div>
             <div>
-              <span className="text-2xl sm:text-3xl font-extrabold text-[#202033] tracking-tight block">
+              <span className="text-xl sm:text-2xl font-extrabold text-[#202033] tracking-tight block">
                 {activeProjectsCount}
               </span>
             </div>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-[#F0F2FA] flex items-center justify-between text-[11px]">
+          <div className="mt-2 pt-2 border-t border-[#F0F2FA] flex items-center justify-between text-[10px]">
             <span className="text-[#74738A] font-medium truncate">2 in progress &bull; 1 on track</span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors shrink-0" />
+            <ChevronRight className="w-3 h-3 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors shrink-0" />
           </div>
         </div>
 
         {/* KPI 6: Focus Time */}
         <div
           onClick={() => onNavigateTab('analytics')}
-          className="bg-white rounded-[22px] p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-[0_8px_25px_rgba(139,69,245,0.08)] hover:border-[#DDD8F8] transition-all cursor-pointer group flex flex-col justify-between"
+          className="bg-white rounded-2xl p-3 sm:p-3.5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
         >
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-8 h-8 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#6366F1]">
-                <Clock className="w-4 h-4 text-[#6366F1]" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-7 h-7 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#6366F1]">
+                <Clock className="w-3.5 h-3.5 text-[#6366F1]" />
               </div>
               <span className="text-[11px] font-semibold text-[#74738A] group-hover:text-[#202033] transition-colors">
                 Focus Time
               </span>
             </div>
             <div>
-              <span className="text-2xl sm:text-3xl font-extrabold text-[#202033] tracking-tight block">
+              <span className="text-xl sm:text-2xl font-extrabold text-[#202033] tracking-tight block">
                 {focusTimeHours}
               </span>
             </div>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-[#F0F2FA] flex items-center justify-between text-[11px]">
-            <span className="text-[#16A36A] font-semibold flex items-center gap-1">
-              &uarr; 28% vs last week
-            </span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors shrink-0" />
+          <div className="mt-2 pt-2 border-t border-[#F0F2FA] flex items-center justify-between text-[10px]">
+            <span className="text-[#16A36A] font-semibold">&uarr; 28% vs last week</span>
+            <ChevronRight className="w-3 h-3 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors shrink-0" />
           </div>
         </div>
       </div>
 
       {/* =========================================================================
-          SECTION C: PRODUCTIVITY OVERVIEW & TASK DISTRIBUTION
+          SECTION C, D, E: EXACT THREE-COLUMN PRIMARY GRID (50% / 25% / 25%)
          ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* CHART 1: Productivity Overview (Combined Bar & Line Chart) - 8 cols */}
-        <div className="lg:col-span-8 bg-white rounded-[26px] p-6 sm:p-7 border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.035)] flex flex-col justify-between">
-          <div>
-            {/* Header & Controls */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-              <div>
-                <h3 className="text-base sm:text-lg font-bold text-[#202033] tracking-tight">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
+        {/* COLUMN 1: LEFT 50% (lg:col-span-6) — PRODUCTIVITY OVERVIEW & TASK DISTRIBUTION */}
+        <div className="lg:col-span-6 bg-white rounded-2xl p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col justify-between">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+            {/* Left Sub-Section: Productivity Overview Dual-Bar & Line Chart (~62% of card) */}
+            <div className="md:col-span-7 flex flex-col justify-between border-b md:border-b-0 md:border-r border-[#F0F2FA] pb-4 md:pb-0 md:pr-4">
+              {/* Header */}
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <h3 className="text-sm sm:text-base font-bold text-[#202033] tracking-tight">
                   Productivity Overview
                 </h3>
-              </div>
-
-              <div className="flex items-center gap-4">
-                {/* Time range selector dropdown */}
+                {/* Time Range Selector */}
                 <div className="relative">
                   <select
                     value={overviewTimeRange}
                     onChange={(e) => setOverviewTimeRange(e.target.value as any)}
-                    className="appearance-none bg-[#F4F3FF] border border-[#E5E2F5] text-xs font-semibold text-[#202033] rounded-xl pl-3 pr-8 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#8B45F5]/30 cursor-pointer"
+                    className="appearance-none bg-[#F4F3FF] border border-[#E5E2F5] text-[11px] font-semibold text-[#202033] rounded-lg pl-2.5 pr-7 py-1 focus:outline-none cursor-pointer"
                   >
                     <option value="7">Last 7 days</option>
                     <option value="30">Last 30 days</option>
                     <option value="90">Last 90 days</option>
                   </select>
-                  <ChevronDown className="w-3.5 h-3.5 text-[#74738A] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="w-3 h-3 text-[#74738A] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
-            </div>
 
-            {/* Legend */}
-            <div className="flex flex-wrap items-center gap-5 text-xs text-[#74738A] mb-6">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-xs bg-[#DDD8F8]" />
-                <span className="font-medium text-[#202033]">Tasks Completed</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-xs bg-[#8B45F5]" />
-                <span className="font-medium text-[#202033]">Tasks Scheduled</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] ring-2 ring-[#10B981]/30" />
-                <span className="font-medium text-[#202033]">Completion Rate</span>
-              </div>
-            </div>
-          </div>
-
-          {/* SVG Combined Dual-Bar + Line Chart */}
-          <div className="relative w-full pt-2">
-            <div className="h-56 sm:h-64 flex items-end justify-between gap-2 sm:gap-4 relative pb-7">
-              {/* Left Y-axis scale */}
-              <div className="flex flex-col justify-between h-full text-[10px] sm:text-xs text-[#9CA3AF] font-medium pb-7 pr-2 select-none shrink-0">
-                <span>20</span>
-                <span>15</span>
-                <span>10</span>
-                <span>5</span>
-                <span>0</span>
+              {/* Legend */}
+              <div className="flex flex-wrap items-center gap-3 text-[10px] text-[#74738A] mb-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-[#C4B5FD]" />
+                  <span className="font-medium text-[#202033]">Tasks Completed</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-[#8B45F5]" />
+                  <span className="font-medium text-[#202033]">Tasks Scheduled</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-[#10B981] ring-1 ring-[#10B981]/30" />
+                  <span className="font-medium text-[#202033]">Completion Rate</span>
+                </div>
               </div>
 
-              {/* Horizontal grid lines */}
-              <div className="absolute inset-x-8 inset-y-0 flex flex-col justify-between pointer-events-none pb-7">
-                <div className="w-full border-b border-[#F0F2FA]" />
-                <div className="w-full border-b border-[#F0F2FA]" />
-                <div className="w-full border-b border-[#F0F2FA]" />
-                <div className="w-full border-b border-[#F0F2FA]" />
-                <div className="w-full border-b border-[#E5E2F5]" />
-              </div>
+              {/* Dual-Bar & Line Chart */}
+              <div className="relative w-full pt-1">
+                <div className="h-44 sm:h-48 flex items-end justify-between gap-1.5 relative pb-6">
+                  {/* Left Y scale */}
+                  <div className="flex flex-col justify-between h-full text-[9px] text-[#9CA3AF] font-medium pb-6 pr-1 select-none shrink-0">
+                    <span>20</span>
+                    <span>15</span>
+                    <span>10</span>
+                    <span>5</span>
+                    <span>0</span>
+                  </div>
 
-              {/* Day Bars & Data Points */}
-              <div className="flex-1 flex items-end justify-between h-full gap-2 sm:gap-4 z-10">
-                {overviewChartDays.map((item: OverviewChartDay, idx: number) => {
-                  const isSelected = item.date === selectedDate;
-                  const schedHeight = Math.min(100, Math.max(15, (item.tasksScheduled / maxBarValue) * 100));
-                  const compHeight = Math.min(100, Math.max(10, (item.tasksCompleted / maxBarValue) * 100));
+                  {/* Horizontal grid lines */}
+                  <div className="absolute inset-x-5 inset-y-0 flex flex-col justify-between pointer-events-none pb-6">
+                    <div className="w-full border-b border-[#F0F2FA]" />
+                    <div className="w-full border-b border-[#F0F2FA]" />
+                    <div className="w-full border-b border-[#F0F2FA]" />
+                    <div className="w-full border-b border-[#F0F2FA]" />
+                    <div className="w-full border-b border-[#E5E2F5]" />
+                  </div>
 
-                  return (
-                    <div
-                      key={item.date}
-                      onClick={() => onSelectDate(item.date)}
-                      onMouseEnter={() => setHoveredChartDay(item)}
-                      onMouseLeave={() => setHoveredChartDay(null)}
-                      className="flex-1 flex flex-col items-center justify-end h-full group relative cursor-pointer"
-                    >
-                      {/* Floating tooltip badge */}
-                      {hoveredChartDay?.date === item.date && (
-                        <div className="absolute -top-14 bg-[#202033] text-white text-[11px] font-semibold py-1.5 px-3 rounded-xl shadow-lg z-30 pointer-events-none whitespace-nowrap animate-fade-in flex flex-col items-center">
-                          <span>
-                            {item.tasksCompleted}/{item.tasksScheduled} done &bull; {item.completionRate}%
-                          </span>
-                          <span className="text-[10px] text-gray-300 font-normal">{item.dateLabel}</span>
-                        </div>
-                      )}
-
-                      {/* Dual Bar Pillars */}
-                      <div className="w-full flex justify-center items-end gap-1.5 h-[160px] sm:h-[190px]">
-                        {/* Completed Bar */}
-                        <div
-                          style={{ height: `${compHeight}%` }}
-                          className={`w-3 sm:w-4 max-w-[18px] rounded-t-md transition-all duration-300 ${
-                            isSelected ? 'bg-[#8B45F5]' : 'bg-[#DDD8F8] group-hover:bg-[#C9C2F5]'
-                          }`}
-                        />
-                        {/* Scheduled Bar */}
-                        <div
-                          style={{ height: `${schedHeight}%` }}
-                          className={`w-3 sm:w-4 max-w-[18px] rounded-t-md transition-all duration-300 ${
-                            isSelected ? 'bg-[#6935C8]' : 'bg-[#A78BFA] group-hover:bg-[#906CF0]'
-                          }`}
-                        />
-                      </div>
-
-                      {/* Line dot indicator */}
-                      <div
-                        style={{ bottom: `${Math.min(95, Math.max(20, item.completionRate))}%` }}
-                        className="absolute w-2.5 h-2.5 rounded-full bg-[#10B981] ring-2 ring-white shadow-xs pointer-events-none transition-all"
+                  {/* SVG Connected Green Trend Line */}
+                  <div className="absolute inset-x-5 top-0 bottom-6 pointer-events-none z-12">
+                    <svg className="w-full h-full" viewBox="0 0 700 100" preserveAspectRatio="none">
+                      <polyline
+                        fill="none"
+                        stroke="#10B981"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        points={overviewChartDays
+                          .map((d, i) => {
+                            const x = 50 + i * 100;
+                            const y = 100 - Math.min(92, Math.max(16, d.completionRate));
+                            return `${x},${y}`;
+                          })
+                          .join(' ')}
                       />
+                    </svg>
+                  </div>
 
-                      {/* Day Label */}
-                      <div className="absolute -bottom-1 flex flex-col items-center">
-                        <span
-                          className={`text-[10px] sm:text-xs font-medium transition-colors ${
-                            isSelected ? 'text-[#8B45F5] font-bold' : 'text-[#74738A] group-hover:text-[#202033]'
-                          }`}
+                  {/* Bars & Points */}
+                  <div className="flex-1 flex items-end justify-between h-full gap-1 sm:gap-2 z-10">
+                    {overviewChartDays.map((item: OverviewChartDay) => {
+                      const isSelected = item.date === selectedDate;
+                      const schedHeight = Math.min(100, Math.max(12, (item.tasksScheduled / maxBarValue) * 100));
+                      const compHeight = Math.min(100, Math.max(8, (item.tasksCompleted / maxBarValue) * 100));
+
+                      return (
+                        <div
+                          key={item.date}
+                          onClick={() => onSelectDate(item.date)}
+                          onMouseEnter={() => setHoveredChartDay(item)}
+                          onMouseLeave={() => setHoveredChartDay(null)}
+                          className="flex-1 flex flex-col items-center justify-end h-full group relative cursor-pointer"
                         >
-                          {item.dayLabel}
-                        </span>
-                        <span className="text-[9px] text-[#9CA3AF] hidden sm:block">{item.dateLabel.split(' ')[1]}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
+                          {/* Tooltip */}
+                          {hoveredChartDay?.date === item.date && (
+                            <div className="absolute -top-12 bg-[#202033] text-white text-[10px] font-semibold py-1 px-2.5 rounded-lg shadow-lg z-30 pointer-events-none whitespace-nowrap animate-fade-in flex flex-col items-center">
+                              <span>
+                                {item.tasksCompleted}/{item.tasksScheduled} &bull; {item.completionRate}%
+                              </span>
+                              <span className="text-[9px] text-gray-300 font-normal">{item.dateLabel}</span>
+                            </div>
+                          )}
 
-        {/* CHART 2: Task Distribution (Donut Chart) - 4 cols */}
-        <div className="lg:col-span-4 bg-white rounded-[26px] p-6 sm:p-7 border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.035)] flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base sm:text-lg font-bold text-[#202033] tracking-tight">
-                Task Distribution
-              </h3>
-            </div>
+                          {/* Dual Pillars */}
+                          <div className="w-full flex justify-center items-end gap-1 h-[120px] sm:h-[135px]">
+                            {/* Completed Bar */}
+                            <div
+                              style={{ height: `${compHeight}%` }}
+                              className={`w-2.5 sm:w-3 max-w-[12px] rounded-t-sm transition-all duration-300 ${
+                                isSelected ? 'bg-[#8B45F5]' : 'bg-[#C4B5FD] group-hover:bg-[#A78BFA]'
+                              }`}
+                            />
+                            {/* Scheduled Bar */}
+                            <div
+                              style={{ height: `${schedHeight}%` }}
+                              className={`w-2.5 sm:w-3 max-w-[12px] rounded-t-sm transition-all duration-300 ${
+                                isSelected ? 'bg-[#6935C8]' : 'bg-[#8B45F5] group-hover:bg-[#7839D6]'
+                              }`}
+                            />
+                          </div>
 
-            {/* Donut Chart with Center Total */}
-            <div className="relative w-44 h-44 sm:w-48 sm:h-48 mx-auto my-3 flex items-center justify-center">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                {/* Background Ring */}
-                <circle cx="50" cy="50" r="38" fill="none" stroke="#F4F4FD" strokeWidth="16" />
+                          {/* Line Dot */}
+                          <div
+                            style={{ bottom: `${Math.min(92, Math.max(16, item.completionRate))}%` }}
+                            className="absolute w-2 h-2 rounded-full bg-[#10B981] ring-1 ring-white shadow-2xs pointer-events-none"
+                          />
 
-                {/* 4 Category Segments */}
-                {/* Segment 1: Work (42%) */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  fill="none"
-                  stroke="#8B45F5"
-                  strokeWidth="16"
-                  strokeDasharray="238.7"
-                  strokeDashoffset={238.7 * (1 - 0.42)}
-                  strokeLinecap="round"
-                  className="transition-all duration-700 hover:opacity-85 cursor-pointer"
-                  onClick={() => onNavigateTab('work', { category: TaskCategory.WORK })}
-                />
-                {/* Segment 2: Personal (28%) offset */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  fill="none"
-                  stroke="#3B82F6"
-                  strokeWidth="16"
-                  strokeDasharray="238.7"
-                  strokeDashoffset={238.7 * (1 - 0.28)}
-                  strokeLinecap="round"
-                  transform="rotate(151.2 50 50)"
-                  className="transition-all duration-700 hover:opacity-85 cursor-pointer"
-                  onClick={() => onNavigateTab('work', { category: TaskCategory.PERSONAL_ROUTINE })}
-                />
-                {/* Segment 3: Projects (18%) offset */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  fill="none"
-                  stroke="#F59E0B"
-                  strokeWidth="16"
-                  strokeDasharray="238.7"
-                  strokeDashoffset={238.7 * (1 - 0.18)}
-                  strokeLinecap="round"
-                  transform="rotate(252 50 50)"
-                  className="transition-all duration-700 hover:opacity-85 cursor-pointer"
-                  onClick={() => onNavigateTab('projects')}
-                />
-                {/* Segment 4: Other (12%) offset */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  fill="none"
-                  stroke="#10B981"
-                  strokeWidth="16"
-                  strokeDasharray="238.7"
-                  strokeDashoffset={238.7 * (1 - 0.12)}
-                  strokeLinecap="round"
-                  transform="rotate(316.8 50 50)"
-                  className="transition-all duration-700 hover:opacity-85 cursor-pointer"
-                />
-              </svg>
-
-              {/* Center Total Count */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-3xl font-extrabold text-[#202033] leading-none">
-                  {taskDistribution.total}
-                </span>
-                <span className="text-[11px] font-medium text-[#74738A] mt-1">Total Tasks</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Category breakdown legend */}
-          <div className="grid grid-cols-2 gap-2.5 pt-3 border-t border-[#F0F2FA]">
-            {taskDistribution.segments.map((seg: any) => (
-              <div
-                key={seg.name}
-                onClick={() => onNavigateTab('work', { category: seg.name })}
-                className="flex items-center justify-between p-2 rounded-xl hover:bg-[#F4F3FF] transition-colors cursor-pointer group"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
-                  <span className="text-xs font-semibold text-[#202033] group-hover:text-[#8B45F5] transition-colors truncate">
-                    {seg.name}
-                  </span>
+                          {/* Day Label */}
+                          <div className="absolute -bottom-1 flex flex-col items-center">
+                            <span
+                              className={`text-[9px] sm:text-[10px] font-medium transition-colors ${
+                                isSelected ? 'text-[#8B45F5] font-bold' : 'text-[#74738A] group-hover:text-[#202033]'
+                              }`}
+                            >
+                              {item.dayLabel}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <span className="text-xs font-bold text-[#74738A] group-hover:text-[#202033] transition-colors">
-                  {seg.percent}% ({seg.count})
-                </span>
               </div>
-            ))}
+            </div>
+
+            {/* Right Sub-Section: Task Distribution Donut Chart (~38% of card) */}
+            <div className="md:col-span-5 flex flex-col items-center justify-between h-full pt-1">
+              <div className="w-full flex items-center justify-between mb-2">
+                <h3 className="text-sm sm:text-base font-bold text-[#202033] tracking-tight">
+                  Task Distribution
+                </h3>
+              </div>
+
+              {/* Donut Chart with Center Total */}
+              <div className="relative w-36 h-36 sm:w-40 sm:h-40 my-1 flex items-center justify-center">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="38" fill="none" stroke="#F4F4FD" strokeWidth="15" />
+                  {/* Segment 1: Work (42%) */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    fill="none"
+                    stroke="#8B45F5"
+                    strokeWidth="15"
+                    strokeDasharray="238.7"
+                    strokeDashoffset={238.7 * (1 - 0.42)}
+                    strokeLinecap="round"
+                    className="transition-all duration-700 hover:opacity-85 cursor-pointer"
+                    onClick={() => onNavigateTab('work', { category: TaskCategory.WORK })}
+                  />
+                  {/* Segment 2: Personal (28%) */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    fill="none"
+                    stroke="#3B82F6"
+                    strokeWidth="15"
+                    strokeDasharray="238.7"
+                    strokeDashoffset={238.7 * (1 - 0.28)}
+                    strokeLinecap="round"
+                    transform="rotate(151.2 50 50)"
+                    className="transition-all duration-700 hover:opacity-85 cursor-pointer"
+                    onClick={() => onNavigateTab('work', { category: TaskCategory.PERSONAL_ROUTINE })}
+                  />
+                  {/* Segment 3: Projects (18%) */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    fill="none"
+                    stroke="#F59E0B"
+                    strokeWidth="15"
+                    strokeDasharray="238.7"
+                    strokeDashoffset={238.7 * (1 - 0.18)}
+                    strokeLinecap="round"
+                    transform="rotate(252 50 50)"
+                    className="transition-all duration-700 hover:opacity-85 cursor-pointer"
+                    onClick={() => onNavigateTab('projects')}
+                  />
+                  {/* Segment 4: Other (12%) */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="38"
+                    fill="none"
+                    stroke="#10B981"
+                    strokeWidth="15"
+                    strokeDasharray="238.7"
+                    strokeDashoffset={238.7 * (1 - 0.12)}
+                    strokeLinecap="round"
+                    transform="rotate(316.8 50 50)"
+                    className="transition-all duration-700 hover:opacity-85 cursor-pointer"
+                  />
+                </svg>
+
+                {/* Center Total Count */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <span className="text-2xl sm:text-3xl font-extrabold text-[#202033] leading-none">
+                    {taskDistribution.total}
+                  </span>
+                  <span className="text-[10px] font-medium text-[#74738A] mt-0.5">Total Tasks</span>
+                </div>
+              </div>
+
+              {/* Distribution Legend List */}
+              <div className="w-full grid grid-cols-2 gap-1.5 pt-2 border-t border-[#F0F2FA] text-[11px]">
+                {taskDistribution.segments.map((seg: any) => (
+                  <div
+                    key={seg.name}
+                    onClick={() => onNavigateTab('work', { category: seg.name })}
+                    className="flex items-center justify-between p-1 rounded-lg hover:bg-[#F4F3FF] transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
+                      <span className="text-[11px] font-medium text-[#202033] group-hover:text-[#8B45F5] truncate">
+                        {seg.name}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-bold text-[#74738A]">
+                      {seg.percent}% ({seg.count})
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* =========================================================================
-          SECTION D & E: TODAY'S SCHEDULE & QUICK ACTIONS
-         ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* SECTION D: Today's Schedule Timeline (7 cols) */}
-        <div className="lg:col-span-7 bg-white rounded-[26px] p-6 sm:p-7 border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.035)] flex flex-col justify-between">
+        {/* COLUMN 2: CENTER 25% (lg:col-span-3) — TODAY'S SCHEDULE */}
+        <div className="lg:col-span-3 bg-white rounded-2xl p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col justify-between">
           <div>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-bold text-[#202033] tracking-tight">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-sm sm:text-base font-bold text-[#202033] tracking-tight">
                   Today&apos;s Schedule
                 </h3>
-                <span className="text-xs font-semibold text-[#74738A] bg-[#F4F3FF] px-2.5 py-0.5 rounded-full">
-                  {format(currentDateObj, 'EEE, d MMM yyyy')}
+                <span className="text-[10px] font-semibold text-[#74738A] bg-[#F4F3FF] px-2 py-0.5 rounded-full">
+                  {format(currentDateObj, 'd MMM')}
                 </span>
               </div>
               <button
                 onClick={() => onNavigateTab('calendar')}
-                className="text-xs sm:text-sm font-semibold text-[#8B45F5] hover:text-[#6935C8] flex items-center gap-1 transition-colors"
+                className="text-[11px] font-bold text-[#8B45F5] hover:text-[#6935C8] transition-colors flex items-center gap-0.5"
               >
                 <span>View Calendar</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-3 h-3" />
               </button>
             </div>
 
-            {/* Timeline Rows */}
-            <div className="space-y-3">
+            {/* Timeline Item Rows */}
+            <div className="space-y-2.5">
               {scheduleItems.map((item) => {
                 const isCompleted = item.status === 'Completed';
 
@@ -915,75 +890,42 @@ export function ModernDribbbleDashboard({
                   <div
                     key={item.id}
                     onClick={() => {
-                      if (item.rawItem && onSelectTask) {
-                        onSelectTask(item.rawItem);
-                      }
+                      if (item.rawItem && onSelectTask) onSelectTask(item.rawItem);
                     }}
-                    className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      isCompleted ? 'bg-[#F0FAF4] border-[#DCFCE7]' : 'bg-white border-[#E5E2F5] hover:border-[#DDD8F8] hover:shadow-xs'
+                    className={`flex items-center justify-between p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer group ${
+                      isCompleted ? 'bg-[#F9FDFB] border-[#DCFCE7]' : 'bg-white border-[#E5E2F5] hover:border-[#DDD8F8]'
                     }`}
                   >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      {/* Time Pill */}
-                      <span className="text-xs sm:text-sm font-bold text-[#74738A] w-12 shrink-0">
-                        {item.time}
-                      </span>
-
-                      {/* Icon */}
-                      <span className="text-xl shrink-0 select-none">{item.emoji}</span>
-
-                      {/* Title & Category */}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] font-bold text-[#74738A] w-9 shrink-0">{item.time}</span>
+                      <span className="text-sm shrink-0">{item.emoji}</span>
                       <div className="min-w-0">
-                        <h4
-                          className={`text-xs sm:text-sm font-bold truncate tracking-tight ${
-                            isCompleted ? 'text-[#16A36A] line-through' : 'text-[#202033]'
-                          }`}
-                        >
+                        <span className={`text-xs font-bold block truncate leading-tight ${isCompleted ? 'line-through text-[#9CA3AF]' : 'text-[#202033]'}`}>
                           {item.title}
-                        </h4>
-                        <p className="text-[11px] text-[#74738A] font-medium truncate mt-0.5">
-                          {item.category}
-                        </p>
+                        </span>
+                        <span className="text-[10px] text-[#74738A] block truncate leading-tight">{item.category}</span>
                       </div>
                     </div>
 
-                    {/* Right Action & Badges */}
-                    <div className="flex items-center gap-2.5 shrink-0">
-                      {/* Priority pill */}
-                      <span
-                        className={`text-[10px] sm:text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                          item.priority === 'High'
-                            ? 'bg-[#EFF6FF] text-[#3B82F6]'
-                            : item.priority === 'Medium'
-                            ? 'bg-[#F0FDF4] text-[#10B981]'
-                            : 'bg-gray-100 text-[#74738A]'
-                        }`}
-                      >
-                        {item.priority}
-                      </span>
-
-                      {/* Status indicator / Complete action */}
+                    <div className="flex items-center gap-1.5 shrink-0 pl-1.5">
                       {isCompleted ? (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#DCFCE7] text-[#16A36A] text-[11px] font-bold">
-                          <span>Completed</span>
-                          <Check className="w-3.5 h-3.5 text-[#16A36A]" />
-                        </div>
+                        <span className="px-2 py-0.5 rounded-full bg-[#ECFDF5] text-[#16A36A] text-[10px] font-bold flex items-center gap-1">
+                          Completed <CheckCircle2 className="w-2.5 h-2.5 text-[#16A36A]" />
+                        </span>
                       ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (item.rawItem) {
-                              onCompleteTask(item.rawItem.id);
-                            }
-                          }}
-                          className="w-7 h-7 rounded-full border-2 border-[#DDD8F8] hover:border-[#10B981] hover:bg-[#F0FAF4] flex items-center justify-center transition-all group/btn"
-                          title="Mark complete"
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            item.priority === 'High'
+                              ? 'bg-[#EFF6FF] text-[#3B82F6]'
+                              : item.priority === 'Medium'
+                              ? 'bg-[#F4F3FF] text-[#8B45F5]'
+                              : 'bg-[#F3F4F6] text-[#6B7280]'
+                          }`}
                         >
-                          <Check className="w-3.5 h-3.5 text-transparent group-hover/btn:text-[#10B981] transition-colors" />
-                        </button>
+                          {item.priority}
+                        </span>
                       )}
-
-                      <ChevronRight className="w-4 h-4 text-[#9CA3AF] hover:text-[#202033] transition-colors" />
+                      <ChevronRight className="w-3 h-3 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors" />
                     </div>
                   </div>
                 );
@@ -992,178 +934,146 @@ export function ModernDribbbleDashboard({
           </div>
         </div>
 
-        {/* SECTION E: Quick Actions Grid (5 cols) */}
-        <div className="lg:col-span-5 bg-white rounded-[26px] p-6 sm:p-7 border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.035)] flex flex-col justify-between">
+        {/* COLUMN 3: RIGHT 25% (lg:col-span-3) — QUICK ACTIONS & REPLAN CALLOUT */}
+        <div className="lg:col-span-3 bg-white rounded-2xl p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base sm:text-lg font-bold text-[#202033] tracking-tight">
-                Quick Actions
-              </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm sm:text-base font-bold text-[#202033] tracking-tight">Quick Actions</h3>
             </div>
 
-            {/* 2x3 Grid of square action tiles */}
-            <div className="grid grid-cols-3 gap-3">
-              {/* Tile 1: Add Task */}
+            {/* 2x3 Grid */}
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 onClick={onOpenCreateTask}
-                className="p-4 rounded-2xl border border-[#E5E2F5] hover:border-[#8B45F5] hover:bg-[#F4F3FF] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer shadow-2xs"
+                className="flex flex-col items-center justify-center p-3 rounded-xl border border-[#E5E2F5] hover:border-[#8B45F5] hover:bg-[#F8F7FF] transition-all group text-center"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#F4F3FF] group-hover:bg-[#8B45F5] text-[#8B45F5] group-hover:text-white flex items-center justify-center transition-colors">
-                  <CheckCircle2 className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-full bg-[#F4F3FF] flex items-center justify-center text-[#8B45F5] mb-1.5 group-hover:scale-105 transition-transform">
+                  <CheckCircle2 className="w-4 h-4 text-[#8B45F5]" />
                 </div>
-                <span className="text-xs font-bold text-[#202033] group-hover:text-[#8B45F5] transition-colors">
-                  Add Task
-                </span>
+                <span className="text-xs font-bold text-[#202033]">Add Task</span>
               </button>
 
-              {/* Tile 2: Add Reminder */}
               <button
                 onClick={onOpenCreateReminder ? onOpenCreateReminder : onOpenCreateTask}
-                className="p-4 rounded-2xl border border-[#E5E2F5] hover:border-[#3B82F6] hover:bg-[#EFF6FF] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer shadow-2xs"
+                className="flex flex-col items-center justify-center p-3 rounded-xl border border-[#E5E2F5] hover:border-[#3B82F6] hover:bg-[#EFF6FF] transition-all group text-center"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] group-hover:bg-[#3B82F6] text-[#3B82F6] group-hover:text-white flex items-center justify-center transition-colors">
-                  <Clock className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#3B82F6] mb-1.5 group-hover:scale-105 transition-transform">
+                  <Clock className="w-4 h-4 text-[#3B82F6]" />
                 </div>
-                <span className="text-xs font-bold text-[#202033] group-hover:text-[#3B82F6] transition-colors">
-                  Add Reminder
-                </span>
+                <span className="text-xs font-bold text-[#202033]">Add Reminder</span>
               </button>
 
-              {/* Tile 3: Add Routine */}
               <button
                 onClick={onOpenCreateRoutine}
-                className="p-4 rounded-2xl border border-[#E5E2F5] hover:border-[#8B45F5] hover:bg-[#F4F3FF] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer shadow-2xs"
+                className="flex flex-col items-center justify-center p-3 rounded-xl border border-[#E5E2F5] hover:border-[#8B45F5] hover:bg-[#F8F7FF] transition-all group text-center"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#F4F3FF] group-hover:bg-[#8B45F5] text-[#8B45F5] group-hover:text-white flex items-center justify-center transition-colors">
-                  <RotateCcw className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-full bg-[#F4F3FF] flex items-center justify-center text-[#8B45F5] mb-1.5 group-hover:scale-105 transition-transform">
+                  <RotateCcw className="w-4 h-4 text-[#8B45F5]" />
                 </div>
-                <span className="text-xs font-bold text-[#202033] group-hover:text-[#8B45F5] transition-colors">
-                  Add Routine
-                </span>
+                <span className="text-xs font-bold text-[#202033]">Add Routine</span>
               </button>
 
-              {/* Tile 4: Add Project */}
               <button
                 onClick={onOpenCreateProject ? onOpenCreateProject : () => onNavigateTab('projects')}
-                className="p-4 rounded-2xl border border-[#E5E2F5] hover:border-[#10B981] hover:bg-[#ECFDF5] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer shadow-2xs"
+                className="flex flex-col items-center justify-center p-3 rounded-xl border border-[#E5E2F5] hover:border-[#10B981] hover:bg-[#F0FDF4] transition-all group text-center"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#ECFDF5] group-hover:bg-[#10B981] text-[#10B981] group-hover:text-white flex items-center justify-center transition-colors">
-                  <FolderKanban className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-full bg-[#F0FDF4] flex items-center justify-center text-[#10B981] mb-1.5 group-hover:scale-105 transition-transform">
+                  <FolderKanban className="w-4 h-4 text-[#10B981]" />
                 </div>
-                <span className="text-xs font-bold text-[#202033] group-hover:text-[#10B981] transition-colors">
-                  Add Project
-                </span>
+                <span className="text-xs font-bold text-[#202033]">Add Project</span>
               </button>
 
-              {/* Tile 5: Add Event */}
               <button
-                onClick={onOpenCreateEvent ? onOpenCreateEvent : onOpenCreateTask}
-                className="p-4 rounded-2xl border border-[#E5E2F5] hover:border-[#8B45F5] hover:bg-[#F4F3FF] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer shadow-2xs"
+                onClick={onOpenCreateEvent ? onOpenCreateEvent : () => onNavigateTab('calendar')}
+                className="flex flex-col items-center justify-center p-3 rounded-xl border border-[#E5E2F5] hover:border-[#6366F1] hover:bg-[#EEF2FF] transition-all group text-center"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#F4F3FF] group-hover:bg-[#8B45F5] text-[#8B45F5] group-hover:text-white flex items-center justify-center transition-colors">
-                  <Calendar className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#6366F1] mb-1.5 group-hover:scale-105 transition-transform">
+                  <Calendar className="w-4 h-4 text-[#6366F1]" />
                 </div>
-                <span className="text-xs font-bold text-[#202033] group-hover:text-[#8B45F5] transition-colors">
-                  Add Event
-                </span>
+                <span className="text-xs font-bold text-[#202033]">Add Event</span>
               </button>
 
-              {/* Tile 6: Emergency Replan */}
               <button
                 onClick={onOpenEmergency}
-                className="p-4 rounded-2xl border border-[#FECDD6] bg-[#FFFBFB] hover:bg-[#FFEAEF] hover:border-[#E05268] transition-all flex flex-col items-center justify-center gap-2 group cursor-pointer shadow-2xs"
+                className="flex flex-col items-center justify-center p-3 rounded-xl border border-[#FECDD6] bg-[#FFFBFB] hover:bg-[#FFEAEF] transition-all group text-center"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#FFEAEF] group-hover:bg-[#E05268] text-[#E05268] group-hover:text-white flex items-center justify-center transition-colors">
-                  <AlertTriangle className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-full bg-[#FFEAEF] flex items-center justify-center text-[#E05268] mb-1.5 group-hover:scale-105 transition-transform">
+                  <AlertTriangle className="w-4 h-4 text-[#E05268]" />
                 </div>
-                <span className="text-xs font-bold text-[#E05268] transition-colors">
-                  Emergency Replan
-                </span>
+                <span className="text-xs font-bold text-[#E05268]">Emergency Replan</span>
               </button>
             </div>
           </div>
 
-          {/* Reschedule Promo Banner */}
+          {/* Replan Callout Banner */}
           <div
             onClick={onOpenEmergency}
-            className="mt-6 p-4 rounded-2xl bg-[#F4F3FF] border border-[#DDD8F8] hover:bg-[#EDE9FE] transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs"
+            className="mt-3 bg-[#F8F7FF] border border-[#DDD8F8] rounded-xl p-2.5 flex items-center gap-2 hover:bg-[#F2EEFF] cursor-pointer transition-colors"
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-white text-[#8B45F5] flex items-center justify-center text-lg shadow-2xs shrink-0">
-                <Sparkles className="w-5 h-5 text-[#8B45F5]" />
-              </div>
-              <div className="min-w-0">
-                <h5 className="text-xs sm:text-sm font-bold text-[#202033] truncate">
-                  Need to reschedule your day?
-                </h5>
-                <p className="text-[11px] text-[#74738A] font-medium truncate mt-0.5">
-                  Use Emergency Replan to adjust your schedule around unexpected changes.
-                </p>
-              </div>
+            <div className="w-7 h-7 rounded-full bg-[#EAE5FC] flex items-center justify-center text-[#8B45F5] shrink-0">
+              <RotateCcw className="w-3.5 h-3.5 text-[#8B45F5]" />
             </div>
-            <ChevronRight className="w-4 h-4 text-[#8B45F5] shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] text-[#202033] font-semibold leading-tight">Need to reschedule your day?</p>
+              <p className="text-[10px] text-[#74738A] leading-tight mt-0.5 truncate">
+                Use Emergency Replan to adjust your schedule.
+              </p>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 text-[#8B45F5] shrink-0" />
           </div>
         </div>
       </div>
 
       {/* =========================================================================
-          SECTION F, G, H, I: ROUTINE TRACKER, PROJECTS & TASKS, WELLNESS, RECENT ACTIVITY
+          SECTION F, G, H, I: SUPPORTING 4-COLUMN BALANCED GRID (25% EACH)
          ========================================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 items-stretch">
         {/* CARD F: Routine Tracker */}
-        <div className="bg-white rounded-[26px] p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.035)] flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-[#202033] tracking-tight">Routine Tracker</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm sm:text-base font-bold text-[#202033] tracking-tight">Routine Tracker</h3>
               <button
                 onClick={() => onNavigateTab('routines')}
-                className="text-xs font-semibold text-[#8B45F5] hover:text-[#6935C8] transition-colors"
+                className="text-[11px] font-semibold text-[#8B45F5] hover:text-[#6935C8] transition-colors"
               >
                 View All
               </button>
             </div>
 
-            <div className="space-y-3.5">
+            <div className="space-y-3">
               {routineTrackerItems.map((item) => (
                 <div
                   key={item.id}
                   onClick={() => {
-                    if (occurrences.length > 0 && onOpenRoutineCheckIn) {
-                      onOpenRoutineCheckIn(occurrences[0]);
-                    }
+                    const occ = occurrences.find((o) => o.routineId === item.id) || (occurrences[0] ?? null);
+                    if (occ && onOpenRoutineCheckIn) onOpenRoutineCheckIn(occ);
                   }}
-                  className="space-y-1.5 cursor-pointer group"
+                  className="space-y-1 cursor-pointer group"
                 >
                   <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-base select-none">{item.icon}</span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span>{item.icon}</span>
                       <span className="font-bold text-[#202033] group-hover:text-[#8B45F5] transition-colors truncate">
                         {item.name}
                       </span>
                     </div>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        item.isDone
-                          ? 'bg-[#DCFCE7] text-[#16A36A]'
-                          : item.isMissed
-                          ? 'bg-[#FFEAEF] text-[#E05268]'
-                          : item.progress > 0
-                          ? 'bg-[#EFF6FF] text-[#3B82F6]'
-                          : 'bg-gray-100 text-[#74738A]'
-                      }`}
-                    >
-                      {item.isDone ? '✓ ' : ''}
-                      {item.statusBadge}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[10px] text-[#74738A] font-medium">{item.progress}%</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          item.isDone
+                            ? 'bg-[#ECFDF5] text-[#16A36A]'
+                            : item.isMissed
+                            ? 'bg-[#FFEAEF] text-[#E05268]'
+                            : 'bg-[#F4F3FF] text-[#8B45F5]'
+                        }`}
+                      >
+                        {item.statusBadge}
+                      </span>
+                    </div>
                   </div>
-
-                  <div className="flex items-center justify-between text-[11px] text-[#74738A]">
-                    <span>{item.time}</span>
-                    <span className="font-semibold">{item.progress}%</span>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="w-full h-1.5 rounded-full bg-[#F4F4FD] overflow-hidden">
+                  <div className="w-full h-1.5 bg-[#F4F4FD] rounded-full overflow-hidden">
                     <div
                       style={{ width: `${item.progress}%`, backgroundColor: item.color }}
                       className="h-full rounded-full transition-all duration-500"
@@ -1176,200 +1086,182 @@ export function ModernDribbbleDashboard({
         </div>
 
         {/* CARD G: Projects & Tasks */}
-        <div className="bg-white rounded-[26px] p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.035)] flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-[#202033] tracking-tight">Projects &amp; Tasks</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm sm:text-base font-bold text-[#202033] tracking-tight">Projects & Tasks</h3>
               <button
                 onClick={() => onNavigateTab('projects')}
-                className="text-xs font-semibold text-[#8B45F5] hover:text-[#6935C8] transition-colors"
+                className="text-[11px] font-semibold text-[#8B45F5] hover:text-[#6935C8] transition-colors"
               >
                 View All
               </button>
             </div>
 
-            {/* Pill Tabs */}
-            <div className="flex items-center gap-1.5 p-1 bg-[#F4F3FF] rounded-xl mb-4 border border-[#E5E2F5]">
+            {/* Sub Tabs */}
+            <div className="flex items-center gap-1 mb-3 bg-[#F4F3FF] p-1 rounded-xl">
               <button
                 onClick={() => setProjectTab('projects')}
-                className={`flex-1 py-1 text-xs font-bold rounded-lg transition-all ${
-                  projectTab === 'projects'
-                    ? 'bg-white text-[#8B45F5] shadow-xs'
-                    : 'text-[#74738A] hover:text-[#202033]'
+                className={`flex-1 py-1 text-center text-xs font-bold rounded-lg transition-all ${
+                  projectTab === 'projects' ? 'bg-white text-[#8B45F5] shadow-xs' : 'text-[#74738A] hover:text-[#202033]'
                 }`}
               >
                 Active Projects
               </button>
               <button
                 onClick={() => setProjectTab('tasks')}
-                className={`flex-1 py-1 text-xs font-bold rounded-lg transition-all ${
-                  projectTab === 'tasks'
-                    ? 'bg-white text-[#8B45F5] shadow-xs'
-                    : 'text-[#74738A] hover:text-[#202033]'
+                className={`flex-1 py-1 text-center text-xs font-bold rounded-lg transition-all ${
+                  projectTab === 'tasks' ? 'bg-white text-[#8B45F5] shadow-xs' : 'text-[#74738A] hover:text-[#202033]'
                 }`}
               >
                 Recent Tasks
               </button>
             </div>
 
-            {/* Project List */}
-            <div className="space-y-4">
-              {activeProjectsList.map((p) => (
-                <div
-                  key={p.id}
-                  onClick={() => onNavigateTab('projects')}
-                  className="space-y-1.5 cursor-pointer group p-2 rounded-xl hover:bg-[#FBFBFF] transition-colors"
-                >
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-base select-none">{p.icon}</span>
-                      <span className="font-bold text-[#202033] group-hover:text-[#8B45F5] transition-colors truncate">
-                        {p.name}
+            {projectTab === 'projects' ? (
+              <div className="space-y-3">
+                {activeProjectsList.map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => onNavigateTab('projects')}
+                    className="p-2.5 rounded-xl border border-[#E5E2F5] hover:border-[#DDD8F8] hover:bg-[#FDFBFF] transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span>{p.icon}</span>
+                        <span className="text-xs font-bold text-[#202033] group-hover:text-[#8B45F5] transition-colors truncate">
+                          {p.name}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-semibold text-[#74738A]">
+                        {p.completed}/{p.total} tasks &gt;
                       </span>
                     </div>
-                    <span className="text-[11px] font-semibold text-[#74738A]">
-                      {p.completed}/{p.total} tasks
-                    </span>
+                    <div className="w-full h-1.5 bg-[#F4F4FD] rounded-full overflow-hidden">
+                      <div style={{ width: `${p.percent}%` }} className="h-full bg-[#8B45F5] rounded-full transition-all duration-500" />
+                    </div>
                   </div>
-
-                  <div className="w-full h-1.5 rounded-full bg-[#F4F4FD] overflow-hidden">
-                    <div
-                      style={{ width: `${p.percent}%` }}
-                      className="h-full rounded-full bg-[#8B45F5] transition-all duration-500"
-                    />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {tasks.slice(0, 4).map((t) => (
+                  <div
+                    key={t.id}
+                    onClick={() => onSelectTask?.(t)}
+                    className="flex items-center justify-between p-2 rounded-xl border border-[#E5E2F5] hover:border-[#DDD8F8] transition-all cursor-pointer"
+                  >
+                    <span className="text-xs font-semibold text-[#202033] truncate">{t.title}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-[#9CA3AF]" />
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* CARD H: Wellness & Habit Insights */}
-        <div className="bg-white rounded-[26px] p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.035)] flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-[#202033] tracking-tight">
-                Wellness &amp; Habit Insights
-              </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm sm:text-base font-bold text-[#202033] tracking-tight">Wellness & Habit Insights</h3>
               <button
-                onClick={() => onNavigateTab('wellness')}
-                className="text-xs font-semibold text-[#8B45F5] hover:text-[#6935C8] transition-colors"
+                onClick={onOpenWellnessCheckIn}
+                className="text-[11px] font-semibold text-[#8B45F5] hover:text-[#6935C8] transition-colors"
               >
                 View All
               </button>
             </div>
 
-            {/* 2x2 Metric Cards Grid */}
-            <div className="grid grid-cols-2 gap-2.5 mb-4">
-              {/* Exercise */}
-              <div className="p-3 rounded-2xl bg-[#F0FAF4] border border-[#DCFCE7] flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-1 text-[11px] font-bold text-[#16A36A]">
-                    <Footprints className="w-3.5 h-3.5" />
-                    <span>Exercise</span>
-                  </div>
-                  <span className="text-xs font-extrabold text-[#202033] mt-1 block">4/5 days</span>
+            {/* 2x2 Mini Metrics */}
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="p-2.5 rounded-xl bg-[#F0FDF4] border border-[#DCFCE7] flex items-center gap-2">
+                <Footprints className="w-4 h-4 text-[#10B981] shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-[10px] text-[#74738A] block">Exercise</span>
+                  <span className="text-xs font-extrabold text-[#202033]">4/5 days</span>
                 </div>
-                <span className="text-xs font-bold text-[#16A36A]">80%</span>
               </div>
 
-              {/* Water Intake */}
-              <div className="p-3 rounded-2xl bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-1 text-[11px] font-bold text-[#3B82F6]">
-                    <Droplet className="w-3.5 h-3.5" />
-                    <span>Water Intake</span>
-                  </div>
-                  <span className="text-xs font-extrabold text-[#202033] mt-1 block">6/8 cups</span>
+              <div className="p-2.5 rounded-xl bg-[#EFF6FF] border border-[#DBEAFE] flex items-center gap-2">
+                <Droplet className="w-4 h-4 text-[#3B82F6] shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-[10px] text-[#74738A] block">Water Intake</span>
+                  <span className="text-xs font-extrabold text-[#202033]">6/8 cups</span>
                 </div>
-                <span className="text-xs font-bold text-[#3B82F6]">75%</span>
               </div>
 
-              {/* Sleep */}
-              <div className="p-3 rounded-2xl bg-[#F5F3FF] border border-[#EDE9FE] flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-1 text-[11px] font-bold text-[#8B45F5]">
-                    <Moon className="w-3.5 h-3.5" />
-                    <span>Sleep</span>
-                  </div>
-                  <span className="text-xs font-extrabold text-[#202033] mt-1 block">7h 15m</span>
+              <div className="p-2.5 rounded-xl bg-[#F4F3FF] border border-[#EDE9FE] flex items-center gap-2">
+                <Moon className="w-4 h-4 text-[#8B45F5] shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-[10px] text-[#74738A] block">Sleep</span>
+                  <span className="text-xs font-extrabold text-[#202033]">7h 15m</span>
                 </div>
-                <span className="text-xs font-bold text-[#8B45F5]">Good</span>
               </div>
 
-              {/* Mood */}
-              <div className="p-3 rounded-2xl bg-[#FFFBEB] border border-[#FEF3C7] flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-1 text-[11px] font-bold text-[#F59E0B]">
-                    <Smile className="w-3.5 h-3.5" />
-                    <span>Mood</span>
-                  </div>
-                  <span className="text-xs font-extrabold text-[#202033] mt-1 block">Positive</span>
+              <div className="p-2.5 rounded-xl bg-[#FFFBEB] border border-[#FEF3C7] flex items-center gap-2">
+                <Smile className="w-4 h-4 text-[#F59E0B] shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-[10px] text-[#74738A] block">Mood</span>
+                  <span className="text-xs font-extrabold text-[#202033]">Good</span>
                 </div>
-                <span className="text-xs font-bold text-[#F59E0B]">Good</span>
               </div>
             </div>
 
-            {/* Sparkline Wellness Trend */}
+            {/* Sparkline Curve */}
             <div className="pt-2 border-t border-[#F0F2FA]">
-              <div className="flex items-center justify-between mb-1.5 text-xs">
-                <span className="font-bold text-[#202033]">Wellness Trend</span>
-                <span className="font-bold text-[#16A36A] flex items-center gap-1">
-                  Overall consistency 78% &uarr;
-                </span>
+              <div className="flex items-center justify-between text-[11px] mb-1">
+                <span className="text-[#74738A] font-medium">Wellness Trend</span>
+                <span className="text-[#10B981] font-bold">78% &uarr;</span>
               </div>
-              {/* Smooth SVG Trend Sparkline */}
-              <div className="w-full h-10">
-                <svg className="w-full h-full overflow-visible" viewBox="0 0 200 40">
+              <div className="h-10 w-full relative">
+                <svg className="w-full h-full" viewBox="0 0 200 40">
                   <path
-                    d="M 0 30 Q 30 15, 60 22 T 120 18 T 170 12 T 200 8"
+                    d="M 10 30 Q 40 10 70 20 T 130 15 T 190 8"
                     fill="none"
                     stroke="#8B45F5"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                   />
-                  <circle cx="200" cy="8" r="3.5" fill="#8B45F5" className="animate-ping opacity-75" />
-                  <circle cx="200" cy="8" r="3.5" fill="#8B45F5" />
+                  <circle cx="190" cy="8" r="3.5" fill="#8B45F5" />
                 </svg>
               </div>
             </div>
           </div>
         </div>
 
-        {/* CARD I: Recent Activity Feed */}
-        <div className="bg-white rounded-[26px] p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.035)] flex flex-col justify-between">
+        {/* CARD I: Recent Activity */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-[#202033] tracking-tight">Recent Activity</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm sm:text-base font-bold text-[#202033] tracking-tight">Recent Activity</h3>
               <button
                 onClick={() => onNavigateTab('analytics')}
-                className="text-xs font-semibold text-[#8B45F5] hover:text-[#6935C8] transition-colors"
+                className="text-[11px] font-semibold text-[#8B45F5] hover:text-[#6935C8] transition-colors"
               >
                 View All
               </button>
             </div>
 
-            <div className="space-y-3.5">
+            <div className="space-y-3">
               {recentActivities.map((act: RecentActivityItem) => (
-                <div key={act.id} className="flex items-start gap-3 text-xs group">
-                  <div className="w-7 h-7 rounded-full bg-[#F4F3FF] border border-[#E5E2F5] flex items-center justify-center text-[#8B45F5] shrink-0 mt-0.5">
+                <div key={act.id} className="flex items-start gap-2.5 text-xs group">
+                  <div className="w-6 h-6 rounded-full bg-[#F4F3FF] border border-[#E5E2F5] flex items-center justify-center text-[#8B45F5] shrink-0 mt-0.5">
                     {act.icon === 'check' ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#8B45F5]" />
+                      <CheckCircle2 className="w-3 h-3 text-[#8B45F5]" />
                     ) : act.icon === 'runner' ? (
-                      <Footprints className="w-3.5 h-3.5 text-[#10B981]" />
+                      <Footprints className="w-3 h-3 text-[#10B981]" />
                     ) : act.icon === 'folder' ? (
-                      <FolderKanban className="w-3.5 h-3.5 text-[#3B82F6]" />
+                      <FolderKanban className="w-3 h-3 text-[#3B82F6]" />
                     ) : (
-                      <Bell className="w-3.5 h-3.5 text-[#8B45F5]" />
+                      <Bell className="w-3 h-3 text-[#8B45F5]" />
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-[#202033] truncate group-hover:text-[#8B45F5] transition-colors">
-                      {act.title}
-                    </p>
-                    <p className="text-[11px] text-[#74738A] truncate mt-0.5">{act.description}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-[#202033] leading-tight truncate">{act.title}</p>
+                    <p className="text-[11px] text-[#74738A] leading-tight truncate mt-0.5">{act.description}</p>
                   </div>
-                  <span className="text-[10px] text-[#9CA3AF] font-medium shrink-0">{act.time}</span>
+                  <span className="text-[10px] text-[#9CA3AF] shrink-0">{act.time}</span>
                 </div>
               ))}
             </div>
@@ -1378,43 +1270,39 @@ export function ModernDribbbleDashboard({
       </div>
 
       {/* =========================================================================
-          SECTION J: PRODUCTIVITY ANALYTICS SUMMARY FOOTER & FAB
+          SECTION J: COMPACT PRODUCTIVITY ANALYTICS FOOTER SUMMARY BAR
          ========================================================================= */}
-      <div className="bg-white rounded-[22px] p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.04)] flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Left Side: Module Label & Mode Selector */}
+      <div className="bg-white rounded-2xl px-4 sm:px-6 py-3 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Left Side: Title & Period Switcher */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <BarChart2 className="w-5 h-5 text-[#8B45F5]" />
-            <span className="text-sm font-bold text-[#202033] tracking-tight">Productivity Analytics</span>
+            <div className="w-8 h-8 rounded-xl bg-[#F4F3FF] flex items-center justify-center text-[#8B45F5]">
+              <BarChart2 className="w-4 h-4 text-[#8B45F5]" />
+            </div>
+            <span className="text-sm font-bold text-[#202033]">Productivity Analytics</span>
           </div>
 
-          <div className="flex items-center gap-1 p-1 bg-[#F4F3FF] rounded-xl border border-[#E5E2F5]">
+          <div className="flex items-center gap-1 bg-[#F4F3FF] p-0.5 rounded-xl border border-[#E5E2F5]">
             <button
               onClick={() => setAnalyticsFooterTab('weekly')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                analyticsFooterTab === 'weekly'
-                  ? 'bg-white text-[#8B45F5] shadow-xs'
-                  : 'text-[#74738A] hover:text-[#202033]'
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                analyticsFooterTab === 'weekly' ? 'bg-white text-[#8B45F5] shadow-xs' : 'text-[#74738A] hover:text-[#202033]'
               }`}
             >
               Weekly
             </button>
             <button
               onClick={() => setAnalyticsFooterTab('monthly')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                analyticsFooterTab === 'monthly'
-                  ? 'bg-white text-[#8B45F5] shadow-xs'
-                  : 'text-[#74738A] hover:text-[#202033]'
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                analyticsFooterTab === 'monthly' ? 'bg-white text-[#8B45F5] shadow-xs' : 'text-[#74738A] hover:text-[#202033]'
               }`}
             >
               Monthly
             </button>
             <button
               onClick={() => setAnalyticsFooterTab('custom')}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                analyticsFooterTab === 'custom'
-                  ? 'bg-white text-[#8B45F5] shadow-xs'
-                  : 'text-[#74738A] hover:text-[#202033]'
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                analyticsFooterTab === 'custom' ? 'bg-white text-[#8B45F5] shadow-xs' : 'text-[#74738A] hover:text-[#202033]'
               }`}
             >
               Custom
@@ -1422,66 +1310,55 @@ export function ModernDribbbleDashboard({
           </div>
         </div>
 
-        {/* Right Side: Key Productivity Aggregations */}
-        <div className="flex flex-wrap items-center gap-4 sm:gap-8 text-xs">
-          <div>
-            <span className="text-[11px] text-[#74738A] font-medium block">Total Focus Time</span>
-            <span className="font-bold text-[#202033] flex items-center gap-1 text-xs sm:text-sm">
-              32h 45m <span className="text-[#16A36A] font-bold">&uarr; 18%</span>
-            </span>
+        {/* Right Side: Key High-Level Metrics */}
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-[#74738A]">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[#9CA3AF]">Total Focus:</span>
+            <span className="font-bold text-[#202033]">32h 45m</span>
+            <span className="text-[10px] font-bold text-[#16A36A]">&uarr; 18%</span>
           </div>
 
-          <div>
-            <span className="text-[11px] text-[#74738A] font-medium block">Avg. Completion Rate</span>
-            <span className="font-bold text-[#202033] flex items-center gap-1 text-xs sm:text-sm">
-              78% <span className="text-[#16A36A] font-bold">&uarr; 12%</span>
-            </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[#9CA3AF]">Avg. Completion Rate:</span>
+            <span className="font-bold text-[#202033]">78%</span>
+            <span className="text-[10px] font-bold text-[#16A36A]">&uarr; 12%</span>
           </div>
 
-          <div>
-            <span className="text-[11px] text-[#74738A] font-medium block">Most Productive Day</span>
-            <span className="font-bold text-[#202033] text-xs sm:text-sm">Tuesday</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[#9CA3AF]">Most Productive Day:</span>
+            <span className="font-bold text-[#202033]">Tuesday</span>
           </div>
 
-          <div>
-            <span className="text-[11px] text-[#74738A] font-medium block">Active Days</span>
-            <span className="font-bold text-[#202033] text-xs sm:text-sm">6/7</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[#9CA3AF]">Active Days:</span>
+            <span className="font-bold text-[#202033]">6/7</span>
           </div>
         </div>
       </div>
 
-      {/* Floating Action Button (FAB) in Bottom Right */}
-      <div className="fixed bottom-6 right-6 z-40">
-        <button
-          onClick={() => setIsFabMenuOpen(!isFabMenuOpen)}
-          className="w-13 h-13 rounded-full bg-[#8B45F5] hover:bg-[#7839D6] text-white flex items-center justify-center shadow-lg shadow-[#8B45F5]/40 transition-transform active:scale-95 cursor-pointer"
-          title="Quick Actions"
-        >
-          {isFabMenuOpen ? <X className="w-6 h-6 text-white" /> : <Plus className="w-6 h-6 text-white" />}
-        </button>
-
-        {/* Radial Action Popover */}
+      {/* Floating Action Button (FAB) Speed-Dial */}
+      <div className="fixed bottom-6 right-6 z-50">
         {isFabMenuOpen && (
-          <div className="absolute bottom-16 right-0 bg-white rounded-2xl p-2 border border-[#E5E2F5] shadow-xl flex flex-col gap-1 w-48 animate-fade-in">
+          <div className="mb-3 space-y-2 animate-fade-in flex flex-col items-end">
             <button
               onClick={() => {
                 setIsFabMenuOpen(false);
                 onOpenCreateTask();
               }}
-              className="w-full text-left px-3 py-2 text-xs font-bold text-[#202033] hover:bg-[#F4F3FF] rounded-xl flex items-center gap-2"
+              className="flex items-center gap-2 px-3.5 py-2 bg-white text-[#202033] hover:text-[#8B45F5] border border-[#E5E2F5] rounded-xl text-xs font-bold shadow-lg transition-all"
             >
+              <span>New Task</span>
               <CheckCircle2 className="w-4 h-4 text-[#8B45F5]" />
-              <span>Create Task</span>
             </button>
             <button
               onClick={() => {
                 setIsFabMenuOpen(false);
                 onOpenCreateRoutine();
               }}
-              className="w-full text-left px-3 py-2 text-xs font-bold text-[#202033] hover:bg-[#F4F3FF] rounded-xl flex items-center gap-2"
+              className="flex items-center gap-2 px-3.5 py-2 bg-white text-[#202033] hover:text-[#8B45F5] border border-[#E5E2F5] rounded-xl text-xs font-bold shadow-lg transition-all"
             >
-              <RotateCcw className="w-4 h-4 text-[#8B45F5]" />
               <span>Add Routine</span>
+              <RotateCcw className="w-4 h-4 text-[#8B45F5]" />
             </button>
             <button
               onClick={() => {
@@ -1489,23 +1366,23 @@ export function ModernDribbbleDashboard({
                 if (onOpenCreateProject) onOpenCreateProject();
                 else onNavigateTab('projects');
               }}
-              className="w-full text-left px-3 py-2 text-xs font-bold text-[#202033] hover:bg-[#F4F3FF] rounded-xl flex items-center gap-2"
+              className="flex items-center gap-2 px-3.5 py-2 bg-white text-[#202033] hover:text-[#8B45F5] border border-[#E5E2F5] rounded-xl text-xs font-bold shadow-lg transition-all"
             >
-              <FolderKanban className="w-4 h-4 text-[#10B981]" />
               <span>New Project</span>
-            </button>
-            <button
-              onClick={() => {
-                setIsFabMenuOpen(false);
-                onOpenEmergency();
-              }}
-              className="w-full text-left px-3 py-2 text-xs font-bold text-[#E05268] hover:bg-[#FFEAEF] rounded-xl flex items-center gap-2"
-            >
-              <AlertTriangle className="w-4 h-4 text-[#E05268]" />
-              <span>Emergency Replan</span>
+              <FolderKanban className="w-4 h-4 text-[#8B45F5]" />
             </button>
           </div>
         )}
+
+        <button
+          onClick={() => setIsFabMenuOpen(!isFabMenuOpen)}
+          className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#8B45F5] hover:bg-[#7839D6] text-white flex items-center justify-center shadow-[0_8px_30px_rgba(139,69,245,0.4)] transition-transform duration-200 cursor-pointer ${
+            isFabMenuOpen ? 'rotate-45' : 'hover:scale-105'
+          }`}
+          aria-label="Speed dial quick actions"
+        >
+          <Plus className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
+        </button>
       </div>
     </div>
   );

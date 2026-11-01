@@ -170,3 +170,4 @@ Arranged as a responsive grid (`grid-cols-2 md:grid-cols-3 lg:grid-cols-6`):
 | **1366x768** | Standard Laptop | Compact padding, preserved 6-card KPI row with condensed typography. |
 | **768x1024** | Tablet Portrait | 3-column KPI row (2x3 grid), stacked analytics cards, 2x2 lower widget grid. |
 | **390x844** | Mobile Portrait | 2-column KPI grid, stacked full-width cards, scrollable schedule, sticky bottom nav bar, zero horizontal overflow. |
+

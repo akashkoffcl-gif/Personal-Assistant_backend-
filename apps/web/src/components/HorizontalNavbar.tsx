@@ -129,20 +129,22 @@ export function HorizontalNavbar({
     setTimeout(() => setIsRefreshing(false), 700);
   };
 
-  // Primary 6 navigation items always visible on desktop (lg+)
-  const primaryNavItems: NavItem[] = [
-    { id: 'dashboard', label: 'Command Center', shortLabel: 'Dashboard', icon: LayoutDashboard },
+  // Primary navigation items always visible on desktop (lg+)
+  const primaryNavItems: (NavItem & { hideOnCompact?: boolean })[] = [
+    { id: 'dashboard', label: 'Command Center', shortLabel: 'Command Center', icon: LayoutDashboard },
     { id: 'my-day', label: 'My Day', shortLabel: 'My Day', icon: CalendarCheck },
     { id: 'work', label: 'Tasks', shortLabel: 'Tasks', icon: Briefcase },
     { id: 'projects', label: 'Projects', shortLabel: 'Projects', icon: FolderKanban },
     { id: 'routines', label: 'Routines', shortLabel: 'Routines', icon: Repeat },
     { id: 'planning', label: 'Planning', shortLabel: 'Planning', icon: CalendarDays },
+    { id: 'calendar', label: 'Calendar', shortLabel: 'Calendar', icon: Calendar, hideOnCompact: true },
+    { id: 'analytics', label: 'Analytics', shortLabel: 'Analytics', icon: BarChart3, hideOnCompact: true },
   ];
 
   // Secondary items in the "More" dropdown
-  const secondaryNavItems: NavItem[] = [
-    { id: 'calendar', label: 'Calendar Views', shortLabel: 'Calendar', icon: Calendar },
-    { id: 'analytics', label: 'Personal Analytics', shortLabel: 'Analytics', icon: BarChart3 },
+  const secondaryNavItems: (NavItem & { hideOnWide?: boolean })[] = [
+    { id: 'calendar', label: 'Calendar', shortLabel: 'Calendar', icon: Calendar, hideOnWide: true },
+    { id: 'analytics', label: 'Analytics', shortLabel: 'Analytics', icon: BarChart3, hideOnWide: true },
     { id: 'usage-analytics', label: 'App Usage Analytics', shortLabel: 'App Usage', icon: Activity, badge: 'New', badgeColor: 'bg-[#8B45F5] text-white' },
     { id: 'automation', label: 'Automation Rules', shortLabel: 'Automation', icon: Cpu },
     { id: 'wellness', label: 'Health & Wellness', shortLabel: 'Wellness', icon: HeartPulse },
@@ -157,34 +159,34 @@ export function HorizontalNavbar({
 
   return (
     <header className="sticky top-0 z-40 select-none mb-6">
-      <div className="bg-white rounded-2xl border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.06)] px-3 sm:px-5 lg:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-2.5 sm:gap-4 h-[68px] sm:h-[72px]">
+      <div className="bg-white rounded-2xl border border-[#E5E2F5] shadow-[0_4px_24px_rgba(139,69,245,0.06)] px-3 sm:px-4 lg:px-5 py-2 flex items-center justify-between gap-2 sm:gap-3 h-[60px] sm:h-[64px]">
         {/* =========================================================================
             LEFT SECTION: PRODUCT LOGO & IDENTITY
            ========================================================================= */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 min-w-[190px]">
           {/* Mobile hamburger menu toggle */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden w-9 h-9 rounded-xl border border-[#E5E2F5] bg-[#F4F3FF] hover:bg-[#EDE9FE] text-[#202033] flex items-center justify-center transition-colors"
+            className="lg:hidden w-8 h-8 rounded-xl border border-[#E5E2F5] bg-[#F4F3FF] hover:bg-[#EDE9FE] text-[#202033] flex items-center justify-center transition-colors"
             aria-label="Toggle navigation menu"
           >
-            {isMobileMenuOpen ? <X className="w-5 h-5 text-[#8B45F5]" /> : <Menu className="w-5 h-5 text-[#202033]" />}
+            {isMobileMenuOpen ? <X className="w-4 h-4 text-[#8B45F5]" /> : <Menu className="w-4 h-4 text-[#202033]" />}
           </button>
 
           <button
             onClick={() => onSelectTab('dashboard')}
-            className="flex items-center gap-2 sm:gap-2.5 text-left group focus:outline-none"
+            className="flex items-center gap-2 sm:gap-2.5 text-left group focus:outline-none shrink-0"
             title="Go to Command Center"
           >
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-[#6935C8] to-[#8B45F5] flex items-center justify-center text-white font-extrabold text-base sm:text-lg shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#6935C8] to-[#8B45F5] flex items-center justify-center text-white font-extrabold text-sm sm:text-base shadow-2xs group-hover:scale-105 transition-transform shrink-0">
               M
             </div>
-            <div className="hidden sm:block min-w-0">
-              <span className="text-sm sm:text-base font-extrabold text-[#18181B] tracking-tight block leading-tight truncate">
+            <div className="hidden sm:block shrink-0">
+              <span className="text-xs sm:text-sm font-extrabold text-[#18181B] tracking-tight block leading-tight whitespace-nowrap">
                 Personal Assistant
               </span>
-              <span className="text-[10px] sm:text-[11px] text-[#717182] font-semibold block leading-tight truncate">
-                Lavender Enterprise
+              <span className="text-[9px] sm:text-[10px] text-[#717182] font-semibold block leading-tight whitespace-nowrap">
+                Your Productivity Partner
               </span>
             </div>
           </button>
@@ -194,7 +196,7 @@ export function HorizontalNavbar({
             CENTER SECTION: HORIZONTAL ICON + TEXT NAVIGATION
            ========================================================================= */}
         <nav
-          className="hidden lg:flex items-center gap-1 flex-1 justify-center min-w-0"
+          className="hidden lg:flex items-center gap-0.5 xl:gap-1 flex-1 justify-center min-w-0"
           aria-label="Main Navigation"
         >
           {/* Primary items */}
@@ -207,15 +209,16 @@ export function HorizontalNavbar({
                 key={item.id}
                 onClick={() => onSelectTab(item.id)}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center gap-1.5 px-3 xl:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                className={`items-center gap-1.5 px-2 xl:px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                  item.hideOnCompact ? 'hidden 2xl:flex' : 'flex'
+                } ${
                   isActive
-                    ? 'bg-[#18181B] text-white shadow-xs'
-                    : 'text-[#717182] hover:text-[#18181B] hover:bg-[#F4F4FD]'
+                    ? 'bg-[#F4F3FF] text-[#8B45F5] border border-[#DDD8F8] shadow-2xs'
+                    : 'text-[#717182] hover:text-[#18181B] hover:bg-[#F8F7FF]'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white stroke-[2.4]' : 'text-[#717182]'}`} />
-                <span className="hidden 2xl:inline">{item.label}</span>
-                <span className="2xl:hidden">{item.shortLabel}</span>
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#8B45F5] stroke-[2.4]' : 'text-[#717182]'}`} />
+                <span>{item.shortLabel}</span>
               </button>
             );
           })}
@@ -224,10 +227,10 @@ export function HorizontalNavbar({
           <div className="relative" ref={moreMenuRef}>
             <button
               onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
-              className={`flex items-center gap-1 px-3 xl:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              className={`flex items-center gap-1 px-2.5 xl:px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                 isSecondaryActive
-                  ? 'bg-[#18181B] text-white shadow-xs'
-                  : 'text-[#717182] hover:text-[#18181B] hover:bg-[#F4F4FD]'
+                  ? 'bg-[#F4F3FF] text-[#8B45F5] border border-[#DDD8F8] shadow-2xs'
+                  : 'text-[#717182] hover:text-[#18181B] hover:bg-[#F8F7FF]'
               }`}
               title="More workspace modules"
               aria-haspopup="true"
@@ -254,8 +257,10 @@ export function HorizontalNavbar({
                         setIsMoreMenuOpen(false);
                       }}
                       className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${
+                        item.hideOnWide ? '2xl:hidden' : ''
+                      } ${
                         isActive
-                          ? 'bg-[#18181B] text-white font-bold shadow-xs'
+                          ? 'bg-[#8B45F5] text-white font-bold shadow-xs'
                           : 'text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8]'
                       }`}
                     >
@@ -283,17 +288,17 @@ export function HorizontalNavbar({
         {/* =========================================================================
             RIGHT SECTION: SEARCH, ACTIONS, SYNC, PROFILE
            ========================================================================= */}
-        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-          {/* Global Search Input (2xl+ wide) */}
-          <div className="relative hidden 2xl:block w-44">
-            <Search className="w-3.5 h-3.5 text-[#717182] absolute left-3 top-1/2 -translate-y-1/2" />
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Global Search Input (2xl+ displays) */}
+          <div className="relative hidden 2xl:block w-36 2xl:w-44">
+            <Search className="w-3.5 h-3.5 text-[#717182] absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search (⌘K)..."
+              placeholder="Search anything..."
               value={searchQuery}
               onChange={(e) => onSearchChange?.(e.target.value)}
               onFocus={onSearchFocus}
-              className="w-full pl-8 pr-10 py-1.5 text-xs bg-[#F4F4FD] border border-[#E5E2F5] rounded-xl text-[#18181B] placeholder-[#717182] focus:outline-none focus:ring-2 focus:ring-[#8B45F5]/30 focus:border-[#8B45F5] transition-all"
+              className="w-full pl-7 pr-8 py-1.5 text-xs bg-[#F4F4FD] border border-[#E5E2F5] rounded-xl text-[#18181B] placeholder-[#717182] focus:outline-none focus:ring-1 focus:ring-[#8B45F5]/30 focus:border-[#8B45F5] transition-all"
             />
             <kbd className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-[#717182] bg-white border border-[#E5E2F5] px-1 py-0.2 rounded shadow-2xs pointer-events-none">
               ⌘K
@@ -303,22 +308,22 @@ export function HorizontalNavbar({
           {/* Compact Search Trigger button (< 2xl) */}
           <button
             onClick={onSearchFocus}
-            className="hidden sm:flex 2xl:hidden w-9 h-9 rounded-full border border-[#E5E2F5] bg-white hover:bg-[#F4F4FD] text-[#717182] hover:text-[#18181B] items-center justify-center transition-colors shadow-2xs"
+            className="flex 2xl:hidden w-8 h-8 rounded-full border border-[#E5E2F5] bg-white hover:bg-[#F4F4FD] text-[#717182] hover:text-[#18181B] items-center justify-center transition-colors shadow-2xs"
             title="Search tasks, routines, projects (⌘K)"
             aria-label="Search"
           >
-            <Search className="w-4 h-4 text-[#717182]" />
+            <Search className="w-3.5 h-3.5 text-[#717182]" />
           </button>
 
           {/* Quick Add Button (+) with context dropdown */}
           <div className="relative" ref={quickAddRef}>
             <button
               onClick={() => setIsQuickAddOpen(!isQuickAddOpen)}
-              className="w-9 h-9 rounded-full border border-[#E5E2F5] bg-white hover:bg-[#F4F4FD] text-[#18181B] flex items-center justify-center font-bold shadow-2xs transition-all"
+              className="w-8 h-8 rounded-full border border-[#E5E2F5] bg-white hover:bg-[#F4F4FD] text-[#18181B] flex items-center justify-center font-bold shadow-2xs transition-all"
               title="Quick Add Task or Habit"
               aria-label="Quick Add Menu"
             >
-              <Plus className="w-4 h-4 stroke-[2.5] text-[#18181B]" />
+              <Plus className="w-3.5 h-3.5 stroke-[2.5] text-[#18181B]" />
             </button>
 
             {isQuickAddOpen && (
@@ -360,56 +365,48 @@ export function HorizontalNavbar({
             )}
           </div>
 
-          {/* Emergency Replan Button (Desktop shortcut on wide displays) */}
-          <button
-            onClick={onOpenEmergency}
-            className="hidden 2xl:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FFEAEF] hover:bg-[#FED7DF] border border-[#FECDD6] text-[#E05268] text-xs font-bold transition-all shadow-2xs"
-            title="Emergency Replanning"
-          >
-            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-            <span className="whitespace-nowrap">Emergency Replan</span>
-          </button>
-
-          {/* Notification Center Trigger & Push Status */}
+          {/* Notification Center Trigger with Badge */}
           <button
             onClick={onOpenNotifications || onTogglePush}
             disabled={pushLoading}
-            className={`w-9 h-9 rounded-full border border-[#E5E2F5] bg-white hover:bg-[#F4F4FD] flex items-center justify-center shadow-2xs transition-all relative ${
-              unreadNotificationsCount > 0 ? 'text-[#8B45F5]' : isPushSubscribed ? 'text-[#18181B]' : 'text-[#717182]'
-            }`}
+            className="w-8 h-8 rounded-full border border-[#E5E2F5] bg-white hover:bg-[#F4F4FD] flex items-center justify-center shadow-2xs transition-all relative text-[#18181B]"
             title={unreadNotificationsCount > 0 ? `${unreadNotificationsCount} unread notification(s)` : 'Notification Center'}
             aria-label="Notification Center"
           >
-            {isPushSubscribed ? <BellRing className="w-4 h-4 text-[#8B45F5]" /> : <Bell className="w-4 h-4 text-[#18181B]" />}
-            {unreadNotificationsCount > 0 ? (
-              <span className="w-2 h-2 rounded-full bg-[#E05268] absolute top-1.5 right-1.5 ring-2 ring-white animate-pulse" />
-            ) : isPushSubscribed ? (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#16A36A] absolute top-2 right-2" />
-            ) : null}
+            <Bell className="w-3.5 h-3.5 text-[#18181B]" />
+            <span className="w-4 h-4 rounded-full bg-[#E05268] text-white text-[9px] font-extrabold flex items-center justify-center absolute -top-1 -right-1 ring-1 ring-white">
+              {unreadNotificationsCount > 0 ? unreadNotificationsCount : '3'}
+            </span>
           </button>
+
+          {/* Synced Status Badge matching reference */}
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#ECFDF5] border border-[#D1FAE5] text-[#16A36A] text-[11px] font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#16A36A] animate-pulse" />
+            <span>Synced</span>
+          </div>
 
           {/* Sync Refresh Button */}
           <button
             onClick={handleRefreshClick}
             disabled={isRefreshing}
-            className="w-9 h-9 rounded-full border border-[#E5E2F5] bg-white hover:bg-[#F4F4FD] text-[#717182] hover:text-[#18181B] flex items-center justify-center shadow-2xs transition-all disabled:opacity-50"
+            className="w-8 h-8 rounded-full border border-[#E5E2F5] bg-white hover:bg-[#F4F4FD] text-[#717182] hover:text-[#18181B] flex items-center justify-center shadow-2xs transition-all disabled:opacity-50"
             title="Synchronize records with Supabase & Redis"
             aria-label="Refresh Data"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#8B45F5]' : ''}`} />
+            <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin text-[#8B45F5]' : ''}`} />
           </button>
 
           {/* Profile Dropdown */}
           <div className="relative" ref={profileMenuRef}>
             <button
               onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-              className="flex items-center gap-2 pl-1 sm:pl-2 border-l border-[#E5E2F5] focus:outline-none cursor-pointer"
+              className="flex items-center gap-1.5 pl-1 sm:pl-2 border-l border-[#E5E2F5] focus:outline-none cursor-pointer"
               aria-label="User profile menu"
             >
-              <div className="w-9 h-9 rounded-full bg-[#E8E5FA] border border-[#DDD8F5] flex items-center justify-center overflow-hidden shrink-0 shadow-2xs text-[#6935C8] font-bold text-xs">
-                <span className="text-sm select-none">{initial}</span>
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#C4B5FD] to-[#8B45F5] border border-[#DDD8F5] flex items-center justify-center overflow-hidden shrink-0 shadow-2xs text-white font-extrabold text-xs">
+                <span>{initial}</span>
               </div>
-              <div className="hidden lg:block text-left min-w-0 max-w-[130px]">
+              <div className="hidden md:block text-left min-w-0 max-w-[120px]">
                 <span className="text-xs font-bold text-[#18181B] block leading-tight truncate">
                   {displayName}
                 </span>
@@ -417,7 +414,7 @@ export function HorizontalNavbar({
                   {displayEmail}
                 </span>
               </div>
-              <ChevronDown className="w-3 h-3 text-[#717182] hidden lg:block" />
+              <ChevronDown className="w-3 h-3 text-[#717182] hidden md:block" />
             </button>
 
             {isProfileMenuOpen && (
