@@ -63,6 +63,26 @@ export interface RecentActivityItem {
   time: string;
 }
 
+function getCurvedPath(points: { x: number; y: number }[]): string {
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i === 0 ? 0 : i - 1];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2 < points.length ? i + 2 : i + 1];
+
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
 export interface ModernDribbbleDashboardProps {
   tasks: TaskDto[];
   occurrences: RoutineOccurrenceDto[];
@@ -410,17 +430,20 @@ export function ModernDribbbleDashboard({
           ROW 3 (ROW 2 OF DASHBOARD): 6 COMPACT KPI INTELLIGENCE CARDS IN ONE ROW
          ========================================================================= */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2 overflow-hidden h-full">
-        {/* KPI 1: Task Completion */}
+        {/* KPI 1: Task Completion (Progress-focused card with green accent) */}
         <div
           onClick={() => onNavigateTab('work', { filter: 'completed' })}
-          className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full overflow-hidden"
+          className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-[#E5E2F5] border-l-[3px] border-l-[#10B981] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full overflow-hidden"
+          role="button"
+          tabIndex={0}
+          aria-label={`Task Completion: ${completedTasksCount} of ${totalTasksCount} tasks completed, ${taskCompletionPercent} percent`}
         >
           <div>
             <div className="flex items-center justify-between mb-0.5">
-              <div className="w-5 h-5 rounded-full bg-[#ECFDF5] flex items-center justify-center text-[#16A36A]">
+              <div className="w-5 h-5 rounded-full bg-[#ECFDF5] border border-[#A7F3D0] flex items-center justify-center text-[#16A36A]">
                 <CheckCircle2 className="w-3 h-3 text-[#16A36A]" />
               </div>
-              <span className="text-[10px] sm:text-[11px] font-semibold text-[#74738A] group-hover:text-[#202033] transition-colors truncate">
+              <span className="text-[10px] sm:text-[11px] font-bold text-[#74738A] group-hover:text-[#202033] transition-colors truncate">
                 Task Completion
               </span>
             </div>
@@ -455,23 +478,26 @@ export function ModernDribbbleDashboard({
           </div>
         </div>
 
-        {/* KPI 2: Routine Adherence */}
+        {/* KPI 2: Routine Adherence (Consistency-focused card with purple accent) */}
         <div
           onClick={() => onNavigateTab('routines')}
-          className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full overflow-hidden"
+          className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-[#E5E2F5] border-l-[3px] border-l-[#8B45F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full overflow-hidden"
+          role="button"
+          tabIndex={0}
+          aria-label={`Routine Adherence: ${routineAdherencePercent} percent, ${completedRoutinesCount} of ${totalRoutinesCount} routines completed`}
         >
           <div>
             <div className="flex items-center justify-between mb-0.5">
-              <div className="w-5 h-5 rounded-full bg-[#F4F3FF] flex items-center justify-center text-[#8B45F5]">
+              <div className="w-5 h-5 rounded-full bg-[#F4F3FF] border border-[#DDD8F8] flex items-center justify-center text-[#8B45F5]">
                 <RotateCcw className="w-3 h-3 text-[#8B45F5]" />
               </div>
-              <span className="text-[10px] sm:text-[11px] font-semibold text-[#74738A] group-hover:text-[#202033] transition-colors truncate">
+              <span className="text-[10px] sm:text-[11px] font-bold text-[#74738A] group-hover:text-[#202033] transition-colors truncate">
                 Routine Adherence
               </span>
             </div>
             <div className="flex items-center justify-between gap-1">
-              <span className="text-lg sm:text-xl font-extrabold text-[#202033] tracking-tight leading-none">
-                {completedRoutinesCount}/{totalRoutinesCount}
+              <span className="text-lg sm:text-xl font-extrabold text-[#8B45F5] tracking-tight leading-none">
+                {routineAdherencePercent}%
               </span>
               <div className="relative w-6 h-6 shrink-0 flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
@@ -486,42 +512,49 @@ export function ModernDribbbleDashboard({
                     strokeDasharray="87.9"
                     strokeDashoffset={87.9 * (1 - routineAdherencePercent / 100)}
                     strokeLinecap="round"
+                    className="transition-all duration-700"
                   />
                 </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-[#8B45F5]">
-                  {routineAdherencePercent}%
+                <span className="absolute inset-0 flex items-center justify-center text-[7px] font-bold text-[#202033]">
+                  {completedRoutinesCount}/{totalRoutinesCount}
                 </span>
               </div>
             </div>
           </div>
           <div className="mt-0.5 pt-0.5 border-t border-[#F0F2FA] flex items-center justify-between text-[9px] sm:text-[10px]">
-            <span className="text-[#16A36A] font-semibold truncate">&uarr; 8% vs last week</span>
+            <span className="text-[#8B45F5] font-semibold truncate">&uarr; 8% consistency</span>
             <ChevronRight className="w-2.5 h-2.5 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors shrink-0" />
           </div>
         </div>
 
-        {/* KPI 3: Upcoming Activities */}
+        {/* KPI 3: Upcoming Activities (Schedule-focused card with blue accent) */}
         <div
-          onClick={() => onNavigateTab('planning')}
-          className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full overflow-hidden"
+          onClick={() => onNavigateTab('calendar')}
+          className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-[#E5E2F5] border-l-[3px] border-l-[#3B82F6] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full overflow-hidden"
+          role="button"
+          tabIndex={0}
+          aria-label={`Upcoming Activities: ${upcomingActivitiesCount} scheduled`}
         >
           <div>
             <div className="flex items-center justify-between mb-0.5">
-              <div className="w-5 h-5 rounded-full bg-[#EFF6FF] flex items-center justify-center text-[#3B82F6]">
+              <div className="w-5 h-5 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] flex items-center justify-center text-[#3B82F6]">
                 <Calendar className="w-3 h-3 text-[#3B82F6]" />
               </div>
-              <span className="text-[10px] sm:text-[11px] font-semibold text-[#74738A] group-hover:text-[#202033] transition-colors truncate">
+              <span className="text-[10px] sm:text-[11px] font-bold text-[#74738A] group-hover:text-[#202033] transition-colors truncate">
                 Upcoming Activities
               </span>
             </div>
-            <div>
-              <span className="text-lg sm:text-xl font-extrabold text-[#202033] tracking-tight block leading-none">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-lg sm:text-xl font-extrabold text-[#202033] tracking-tight leading-none">
                 {upcomingActivitiesCount}
+              </span>
+              <span className="px-1.5 py-0.2 rounded-md bg-[#EFF6FF] text-[#3B82F6] text-[9px] font-bold border border-[#DBEAFE]">
+                Next: 10:00 AM
               </span>
             </div>
           </div>
           <div className="mt-0.5 pt-0.5 border-t border-[#F0F2FA] flex items-center justify-between text-[9px] sm:text-[10px]">
-            <span className="text-[#74738A] font-medium truncate">{upcomingNextActivity}</span>
+            <span className="text-[#3B82F6] font-semibold truncate max-w-[90px]">{upcomingNextActivity}</span>
             <ChevronRight className="w-2.5 h-2.5 text-[#9CA3AF] group-hover:text-[#3B82F6] transition-colors shrink-0" />
           </div>
         </div>
@@ -529,83 +562,119 @@ export function ModernDribbbleDashboard({
         {/* KPI 4: Overdue Items */}
         <div
           onClick={() => onNavigateTab('work', { filter: 'overdue' })}
-          className={`bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full overflow-hidden ${
-            overdueCount > 0 ? 'border-[#FECDD6] bg-[#FFFBFB]' : 'border-[#E5E2F5]'
+          className={`rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full overflow-hidden ${
+            overdueCount > 0
+              ? 'bg-[#FFFBFB] border-[#FECDD6] border-l-[3px] border-l-[#E05268]'
+              : 'bg-white border-[#E5E2F5] border-l-[3px] border-l-[#10B981]'
           }`}
+          role="button"
+          tabIndex={0}
+          aria-label={`Overdue Items: ${overdueCount} items require attention`}
         >
           <div>
             <div className="flex items-center justify-between mb-0.5">
-              <div className="w-5 h-5 rounded-full bg-[#FFEAEF] flex items-center justify-center text-[#E05268]">
-                <AlertTriangle className="w-3 h-3 text-[#E05268]" />
+              <div
+                className={`w-5 h-5 rounded-full flex items-center justify-center ${
+                  overdueCount > 0
+                    ? 'bg-[#FFEAEF] text-[#E05268] border border-[#FECDD6]'
+                    : 'bg-[#ECFDF5] text-[#16A36A] border border-[#A7F3D0]'
+                }`}
+              >
+                <AlertTriangle className="w-3 h-3" />
               </div>
-              <span className="text-[10px] sm:text-[11px] font-semibold text-[#74738A] group-hover:text-[#202033] transition-colors truncate">
+              <span className="text-[10px] sm:text-[11px] font-bold text-[#74738A] group-hover:text-[#202033] transition-colors truncate">
                 Overdue Items
               </span>
             </div>
             <div>
-              <span className="text-lg sm:text-xl font-extrabold text-[#E05268] tracking-tight block leading-none">
+              <span
+                className={`text-lg sm:text-xl font-extrabold tracking-tight block leading-none ${
+                  overdueCount > 0 ? 'text-[#E05268]' : 'text-[#16A36A]'
+                }`}
+              >
                 {overdueCount}
               </span>
             </div>
           </div>
           <div className="mt-0.5 pt-0.5 border-t border-[#F0F2FA] flex items-center justify-between text-[9px] sm:text-[10px]">
-            <span className="text-[#E05268] font-semibold truncate flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#E05268]" />
-              <span>{overdueDetail}</span>
+            <span
+              className={`font-semibold truncate flex items-center gap-1 ${
+                overdueCount > 0 ? 'text-[#E05268]' : 'text-[#16A36A]'
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${overdueCount > 0 ? 'bg-[#E05268] animate-pulse' : 'bg-[#16A36A]'}`} />
+              <span>{overdueCount > 0 ? overdueDetail : 'All up to date'}</span>
             </span>
-            <ChevronRight className="w-2.5 h-2.5 text-[#E05268] shrink-0" />
+            <ChevronRight className="w-2.5 h-2.5 text-[#9CA3AF] group-hover:text-[#E05268] transition-colors shrink-0" />
           </div>
         </div>
 
-        {/* KPI 5: Active Projects */}
+        {/* KPI 5: Active Projects (Project-focused card with teal accent & mini meter) */}
         <div
           onClick={() => onNavigateTab('projects')}
-          className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full overflow-hidden"
+          className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-[#E5E2F5] border-l-[3px] border-l-[#10B981] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full overflow-hidden"
+          role="button"
+          tabIndex={0}
+          aria-label={`Active Projects: ${activeProjectsCount} active`}
         >
           <div>
             <div className="flex items-center justify-between mb-0.5">
-              <div className="w-5 h-5 rounded-full bg-[#F0FDF4] flex items-center justify-center text-[#10B981]">
+              <div className="w-5 h-5 rounded-full bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center text-[#10B981]">
                 <FolderKanban className="w-3 h-3 text-[#10B981]" />
               </div>
-              <span className="text-[10px] sm:text-[11px] font-semibold text-[#74738A] group-hover:text-[#202033] transition-colors truncate">
+              <span className="text-[10px] sm:text-[11px] font-bold text-[#74738A] group-hover:text-[#202033] transition-colors truncate">
                 Active Projects
               </span>
             </div>
-            <div>
-              <span className="text-lg sm:text-xl font-extrabold text-[#202033] tracking-tight block leading-none">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-lg sm:text-xl font-extrabold text-[#202033] tracking-tight leading-none">
                 {activeProjectsCount}
               </span>
+              {/* Mini meter */}
+              <div className="w-10 h-1.5 bg-[#F4F4FD] rounded-full overflow-hidden border border-[#E5E2F5]">
+                <div className="h-full bg-[#10B981] rounded-full w-[70%]" />
+              </div>
             </div>
           </div>
           <div className="mt-0.5 pt-0.5 border-t border-[#F0F2FA] flex items-center justify-between text-[9px] sm:text-[10px]">
-            <span className="text-[#74738A] font-medium truncate">2 in progress &bull; 1 on track</span>
-            <ChevronRight className="w-2.5 h-2.5 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors shrink-0" />
+            <span className="text-[#10B981] font-semibold truncate">2 in progress &bull; 1 on track</span>
+            <ChevronRight className="w-2.5 h-2.5 text-[#9CA3AF] group-hover:text-[#10B981] transition-colors shrink-0" />
           </div>
         </div>
 
-        {/* KPI 6: Focus Time */}
+        {/* KPI 6: Focus Time (Time-focused card with indigo accent & mini trend sparkline) */}
         <div
           onClick={() => onNavigateTab('analytics')}
-          className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full overflow-hidden"
+          className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-2.5 border border-[#E5E2F5] border-l-[3px] border-l-[#6366F1] shadow-[0_4px_20px_rgba(139,69,245,0.03)] hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between h-full overflow-hidden"
+          role="button"
+          tabIndex={0}
+          aria-label={`Focus Time: ${focusTimeHours} hours recorded`}
         >
           <div>
             <div className="flex items-center justify-between mb-0.5">
-              <div className="w-5 h-5 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#6366F1]">
+              <div className="w-5 h-5 rounded-full bg-[#EEF2FF] border border-[#C7D2FE] flex items-center justify-center text-[#6366F1]">
                 <Clock className="w-3 h-3 text-[#6366F1]" />
               </div>
-              <span className="text-[10px] sm:text-[11px] font-semibold text-[#74738A] group-hover:text-[#202033] transition-colors truncate">
+              <span className="text-[10px] sm:text-[11px] font-bold text-[#74738A] group-hover:text-[#202033] transition-colors truncate">
                 Focus Time
               </span>
             </div>
-            <div>
-              <span className="text-lg sm:text-xl font-extrabold text-[#202033] tracking-tight block leading-none">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-lg sm:text-xl font-extrabold text-[#202033] tracking-tight leading-none">
                 {focusTimeHours}
               </span>
+              {/* Mini Trend Sparkline */}
+              <div className="w-12 h-3.5 flex items-end justify-between gap-0.5">
+                <div className="w-1.5 h-2 bg-[#C7D2FE] rounded-t-xs" />
+                <div className="w-1.5 h-3 bg-[#A5B4FC] rounded-t-xs" />
+                <div className="w-1.5 h-2.5 bg-[#818CF8] rounded-t-xs" />
+                <div className="w-1.5 h-3.5 bg-[#6366F1] rounded-t-xs" />
+              </div>
             </div>
           </div>
           <div className="mt-0.5 pt-0.5 border-t border-[#F0F2FA] flex items-center justify-between text-[9px] sm:text-[10px]">
-            <span className="text-[#16A36A] font-semibold truncate">&uarr; 28% vs last week</span>
-            <ChevronRight className="w-2.5 h-2.5 text-[#9CA3AF] group-hover:text-[#8B45F5] transition-colors shrink-0" />
+            <span className="text-[#6366F1] font-semibold truncate">&uarr; 28% vs last week</span>
+            <ChevronRight className="w-2.5 h-2.5 text-[#9CA3AF] group-hover:text-[#6366F1] transition-colors shrink-0" />
           </div>
         </div>
       </div>
@@ -687,22 +756,36 @@ export function ModernDribbbleDashboard({
                   <div className="w-full border-b border-[#E5E2F5]" />
                 </div>
 
-                {/* SVG Connected Green Trend Line */}
+                {/* SVG Connected Green Trend Line (Smooth Cubic Spline with Subtle Gradient) */}
                 <div className="absolute inset-x-4 top-0 bottom-4 pointer-events-none z-12">
                   <svg className="w-full h-full" viewBox="0 0 700 100" preserveAspectRatio="none">
-                    <polyline
+                    <defs>
+                      <linearGradient id="completionRateGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#10B981" stopOpacity="0.2" />
+                        <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d={`${getCurvedPath(
+                        overviewChartDays.map((d, i) => ({
+                          x: 50 + i * 100,
+                          y: 100 - Math.min(92, Math.max(16, d.completionRate)),
+                        }))
+                      )} L 650 100 L 50 100 Z`}
+                      fill="url(#completionRateGrad)"
+                    />
+                    <path
                       fill="none"
                       stroke="#10B981"
                       strokeWidth="2.5"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      points={overviewChartDays
-                        .map((d, i) => {
-                          const x = 50 + i * 100;
-                          const y = 100 - Math.min(92, Math.max(16, d.completionRate));
-                          return `${x},${y}`;
-                        })
-                        .join(' ')}
+                      d={getCurvedPath(
+                        overviewChartDays.map((d, i) => ({
+                          x: 50 + i * 100,
+                          y: 100 - Math.min(92, Math.max(16, d.completionRate)),
+                        }))
+                      )}
                     />
                   </svg>
                 </div>
@@ -902,8 +985,8 @@ export function ModernDribbbleDashboard({
             </button>
           </div>
 
-          {/* Timeline Item Rows */}
-          <div className="space-y-1 sm:space-y-1.5 flex-1 flex flex-col justify-between overflow-hidden">
+          {/* Timeline Item Rows (Independent scrollable area with thin lavender scrollbar) */}
+          <div className="custom-card-scrollbar min-h-0 flex-1 overflow-y-auto space-y-1 sm:space-y-1.5 pr-1">
             {scheduleItems.map((item) => {
               const isCompleted = item.status === 'Completed';
 
@@ -1058,7 +1141,8 @@ export function ModernDribbbleDashboard({
             </button>
           </div>
 
-          <div className="space-y-1 sm:space-y-1.5 flex-1 flex flex-col justify-between overflow-hidden">
+          {/* Routine Tracker Items (Independent scroll area) */}
+          <div className="custom-card-scrollbar min-h-0 flex-1 overflow-y-auto space-y-1.5 pr-1">
             {routineTrackerItems.map((item) => (
               <div
                 key={item.id}
@@ -1134,7 +1218,7 @@ export function ModernDribbbleDashboard({
           </div>
 
           {projectTab === 'projects' ? (
-            <div className="space-y-1.5 flex-1 flex flex-col justify-between overflow-hidden">
+            <div className="custom-card-scrollbar min-h-0 flex-1 overflow-y-auto space-y-1.5 pr-1">
               {activeProjectsList.map((p) => (
                 <div
                   key={p.id}
@@ -1159,7 +1243,7 @@ export function ModernDribbbleDashboard({
               ))}
             </div>
           ) : (
-            <div className="space-y-1 flex-1 flex flex-col justify-between overflow-hidden">
+            <div className="custom-card-scrollbar min-h-0 flex-1 overflow-y-auto space-y-1 pr-1">
               {tasks.slice(0, 3).map((t) => (
                 <div
                   key={t.id}
@@ -1254,8 +1338,9 @@ export function ModernDribbbleDashboard({
             </button>
           </div>
 
-          <div className="space-y-1.5 flex-1 flex flex-col justify-between overflow-hidden">
-            {recentActivities.slice(0, 4).map((act: RecentActivityItem) => (
+          {/* Recent Activity Items (Independent scroll area) */}
+          <div className="custom-card-scrollbar min-h-0 flex-1 overflow-y-auto space-y-1.5 pr-1">
+            {recentActivities.map((act: RecentActivityItem) => (
               <div key={act.id} className="flex items-center gap-2 text-[10px] group">
                 <div className="w-5 h-5 rounded-full bg-[#F4F3FF] border border-[#E5E2F5] flex items-center justify-center text-[#8B45F5] shrink-0">
                   {act.icon === 'check' ? (

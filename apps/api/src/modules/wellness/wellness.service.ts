@@ -42,6 +42,81 @@ export class WellnessService {
     return metric;
   }
 
+  async getMetrics(
+    userId: string,
+    query?: { type?: WellnessMetricType; date?: string; limit?: number },
+  ) {
+    if (!this.prisma.isConnected) {
+      return [];
+    }
+
+    const where: any = { userId };
+    if (query?.type) {
+      where.type = query.type;
+    }
+    if (query?.date) {
+      const startOfDay = new Date(`${query.date}T00:00:00.000Z`);
+      const endOfDay = new Date(`${query.date}T23:59:59.999Z`);
+      where.recordedAt = { gte: startOfDay, lte: endOfDay };
+    }
+
+    return this.prisma.wellnessMetric.findMany({
+      where,
+      orderBy: { recordedAt: 'desc' },
+      take: query?.limit ? Number(query.limit) : 50,
+    });
+  }
+
+  async updateMetric(
+    userId: string,
+    id: string,
+    data: { value?: number; unit?: string; notes?: string; recordedAt?: string },
+  ) {
+    if (!this.prisma.isConnected) {
+      return { id, userId, ...data };
+    }
+
+    const existing = await this.prisma.wellnessMetric.findFirst({
+      where: { id, userId },
+    });
+    if (!existing) {
+      throw new Error('Wellness record not found or unauthorized');
+    }
+
+    const updated = await this.prisma.wellnessMetric.update({
+      where: { id },
+      data: {
+        ...(data.value !== undefined ? { value: data.value } : {}),
+        ...(data.unit !== undefined ? { unit: data.unit } : {}),
+        ...(data.notes !== undefined ? { notes: data.notes } : {}),
+        ...(data.recordedAt ? { recordedAt: new Date(data.recordedAt) } : {}),
+      },
+    });
+
+    await this.redis.invalidatePattern(`dashboard:${userId}:*`);
+    return updated;
+  }
+
+  async deleteMetric(userId: string, id: string) {
+    if (!this.prisma.isConnected) {
+      return { success: true };
+    }
+
+    const existing = await this.prisma.wellnessMetric.findFirst({
+      where: { id, userId },
+    });
+    if (!existing) {
+      throw new Error('Wellness record not found or unauthorized');
+    }
+
+    await this.prisma.wellnessMetric.delete({
+      where: { id },
+    });
+
+    await this.redis.invalidatePattern(`dashboard:${userId}:*`);
+    return { success: true, id };
+  }
+
   async recordCheckIn(
     userId: string,
     data: {

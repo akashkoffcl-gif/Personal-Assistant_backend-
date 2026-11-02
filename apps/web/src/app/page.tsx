@@ -22,7 +22,9 @@ import { WellnessCheckInModal } from '@/components/WellnessCheckInModal';
 import { TaskDetailDrawer } from '@/components/TaskDetailDrawer';
 import { ProjectModal } from '@/components/ProjectModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { NotificationCenterDrawer } from '@/components/NotificationCenterDrawer';
+import { NotificationCenterModal } from '@/components/NotificationCenterModal';
+import { CalendarPlanningWorkspace } from '@/components/CalendarPlanningWorkspace';
+import { WellnessRecordModal } from '@/components/WellnessRecordModal';
 import { BottomNav } from '@/components/BottomNav';
 import { SmartCheckInModal, SmartCheckInTarget } from '@/components/SmartCheckInModal';
 import { FollowUpPromptModal, FollowUpItem } from '@/components/FollowUpPromptModal';
@@ -65,6 +67,12 @@ import {
   Square,
   BarChart2,
   CalendarDays,
+  Droplet,
+  Moon,
+  Footprints,
+  Smile,
+  Coffee,
+  Edit2,
 } from 'lucide-react';
 
 export default function App() {
@@ -95,6 +103,8 @@ export default function App() {
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
   const [isCreateRoutineModalOpen, setIsCreateRoutineModalOpen] = useState(false);
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
+  const [isWellnessRecordModalOpen, setIsWellnessRecordModalOpen] = useState(false);
+  const [editingWellnessRecord, setEditingWellnessRecord] = useState<any>(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [smartCheckInTarget, setSmartCheckInTarget] = useState<SmartCheckInTarget | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -200,6 +210,11 @@ export default function App() {
   const { data: wellness, refetch: refetchWellness } = useQuery({
     queryKey: ['wellness-summary', selectedDate],
     queryFn: () => api.getWellnessSummary(selectedDate),
+  });
+
+  const { data: wellnessMetricsList = [], refetch: refetchWellnessMetrics } = useQuery({
+    queryKey: ['wellness-metrics', selectedDate],
+    queryFn: () => api.getWellnessMetrics({ date: selectedDate }),
   });
 
   const { data: trends, isLoading: trendsLoading, refetch: refetchTrends } = useQuery({
@@ -338,11 +353,23 @@ export default function App() {
   const logMetricMutation = useMutation({
     mutationFn: (data: any) => api.logWellnessMetric(data),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wellness-metrics'] });
       queryClient.invalidateQueries({ queryKey: ['wellness-summary'] });
       queryClient.invalidateQueries({ queryKey: ['analytics-trends'] });
       toast.success('Wellness logged', 'Entry saved to persistent records.');
     },
     onError: (err: any) => toast.error('Logging failed', err.message),
+  });
+
+  const deleteMetricMutation = useMutation({
+    mutationFn: (id: string) => api.deleteWellnessMetric(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wellness-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['wellness-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics-trends'] });
+      toast.success('Record deleted', 'Wellness entry removed.');
+    },
+    onError: (err: any) => toast.error('Delete failed', err.message),
   });
 
   const checkInMutation = useMutation({
@@ -569,7 +596,7 @@ export default function App() {
       {/* Shared Horizontal Enterprise Navbar */}
       <div
         className={`w-full mx-auto ${
-          currentTab === 'dashboard' ? 'p-0 mb-1.5 sm:mb-2' : 'p-3 sm:p-5 lg:p-6 max-w-[1680px] pb-0'
+          currentTab === 'dashboard' || currentTab === 'usage-analytics' ? 'p-0 mb-1.5 sm:mb-2' : 'p-3 sm:p-5 lg:p-6 max-w-[1680px] pb-0'
         }`}
       >
         <HorizontalNavbar
@@ -598,12 +625,12 @@ export default function App() {
       {/* Main Content Area — Full Width Layout */}
       <div
         className={`flex-1 flex flex-col min-w-0 ${
-          currentTab === 'dashboard' ? 'min-h-0 overflow-hidden pb-0' : 'pb-16 lg:pb-8'
+          currentTab === 'dashboard' || currentTab === 'usage-analytics' ? 'min-h-0 overflow-hidden pb-0' : 'pb-16 lg:pb-8'
         }`}
       >
         <main
           className={`flex-1 w-full mx-auto ${
-            currentTab === 'dashboard'
+            currentTab === 'dashboard' || currentTab === 'usage-analytics'
               ? 'min-h-0 flex flex-col overflow-hidden space-y-0 px-0'
               : 'px-3 sm:px-5 lg:px-6 max-w-[1680px] space-y-6'
           }`}
@@ -1058,345 +1085,343 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 5: CALENDAR & PLANNING WORKSPACE */}
-          {(currentTab === 'planning' || currentTab === 'calendar') && (
-            <div className="space-y-5">
-              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-[#E5E2F5]">
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-                      Calendar & Schedule Planning
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Multi-view agenda, time blocks, and deterministic conflict detection (Plan v{dayPlan?.version || 1})
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex p-0.5 rounded-lg bg-slate-100 border border-[#E5E2F5]">
-                      {(['day', 'week', 'agenda'] as const).map((view) => (
-                        <button
-                          key={view}
-                          onClick={() => setCalendarView(view)}
-                          className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors capitalize ${
-                            calendarView === view
-                              ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          {view}
-                        </button>
-                      ))}
-                    </div>
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      className="px-2.5 py-1 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white text-slate-800"
-                    />
-                  </div>
-                </div>
-
-                {/* VIEW 1: DAY TIME BLOCKS */}
-                {calendarView === 'day' && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                    <div className="p-3.5 rounded-lg bg-[#F4F3FF] border border-[#E5E2F5]">
-                      <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center justify-between">
-                        <span>Morning Focus</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 font-semibold border border-blue-200">
-                          {dayPlan?.morningPriorities?.length || 0}
-                        </span>
-                      </h4>
-                      <div className="space-y-1.5">
-                        {dayPlan?.morningPriorities?.map((t: any) => (
-                          <div
-                            key={t.id}
-                            onClick={() => setSelectedTask(t)}
-                            className="p-2.5 rounded-md border border-[#E5E2F5] bg-white text-xs cursor-pointer hover:border-slate-300 transition-colors shadow-2xs"
-                          >
-                            <span className="font-semibold text-slate-900">{t.title}</span>
-                            <p className="text-[11px] text-slate-500 mt-0.5">
-                              {t.scheduledStartTime ? format(new Date(t.scheduledStartTime), 'h:mm a') : 'Flexible'}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="p-3.5 rounded-lg bg-[#F4F3FF] border border-[#E5E2F5]">
-                      <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center justify-between">
-                        <span>Afternoon Focus</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 font-semibold border border-amber-200">
-                          {dayPlan?.afternoonPriorities?.length || 0}
-                        </span>
-                      </h4>
-                      <div className="space-y-1.5">
-                        {dayPlan?.afternoonPriorities?.map((t: any) => (
-                          <div
-                            key={t.id}
-                            onClick={() => setSelectedTask(t)}
-                            className="p-2.5 rounded-md border border-[#E5E2F5] bg-white text-xs cursor-pointer hover:border-slate-300 transition-colors shadow-2xs"
-                          >
-                            <span className="font-semibold text-slate-900">{t.title}</span>
-                            <p className="text-[11px] text-slate-500 mt-0.5">
-                              {t.scheduledStartTime ? format(new Date(t.scheduledStartTime), 'h:mm a') : 'Flexible'}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="p-3.5 rounded-lg bg-[#F4F3FF] border border-[#E5E2F5]">
-                      <h4 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center justify-between">
-                        <span>Evening Focus</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 font-semibold">
-                          {dayPlan?.eveningPriorities?.length || 0}
-                        </span>
-                      </h4>
-                      <div className="space-y-1.5">
-                        {dayPlan?.eveningPriorities?.map((t: any) => (
-                          <div
-                            key={t.id}
-                            onClick={() => setSelectedTask(t)}
-                            className="p-2.5 rounded-md border border-[#E5E2F5] bg-white text-xs cursor-pointer hover:border-slate-300 transition-colors shadow-2xs"
-                          >
-                            <span className="font-semibold text-slate-900">{t.title}</span>
-                            <p className="text-[11px] text-slate-500 mt-0.5">
-                              {t.scheduledStartTime ? format(new Date(t.scheduledStartTime), 'h:mm a') : 'Flexible'}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* VIEW 2: WEEK GRID */}
-                {calendarView === 'week' && (
-                  <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
-                    {weekDays.map((day, idx) => {
-                      const dayStr = day.toISOString().split('T')[0];
-                      const isSelected = isSameDay(day, new Date(selectedDate));
-                      const dayTasks = allTasks.filter(
-                        (t) => t.scheduledStartTime && t.scheduledStartTime.startsWith(dayStr),
-                      );
-
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => setSelectedDate(dayStr)}
-                          className={`p-2.5 rounded-lg border transition-colors cursor-pointer min-h-36 flex flex-col justify-between ${
-                            isSelected
-                              ? 'bg-blue-50/50 border-blue-600'
-                              : 'bg-white border-[#E5E2F5] hover:border-slate-300'
-                          }`}
-                        >
-                          <div>
-                            <span className="text-[11px] font-semibold text-slate-500 block uppercase">
-                              {format(day, 'EEE')}
-                            </span>
-                            <span className="text-sm font-bold text-slate-900">
-                              {format(day, 'd')}
-                            </span>
-                          </div>
-
-                          <div className="mt-2 space-y-1">
-                            {dayTasks.slice(0, 2).map((dt) => (
-                              <div
-                                key={dt.id}
-                                className="text-[10px] font-medium truncate p-1 rounded bg-slate-100 text-slate-800"
-                              >
-                                {dt.title}
-                              </div>
-                            ))}
-                            {dayTasks.length > 2 && (
-                              <span className="text-[9px] font-semibold text-blue-600 block">
-                                +{dayTasks.length - 2} more
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* VIEW 3: AGENDA LIST */}
-                {calendarView === 'agenda' && (
-                  <div className="space-y-2">
-                    {tasks.map((t) => (
-                      <div
-                        key={t.id}
-                        onClick={() => setSelectedTask(t)}
-                        className="p-3 rounded-lg border border-[#E5E2F5] bg-white flex items-center justify-between cursor-pointer hover:border-slate-300 transition-colors"
-                      >
-                        <div>
-                          <span className="font-semibold text-xs text-slate-900">{t.title}</span>
-                          <p className="text-[11px] text-slate-500">
-                            {t.scheduledStartTime
-                              ? `${format(new Date(t.scheduledStartTime), 'h:mm a')} (${t.estimatedDurationMinutes}m)`
-                              : 'Flexible'}
-                          </p>
-                        </div>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                          {t.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 6: EMERGENCY AUDIT WORKSPACE */}
-          {currentTab === 'emergency' && (
-            <div className="space-y-5">
-              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#E5E2F5]">
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-                      Emergency Replanning Audit History
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Historical log of before/after task repositioning events
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setIsEmergencyModalOpen(true)}
-                    className="px-3.5 py-1.5 text-xs font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-xs"
-                  >
-                    Trigger Emergency
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  {scheduleChanges.length === 0 ? (
-                    <p className="text-xs text-slate-400 py-8 text-center rounded-lg border border-dashed border-[#E5E2F5] bg-[#F4F3FF]">
-                      No emergency schedule replans recorded yet.
-                    </p>
-                  ) : (
-                    scheduleChanges.map((change: any) => (
-                      <div
-                        key={change.id}
-                        className="p-3 rounded-lg border border-[#E5E2F5] bg-white text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                      >
-                        <div>
-                          <span className="font-semibold text-slate-900">
-                            {change.taskTitle || 'Task Modified'}
-                          </span>
-                          <span className="ml-2 text-[10px] font-semibold bg-red-50 text-red-700 px-1.5 py-0.2 rounded border border-red-200">
-                            {change.reason}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-600 font-medium">
-                          <span>
-                            {change.originalStartTime
-                              ? format(new Date(change.originalStartTime), 'h:mm a')
-                              : 'Unscheduled'}
-                          </span>
-                          <span>âž”</span>
-                          <span className="font-semibold text-blue-600">
-                            {change.revisedStartTime
-                              ? format(new Date(change.revisedStartTime), 'h:mm a')
-                              : 'New Slot'}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
+          {/* TAB 5 & 6: CALENDAR & PLANNING UNIFIED WORKSPACE */}
+          {(currentTab === 'planning' || currentTab === 'calendar' || currentTab === 'emergency') && (
+            <CalendarPlanningWorkspace
+              tasks={tasks}
+              allTasks={allTasks}
+              dayPlan={dayPlan}
+              scheduleChanges={scheduleChanges}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              onSelectTask={(task) => setSelectedTask(task)}
+              onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
+              onOpenEmergency={() => setIsEmergencyModalOpen(true)}
+              initialSubView={currentTab === 'emergency' ? 'replanning' : currentTab === 'planning' ? 'planning' : 'calendar'}
+            />
           )}
 
           {/* TAB 7: HEALTH & WELLNESS WORKSPACE */}
           {currentTab === 'wellness' && (
-            <div className="space-y-5">
-              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#E5E2F5]">
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-                      Health & Wellness Tracking
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Behavioral indicators from hydration, exercise, sleep, and self-reported check-ins
-                    </p>
+            <div className="space-y-4">
+              {/* TOP HEADER & CONTROLS */}
+              <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#8B45F5] bg-[#F4F3FF] px-2.5 py-0.5 rounded-full border border-[#E5E2F5]">
+                      Domain A • Private Health Tracking
+                    </span>
+                    <span className="text-xs text-[#74738A] font-semibold">User-Scoped Isolation</span>
                   </div>
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                    Health & Wellness Tracking
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Interactive behavioral tracking for hydration, exercise, sleep, focus breaks, mood and energy.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="px-2.5 py-1.5 text-xs font-semibold border border-[#E5E2F5] rounded-xl bg-white text-slate-800 shadow-2xs"
+                  />
+                  <button
+                    onClick={() => {
+                      setEditingWellnessRecord(null);
+                      setIsWellnessRecordModalOpen(true);
+                    }}
+                    className="px-3.5 py-1.5 text-xs font-bold bg-[#8B45F5] hover:bg-[#7839D6] text-white rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Record</span>
+                  </button>
                   <button
                     onClick={() =>
                       setConfirmDialog({
                         isOpen: true,
                         title: 'Clear Wellness Logs',
-                        message: 'Are you sure you want to clear wellness records? This action cannot be undone.',
+                        message: 'Are you sure you want to clear wellness records for this date? This action cannot be undone.',
                         isDestructive: true,
                         onConfirm: async () => {
                           await api.clearWellnessRecords();
+                          queryClient.invalidateQueries({ queryKey: ['wellness-metrics'] });
                           queryClient.invalidateQueries({ queryKey: ['wellness-summary'] });
                           setConfirmDialog((p) => ({ ...p, isOpen: false }));
                           toast.info('Wellness records cleared');
                         },
                       })
                     }
-                    className="px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition-colors flex items-center gap-1"
+                    className="px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded-xl border border-red-200 transition-colors flex items-center gap-1"
                   >
-                    <Trash2 className="w-3.5 h-3.5" /> Clear Records
+                    <Trash2 className="w-3.5 h-3.5" /> Clear
                   </button>
                 </div>
+              </div>
 
-                {/* Quick Log Row */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-                  <button
-                    onClick={() => logMetricMutation.mutate({ type: 'HYDRATION', value: 250, unit: 'ml' })}
-                    className="p-3.5 rounded-lg border border-[#E5E2F5] bg-white hover:border-blue-500 text-left transition-colors shadow-2xs"
-                  >
-                    <span className="text-xs font-semibold text-blue-700 block">
-                      +250ml Water
+              {/* 5 EXECUTIVE SUMMARY CARDS */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {/* 1. Hydration */}
+                <div className="bg-white rounded-xl p-3.5 border border-[#E5E2F5] shadow-2xs border-l-[3px] border-l-blue-500 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Hydration</span>
+                    <Droplet className="w-3.5 h-3.5 text-blue-500" />
+                  </div>
+                  <div>
+                    <span className="text-lg font-black text-slate-900 block">
+                      {wellness?.hydrationTotalMl || 0} <span className="text-xs text-slate-500 font-normal">/ 2000 ml</span>
                     </span>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Hydration intake</p>
-                  </button>
-                  <button
-                    onClick={() => logMetricMutation.mutate({ type: 'EXERCISE', value: 30, unit: 'minutes' })}
-                    className="p-3.5 rounded-lg border border-[#E5E2F5] bg-white hover:border-emerald-500 text-left transition-colors shadow-2xs"
-                  >
-                    <span className="text-xs font-semibold text-emerald-700 block">
-                      +30m Workout
-                    </span>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Exercise session</p>
-                  </button>
-                  <button
-                    onClick={() => logMetricMutation.mutate({ type: 'SLEEP', value: 8, unit: 'hours' })}
-                    className="p-3.5 rounded-lg border border-[#E5E2F5] bg-white hover:border-purple-500 text-left transition-colors shadow-2xs"
-                  >
-                    <span className="text-xs font-semibold text-purple-700 block">
-                      +8h Sleep
-                    </span>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Restful sleep</p>
-                  </button>
-                  <button
-                    onClick={() => setIsCheckInModalOpen(true)}
-                    className="p-3.5 rounded-lg border border-[#E5E2F5] bg-white hover:border-amber-500 text-left transition-colors shadow-2xs"
-                  >
-                    <span className="text-xs font-semibold text-amber-700 block">
-                      Daily Check-In
-                    </span>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Mood & Energy</p>
-                  </button>
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                      <div
+                        className="bg-blue-500 h-full rounded-full transition-all"
+                        style={{ width: `${Math.min(100, Math.round(((wellness?.hydrationTotalMl || 0) / 2000) * 100))}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Summary Overview */}
-                <div className="p-4 rounded-lg bg-[#F4F3FF] border border-[#E5E2F5]">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
-                      Adherence & Consistency Status
+                {/* 2. Exercise */}
+                <div className="bg-white rounded-xl p-3.5 border border-[#E5E2F5] shadow-2xs border-l-[3px] border-l-emerald-500 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Exercise</span>
+                    <Footprints className="w-3.5 h-3.5 text-emerald-500" />
+                  </div>
+                  <div>
+                    <span className="text-lg font-black text-slate-900 block">
+                      {wellness?.exerciseDurationMinutes || 0} <span className="text-xs text-slate-500 font-normal">/ 45 min</span>
                     </span>
-                    <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                      {wellness?.adherenceTrendLabel || 'Insufficient data'}
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                      <div
+                        className="bg-emerald-500 h-full rounded-full transition-all"
+                        style={{ width: `${Math.min(100, Math.round(((wellness?.exerciseDurationMinutes || 0) / 45) * 100))}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Sleep */}
+                <div className="bg-white rounded-xl p-3.5 border border-[#E5E2F5] shadow-2xs border-l-[3px] border-l-purple-500 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sleep</span>
+                    <Moon className="w-3.5 h-3.5 text-purple-500" />
+                  </div>
+                  <div>
+                    <span className="text-lg font-black text-slate-900 block">
+                      {wellness?.sleepHours || 0} <span className="text-xs text-slate-500 font-normal">/ 8 hrs</span>
+                    </span>
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                      <div
+                        className="bg-purple-500 h-full rounded-full transition-all"
+                        style={{ width: `${Math.min(100, Math.round(((wellness?.sleepHours || 0) / 8) * 100))}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Breaks */}
+                <div className="bg-white rounded-xl p-3.5 border border-[#E5E2F5] shadow-2xs border-l-[3px] border-l-amber-500 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Focus Breaks</span>
+                    <Coffee className="w-3.5 h-3.5 text-amber-500" />
+                  </div>
+                  <div>
+                    <span className="text-lg font-black text-slate-900 block">
+                      {wellnessMetricsList.filter((m: any) => m.type === 'BREAK').length} <span className="text-xs text-slate-500 font-normal">breaks</span>
+                    </span>
+                    <p className="text-[10px] text-slate-500 mt-1">Rest & reset periods</p>
+                  </div>
+                </div>
+
+                {/* 5. Mood & Energy */}
+                <div className="bg-white rounded-xl p-3.5 border border-[#E5E2F5] shadow-2xs border-l-[3px] border-l-pink-500 flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Mood & Energy</span>
+                    <Smile className="w-3.5 h-3.5 text-pink-500" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-black text-slate-900 block capitalize">
+                      {wellness?.checkIn?.mood ? `${wellness.checkIn.mood} (${wellness.checkIn.energyLevel}/10)` : 'Not checked in'}
+                    </span>
+                    <button
+                      onClick={() => setIsCheckInModalOpen(true)}
+                      className="text-[10px] font-bold text-[#8B45F5] hover:underline mt-1 block"
+                    >
+                      {wellness?.checkIn ? 'Update check-in' : 'Check in now â†’'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* QUICK LOG ROW */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <button
+                  onClick={() => logMetricMutation.mutate({ type: 'HYDRATION', value: 250, unit: 'ml' })}
+                  className="p-3 rounded-xl border border-[#E5E2F5] bg-white hover:border-blue-400 text-left transition-all shadow-2xs group flex items-center justify-between"
+                >
+                  <div>
+                    <span className="text-xs font-bold text-blue-700 block">+250ml Water</span>
+                    <span className="text-[10px] text-slate-500">Quick glass</span>
+                  </div>
+                  <Droplet className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
+                </button>
+                <button
+                  onClick={() => logMetricMutation.mutate({ type: 'EXERCISE', value: 30, unit: 'minutes' })}
+                  className="p-3 rounded-xl border border-[#E5E2F5] bg-white hover:border-emerald-400 text-left transition-all shadow-2xs group flex items-center justify-between"
+                >
+                  <div>
+                    <span className="text-xs font-bold text-emerald-700 block">+30m Workout</span>
+                    <span className="text-[10px] text-slate-500">Active session</span>
+                  </div>
+                  <Footprints className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                </button>
+                <button
+                  onClick={() => logMetricMutation.mutate({ type: 'SLEEP', value: 8, unit: 'hours' })}
+                  className="p-3 rounded-xl border border-[#E5E2F5] bg-white hover:border-purple-400 text-left transition-all shadow-2xs group flex items-center justify-between"
+                >
+                  <div>
+                    <span className="text-xs font-bold text-purple-700 block">+8h Restful Sleep</span>
+                    <span className="text-[10px] text-slate-500">Overnight log</span>
+                  </div>
+                  <Moon className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingWellnessRecord(null);
+                    setIsWellnessRecordModalOpen(true);
+                  }}
+                  className="p-3 rounded-xl border border-dashed border-[#8B45F5] bg-[#F4F3FF]/60 hover:bg-[#F4F3FF] text-left transition-all shadow-2xs group flex items-center justify-between"
+                >
+                  <div>
+                    <span className="text-xs font-bold text-[#8B45F5] block">+ Custom Record</span>
+                    <span className="text-[10px] text-slate-500">Break, mood, notes</span>
+                  </div>
+                  <Plus className="w-4 h-4 text-[#8B45F5] group-hover:scale-110 transition-transform" />
+                </button>
+              </div>
+
+              {/* TODAY'S LOGGED RECORDS TABLE / LIST */}
+              <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#E5E2F5]">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-slate-900">
+                      Logged Records for {format(new Date(selectedDate), 'MMM d, yyyy')}
+                    </h4>
+                    <span className="text-[10px] font-bold text-[#8B45F5] bg-[#F4F3FF] px-2 py-0.5 rounded-full border border-[#E5E2F5]">
+                      {wellnessMetricsList.length} Entries
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600">
-                    Hydration: {wellness?.hydrationTotalMl || 0}ml â€¢ Exercise: {wellness?.exerciseDurationMinutes || 0}m â€¢ Sleep: {wellness?.sleepHours || 0}h
-                  </p>
+                  <button
+                    onClick={() => {
+                      setEditingWellnessRecord(null);
+                      setIsWellnessRecordModalOpen(true);
+                    }}
+                    className="text-xs font-bold text-[#8B45F5] hover:underline flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> New Record
+                  </button>
                 </div>
+
+                {wellnessMetricsList.length === 0 ? (
+                  <div className="py-8 text-center bg-[#F4F3FF]/40 rounded-xl border border-dashed border-[#E5E2F5]">
+                    <Smile className="w-8 h-8 text-[#8B45F5] mx-auto mb-2 opacity-50" />
+                    <p className="text-xs font-semibold text-slate-700">No wellness records logged for this day yet.</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Click &quot;Add Record&quot; or use the quick buttons above to record hydration, workouts, sleep, or breaks.</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#E5E2F5]">
+                    {wellnessMetricsList.map((rec: any) => (
+                      <div
+                        key={rec.id}
+                        className="py-2.5 flex items-center justify-between gap-3 hover:bg-[#F4F3FF]/30 px-2 rounded-lg transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                            rec.type === 'HYDRATION'
+                              ? 'bg-blue-50 text-blue-600'
+                              : rec.type === 'EXERCISE'
+                              ? 'bg-emerald-50 text-emerald-600'
+                              : rec.type === 'SLEEP'
+                              ? 'bg-purple-50 text-purple-600'
+                              : rec.type === 'BREAK'
+                              ? 'bg-amber-50 text-amber-600'
+                              : 'bg-pink-50 text-pink-600'
+                          }`}>
+                            {rec.type === 'HYDRATION' && <Droplet className="w-4 h-4" />}
+                            {rec.type === 'EXERCISE' && <Footprints className="w-4 h-4" />}
+                            {rec.type === 'SLEEP' && <Moon className="w-4 h-4" />}
+                            {rec.type === 'BREAK' && <Coffee className="w-4 h-4" />}
+                            {(rec.type === 'MOOD' || rec.type === 'ENERGY') && <Smile className="w-4 h-4" />}
+                          </div>
+
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-900">
+                                {rec.value} {rec.unit}
+                              </span>
+                              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">
+                                {rec.type}
+                              </span>
+                            </div>
+                            {rec.notes ? (
+                              <p className="text-[11px] text-slate-600 mt-0.5">{rec.notes}</p>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[11px] text-slate-400 font-medium">
+                            {rec.recordedAt ? format(new Date(rec.recordedAt), 'h:mm a') : 'Today'}
+                          </span>
+                          <button
+                            onClick={() => {
+                              setEditingWellnessRecord(rec);
+                              setIsWellnessRecordModalOpen(true);
+                            }}
+                            className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                            title="Edit Record"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setConfirmDialog({
+                                isOpen: true,
+                                title: 'Delete Wellness Record',
+                                message: `Are you sure you want to delete this ${rec.type.toLowerCase()} record (${rec.value} ${rec.unit})?`,
+                                isDestructive: true,
+                                onConfirm: () => {
+                                  deleteMetricMutation.mutate(rec.id);
+                                  setConfirmDialog((p) => ({ ...p, isOpen: false }));
+                                },
+                              });
+                            }}
+                            className="p-1 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Delete Record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* CONSISTENCY STATUS & PRIVACY BANNER */}
+              <div className="p-3.5 rounded-xl bg-[#F4F3FF] border border-[#E5E2F5] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Adherence Status:
+                  </span>
+                  <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    {wellness?.adherenceTrendLabel || 'Consistent Tracking'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Privacy notice: Wellness records are strictly isolated to your authenticated account and excluded from general usage telemetry.
+                </p>
               </div>
             </div>
           )}
@@ -1415,9 +1440,7 @@ export default function App() {
 
           {/* TAB 8B: APPLICATION USAGE ANALYTICS (DOMAIN B) */}
           {currentTab === 'usage-analytics' && (
-            <div className="space-y-5">
-              <ApplicationUsageAnalytics />
-            </div>
+            <ApplicationUsageAnalytics />
           )}
 
           {/* TAB 9: AUTOMATION RULES WORKSPACE */}
@@ -1705,15 +1728,25 @@ export default function App() {
         onCancel={() => setConfirmDialog((p) => ({ ...p, isOpen: false }))}
       />
 
-      {/* Persistent Centralized In-App Notification Center Drawer */}
-      <NotificationCenterDrawer
+      {/* Persistent Centralized In-App Notification Center Modal */}
+      <NotificationCenterModal
         isOpen={isNotificationCenterOpen}
         onClose={() => setIsNotificationCenterOpen(false)}
         isPushSubscribed={push.isSubscribed}
         onTogglePush={push.isSubscribed ? () => {} : push.subscribe}
         pushLoading={push.loading}
         onNavigateTab={(tab) => setCurrentTab(tab as any)}
-        initialNotifications={notificationsData?.notifications || []}
+      />
+
+      {/* Wellness Add / Edit Record Modal */}
+      <WellnessRecordModal
+        isOpen={isWellnessRecordModalOpen}
+        onClose={() => {
+          setIsWellnessRecordModalOpen(false);
+          setEditingWellnessRecord(null);
+        }}
+        recordToEdit={editingWellnessRecord}
+        defaultDate={selectedDate}
       />
 
       {/* Bottom Mobile Navigation */}

@@ -25,6 +25,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { ConfirmDialog } from './ConfirmDialog';
 
 export type NavTab =
   | 'dashboard'
@@ -98,6 +99,7 @@ export function HorizontalNavbar({
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   const quickAddRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -126,15 +128,14 @@ export function HorizontalNavbar({
     setTimeout(() => setIsRefreshing(false), 700);
   };
 
-  // 1. Primary Navigation Items with tiered responsive visibility
+  // 1. Primary Navigation Items with tiered responsive visibility (unified Calendar & Planning)
   const primaryNavList: NavItemConfig[] = [
     { id: 'dashboard', label: 'Command Center', shortLabel: 'Command Center', icon: LayoutDashboard, visibility: 'always' },
     { id: 'my-day', label: 'My Day', shortLabel: 'My Day', icon: CalendarCheck, visibility: 'always' },
     { id: 'work', label: 'Tasks', shortLabel: 'Tasks', icon: Briefcase, visibility: 'always' },
     { id: 'projects', label: 'Projects', shortLabel: 'Projects', icon: FolderKanban, visibility: 'xl' },
     { id: 'routines', label: 'Routines', shortLabel: 'Routines', icon: Repeat, visibility: 'xl' },
-    { id: 'planning', label: 'Planning', shortLabel: 'Planning', icon: CalendarDays, visibility: '1500' },
-    { id: 'calendar', label: 'Calendar', shortLabel: 'Calendar', icon: Calendar, visibility: '1720' },
+    { id: 'calendar', label: 'Calendar & Planning', shortLabel: 'Calendar', icon: Calendar, visibility: '1500' },
     { id: 'analytics', label: 'Analytics', shortLabel: 'Analytics', icon: BarChart3, visibility: '1720' },
   ];
 
@@ -142,8 +143,7 @@ export function HorizontalNavbar({
   const secondaryDropdownList: NavItemConfig[] = [
     { id: 'projects', label: 'Projects', shortLabel: 'Projects', icon: FolderKanban, visibility: 'dropdown-only' },
     { id: 'routines', label: 'Routines', shortLabel: 'Routines', icon: Repeat, visibility: 'dropdown-only' },
-    { id: 'planning', label: 'Planning', shortLabel: 'Planning', icon: CalendarDays, visibility: 'dropdown-only' },
-    { id: 'calendar', label: 'Calendar', shortLabel: 'Calendar', icon: Calendar, visibility: 'dropdown-only' },
+    { id: 'calendar', label: 'Calendar & Planning', shortLabel: 'Calendar', icon: Calendar, visibility: 'dropdown-only' },
     { id: 'analytics', label: 'Analytics', shortLabel: 'Analytics', icon: BarChart3, visibility: 'dropdown-only' },
     { id: 'usage-analytics', label: 'App Usage Analytics', shortLabel: 'App Usage', icon: Activity, visibility: 'dropdown-only', badge: 'New', badgeColor: 'bg-[#8B45F5] text-white' },
     { id: 'automation', label: 'Automation Rules', shortLabel: 'Automation', icon: Cpu, visibility: 'dropdown-only' },
@@ -157,9 +157,6 @@ export function HorizontalNavbar({
     'automation',
     'wellness',
     'settings',
-    'calendar',
-    'analytics',
-    'planning',
   ].includes(currentTab);
 
   const activeDropdownItem = secondaryDropdownList.find((item) => item.id === currentTab);
@@ -208,7 +205,7 @@ export function HorizontalNavbar({
         >
           {primaryNavList.map((item) => {
             const Icon = item.icon;
-            const isActive = currentTab === item.id;
+            const isActive = item.id === 'calendar' ? (currentTab === 'calendar' || currentTab === 'planning') : currentTab === item.id;
             const visibilityClass =
               item.visibility === 'always'
                 ? 'flex'
@@ -266,32 +263,17 @@ export function HorizontalNavbar({
                   {/* Shown in dropdown on < 1500px */}
                   <button
                     onClick={() => {
-                      onSelectTab('planning');
-                      setIsMoreMenuOpen(false);
-                    }}
-                    className={`min-[1500px]:hidden w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                      currentTab === 'planning'
-                        ? 'bg-[#8B45F5] text-white font-bold'
-                        : 'text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8]'
-                    }`}
-                  >
-                    <CalendarDays className="w-3.5 h-3.5" />
-                    <span>Planning</span>
-                  </button>
-                  {/* Shown in dropdown on < 1720px */}
-                  <button
-                    onClick={() => {
                       onSelectTab('calendar');
                       setIsMoreMenuOpen(false);
                     }}
-                    className={`min-[1720px]:hidden w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                      currentTab === 'calendar'
+                    className={`min-[1500px]:hidden w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                      currentTab === 'calendar' || currentTab === 'planning'
                         ? 'bg-[#8B45F5] text-white font-bold'
                         : 'text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8]'
                     }`}
                   >
                     <Calendar className="w-3.5 h-3.5" />
-                    <span>Calendar</span>
+                    <span>Calendar & Planning</span>
                   </button>
                   <button
                     onClick={() => {
@@ -586,9 +568,9 @@ export function HorizontalNavbar({
                 <div className="border-t border-[#E5E2F5] my-1" />
 
                 <button
-                  onClick={async () => {
+                  onClick={() => {
                     setIsProfileMenuOpen(false);
-                    await logout();
+                    setShowSignOutConfirm(true);
                   }}
                   className="w-full text-left px-3 py-2 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors cursor-pointer"
                 >
@@ -630,15 +612,14 @@ export function HorizontalNavbar({
               { id: 'work' as NavTab, label: 'Tasks', icon: Briefcase },
               { id: 'projects' as NavTab, label: 'Projects', icon: FolderKanban },
               { id: 'routines' as NavTab, label: 'Routines', icon: Repeat },
-              { id: 'planning' as NavTab, label: 'Planning', icon: CalendarDays },
-              { id: 'calendar' as NavTab, label: 'Calendar', icon: Calendar },
+              { id: 'calendar' as NavTab, label: 'Calendar & Planning', icon: Calendar },
               { id: 'analytics' as NavTab, label: 'Analytics', icon: BarChart3 },
               { id: 'usage-analytics' as NavTab, label: 'App Usage', icon: Activity },
               { id: 'automation' as NavTab, label: 'Automation', icon: Cpu },
               { id: 'wellness' as NavTab, label: 'Wellness', icon: HeartPulse },
             ].map((item) => {
               const Icon = item.icon;
-              const isActive = currentTab === item.id;
+              const isActive = item.id === 'calendar' ? (currentTab === 'calendar' || currentTab === 'planning') : currentTab === item.id;
 
               return (
                 <button
@@ -694,10 +675,35 @@ export function HorizontalNavbar({
                 <AlertTriangle className="w-3.5 h-3.5" />
                 <span>Replan</span>
               </button>
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setShowSignOutConfirm(true);
+                }}
+                className="w-8 h-8 rounded-xl border border-red-200 bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Profile / Account Sign-Out Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showSignOutConfirm}
+        title="Sign Out of Personal Assistant"
+        message="Are you sure you want to sign out of your personal workspace? All active session tokens and local workspace caches will be securely invalidated."
+        confirmLabel="Sign Out"
+        cancelLabel="Stay Signed In"
+        isDestructive={true}
+        onConfirm={async () => {
+          setShowSignOutConfirm(false);
+          await logout();
+        }}
+        onCancel={() => setShowSignOutConfirm(false)}
+      />
     </header>
   );
 }

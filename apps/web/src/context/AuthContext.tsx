@@ -229,9 +229,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Error during Supabase signout:', err);
     } finally {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('assistant_demo_mode');
+        sessionStorage.clear();
       }
       setSession(null);
       setUser(null);
@@ -240,7 +243,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       queryClient.clear();
       setIsLoading(false);
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        window.location.replace('/login');
       }
     }
   }, [queryClient]);

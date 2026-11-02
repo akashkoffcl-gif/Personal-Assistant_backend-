@@ -243,7 +243,19 @@ export const api = {
     fetcher<{ success: boolean; notification: any }>('/notifications/in-app', { method: 'POST', body: JSON.stringify(data) }),
 
   // Wellness
+  getWellnessMetrics: (params?: { type?: string; date?: string; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.type) q.set('type', params.type);
+    if (params?.date) q.set('date', params.date);
+    if (params?.limit) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return fetcher<WellnessMetricDto[]>(`/wellness/metrics${qs ? `?${qs}` : ''}`);
+  },
   logWellnessMetric: (data: any) => fetcher<WellnessMetricDto>('/wellness/metrics', { method: 'POST', body: JSON.stringify(data) }),
+  updateWellnessMetric: (id: string, data: any) =>
+    fetcher<WellnessMetricDto>(`/wellness/metrics/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteWellnessMetric: (id: string) =>
+    fetcher<{ success: boolean; id: string }>(`/wellness/metrics/${id}`, { method: 'DELETE' }),
   recordCheckIn: (data: any) => fetcher<any>('/wellness/check-in', { method: 'POST', body: JSON.stringify(data) }),
   getWellnessSummary: (date: string) => fetcher<WellnessSummaryDto & { checkIn: any }>(`/wellness/summary?date=${date}`),
   clearWellnessRecords: () => fetcher<{ success: boolean }>('/wellness/records', { method: 'DELETE' }),

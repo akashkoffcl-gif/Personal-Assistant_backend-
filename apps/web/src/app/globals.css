@@ -258,3 +258,24 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #b8bccf;
 }
+
+/* Phase 24 Custom Dashboard Card & Workspace Scrollbar */
+.custom-card-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #C4B5FD #F4F3FF;
+}
+.custom-card-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-card-scrollbar::-webkit-scrollbar-track {
+  background: #F4F3FF;
+  border-radius: 9999px;
+}
+.custom-card-scrollbar::-webkit-scrollbar-thumb {
+  background: #C4B5FD;
+  border-radius: 9999px;
+}
+.custom-card-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #8B45F5;
+}
