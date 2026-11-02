@@ -108,3 +108,4 @@ run().catch(err => {
   chrome.kill();
   process.exit(1);
 });
+

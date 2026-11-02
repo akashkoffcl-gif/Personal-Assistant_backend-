@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
 import { RedisService } from '../../common/redis.service';
 import { WellnessMetricType, TaskStatus } from '@assistant/shared';
@@ -80,7 +80,7 @@ export class WellnessService {
       where: { id, userId },
     });
     if (!existing) {
-      throw new Error('Wellness record not found or unauthorized');
+      throw new NotFoundException('Wellness record not found or access denied');
     }
 
     const updated = await this.prisma.wellnessMetric.update({
@@ -106,7 +106,7 @@ export class WellnessService {
       where: { id, userId },
     });
     if (!existing) {
-      throw new Error('Wellness record not found or unauthorized');
+      throw new NotFoundException('Wellness record not found or access denied');
     }
 
     await this.prisma.wellnessMetric.delete({

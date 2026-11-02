@@ -81,8 +81,9 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState<NavTab>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      const tab = params.get('tab') as NavTab | null;
-      if (tab) return tab;
+      const tab = params.get('tab') as string | null;
+      if (tab === 'command-center' || tab === 'dashboard') return 'dashboard';
+      if (tab) return tab as NavTab;
     }
     return 'dashboard';
   });

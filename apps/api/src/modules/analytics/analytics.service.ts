@@ -136,35 +136,38 @@ export class AnalyticsService {
       };
     }
 
-    // 1. Completion & Routine trends
-    const completionTrends = [];
-    const routineAdherenceTrends = [];
-    const wellnessTrends = [];
+    // 1. Completion & Routine trends (concurrent query optimization)
+    const dailyData = await Promise.all(
+      dates.map(async (date) => {
+        const kpi = await this.getDailyKpi(userId, date);
+        const wellnessSum = await this.prisma.wellnessDailySummary.findUnique({
+          where: { userId_date: { userId, date } },
+        });
 
-    for (const date of dates) {
-      const kpi = await this.getDailyKpi(userId, date);
-      completionTrends.push({
-        date,
-        total: kpi.totalTasks,
-        completed: kpi.completedTasks,
-        rate: kpi.completionRatePercent,
-      });
-      routineAdherenceTrends.push({
-        date,
-        adherence: kpi.routineAdherencePercent,
-      });
+        return {
+          completion: {
+            date,
+            total: kpi.totalTasks,
+            completed: kpi.completedTasks,
+            rate: kpi.completionRatePercent,
+          },
+          routine: {
+            date,
+            adherence: kpi.routineAdherencePercent,
+          },
+          wellness: {
+            date,
+            hydration: wellnessSum?.hydrationTotalMl || 0,
+            exercise: wellnessSum?.exerciseDurationMinutes || 0,
+            sleep: wellnessSum?.sleepHours || 0,
+          },
+        };
+      }),
+    );
 
-      const wellnessSum = await this.prisma.wellnessDailySummary.findUnique({
-        where: { userId_date: { userId, date } },
-      });
-
-      wellnessTrends.push({
-        date,
-        hydration: wellnessSum?.hydrationTotalMl || 0,
-        exercise: wellnessSum?.exerciseDurationMinutes || 0,
-        sleep: wellnessSum?.sleepHours || 0,
-      });
-    }
+    const completionTrends = dailyData.map((d) => d.completion);
+    const routineAdherenceTrends = dailyData.map((d) => d.routine);
+    const wellnessTrends = dailyData.map((d) => d.wellness);
 
     // 2. Category distribution
     const allTasks = await this.prisma.task.findMany({

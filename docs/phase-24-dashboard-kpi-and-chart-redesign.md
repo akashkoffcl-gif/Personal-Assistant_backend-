@@ -78,3 +78,4 @@ The 4 independent scroll areas:
 - **1440 × 900:** `scrollHeight === clientHeight` (0px scroll delta).
 - **1366 × 768:** `scrollHeight === clientHeight` (0px scroll delta).
 - **Status:** **VERIFIED & READY**.
+

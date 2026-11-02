@@ -67,3 +67,4 @@ In `apps/web/src/context/AuthContext.tsx`, `logout()` performs:
 - **Multi-user isolation:** When signing out as User A and signing in as User B, `queryClient.clear()` guarantees that zero cached queries (tasks, routines, plans, wellness) are displayed for User B.
 - **Server Guard:** All NestJS API endpoints are protected by `SupabaseAuthGuard` verifying the JWT bearer token on every request.
 - **Status:** **VERIFIED & READY**.
+
