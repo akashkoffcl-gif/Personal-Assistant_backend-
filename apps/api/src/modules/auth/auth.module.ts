@@ -6,7 +6,7 @@ import { PrismaService } from '../../common/prisma.service';
 
 @Module({
   controllers: [AuthController],
-  providers: [SupabaseAuthGuard, AuthService, PrismaService],
+  providers: [SupabaseAuthGuard, AuthService],
   exports: [SupabaseAuthGuard, AuthService],
 })
 export class AuthModule {}

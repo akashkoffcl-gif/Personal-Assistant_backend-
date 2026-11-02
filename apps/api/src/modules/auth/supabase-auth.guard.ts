@@ -4,9 +4,11 @@ import {
   ExecutionContext,
   UnauthorizedException,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 import { PrismaService } from '../../common/prisma.service';
+import { RedisService } from '../../common/redis.service';
 
 export interface AuthenticatedUser {
   id: string; // Maps to Supabase Auth User ID (sub)
@@ -20,7 +22,10 @@ export class SupabaseAuthGuard implements CanActivate {
   private readonly logger = new Logger(SupabaseAuthGuard.name);
   public static readonly DEFAULT_TEST_USER_ID = '00000000-0000-0000-0000-000000000001';
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly redis?: RedisService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -101,8 +106,10 @@ export class SupabaseAuthGuard implements CanActivate {
     };
 
     // 3. User Identity Mapping & Profile Lifecycle Synchronization
-    // Ensure application profile exists in PostgreSQL (scoped 1:1 to auth.uid())
-    if (this.prisma.isConnected) {
+    // Ensure application profile exists in PostgreSQL (cached with Redis to prevent query thrashing)
+    const userCacheKey = `user:synced:${user.id}`;
+    const isSynced = this.redis ? await this.redis.get(userCacheKey) : false;
+    if (!isSynced && this.prisma.isConnected) {
       try {
         await this.prisma.user.upsert({
           where: { id: user.id },
@@ -118,6 +125,9 @@ export class SupabaseAuthGuard implements CanActivate {
             },
           },
         });
+        if (this.redis) {
+          await this.redis.set(userCacheKey, '1', 3600);
+        }
       } catch (err: any) {
         this.logger.debug(`Could not ensure user record: ${err?.message}`);
       }

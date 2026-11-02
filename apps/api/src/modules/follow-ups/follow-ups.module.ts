@@ -7,7 +7,7 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [AuthModule],
   controllers: [FollowUpsController],
-  providers: [FollowUpsService, PrismaService],
+  providers: [FollowUpsService],
   exports: [FollowUpsService],
 })
 export class FollowUpsModule {}

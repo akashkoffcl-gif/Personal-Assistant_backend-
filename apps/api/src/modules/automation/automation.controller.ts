@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -42,6 +44,30 @@ export class AutomationController {
     @Body('isEnabled') isEnabled: boolean,
   ) {
     return this.automationService.toggleRule(user.id, id, isEnabled);
+  }
+
+  @Patch('rules/:id')
+  async updateRule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body()
+    body: {
+      name?: string;
+      condition?: Record<string, any>;
+      action?: Record<string, any>;
+      cooldownMinutes?: number;
+      isEnabled?: boolean;
+    },
+  ) {
+    return this.automationService.updateRule(user.id, id, body);
+  }
+
+  @Delete('rules/:id')
+  async deleteRule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.automationService.deleteRule(user.id, id);
   }
 
   @Get('executions')

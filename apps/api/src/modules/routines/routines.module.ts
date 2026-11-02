@@ -8,7 +8,7 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [AuthModule],
   controllers: [RoutinesController],
-  providers: [RoutinesService, PrismaService, RedisService],
+  providers: [RoutinesService],
   exports: [RoutinesService],
 })
 export class RoutinesModule {}

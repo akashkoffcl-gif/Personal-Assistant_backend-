@@ -17,11 +17,13 @@ import { OutboxModule } from './modules/outbox/outbox.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { AutomationModule } from './modules/automation/automation.module';
 import { FollowUpsModule } from './modules/follow-ups/follow-ups.module';
+import { CommonModule } from './common/common.module';
 import { WorkerModule } from './worker/worker.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    CommonModule,
     AuthModule,
     TasksModule,
     RoutinesModule,
@@ -39,7 +41,6 @@ import { WorkerModule } from './worker/worker.module';
     FollowUpsModule,
     WorkerModule,
   ],
-  providers: [PrismaService, RedisService],
 })
 export class AppModule {}
 

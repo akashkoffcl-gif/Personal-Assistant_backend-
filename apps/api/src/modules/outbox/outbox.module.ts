@@ -3,7 +3,7 @@ import { OutboxService } from './outbox.service';
 import { PrismaService } from '../../common/prisma.service';
 
 @Module({
-  providers: [OutboxService, PrismaService],
+  providers: [OutboxService],
   exports: [OutboxService],
 })
 export class OutboxModule {}

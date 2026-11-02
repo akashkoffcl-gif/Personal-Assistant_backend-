@@ -8,8 +8,8 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [AuthModule],
   controllers: [WellnessController],
-  providers: [WellnessService, PrismaService, RedisService],
+  providers: [WellnessService],
   exports: [WellnessService],
 })
-export class WellnessModule {}
+export class WellnessModule { }
 

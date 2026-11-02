@@ -10,7 +10,7 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [AuthModule, RemindersModule, OutboxModule],
   controllers: [TasksController],
-  providers: [TasksService, PrismaService, RedisService],
+  providers: [TasksService],
   exports: [TasksService],
 })
 export class TasksModule {}

@@ -68,6 +68,20 @@ export class RoutinesController {
     return this.routinesService.recordOccurrence(user.id, occurrenceId, body);
   }
 
+  @Post('occurrences/:id/complete')
+  @HttpCode(HttpStatus.OK)
+  async completeOccurrence(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') occurrenceId: string,
+    @Body() body?: { actualQuantity?: number; notes?: string },
+  ) {
+    return this.routinesService.recordOccurrence(user.id, occurrenceId, {
+      status: TaskStatus.COMPLETED,
+      actualQuantity: body?.actualQuantity ?? 1,
+      notes: body?.notes,
+    });
+  }
+
   @Delete(':id')
   async remove(
     @CurrentUser() user: AuthenticatedUser,

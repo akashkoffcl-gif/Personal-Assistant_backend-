@@ -9,7 +9,7 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [AuthModule, RoutinesModule, TasksModule],
   controllers: [PlansController],
-  providers: [PlansService, PrismaService],
+  providers: [PlansService],
   exports: [PlansService],
 })
 export class PlansModule {}

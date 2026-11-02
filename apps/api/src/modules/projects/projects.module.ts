@@ -6,7 +6,7 @@ import { RedisService } from '../../common/redis.service';
 
 @Module({
   controllers: [ProjectsController],
-  providers: [ProjectsService, PrismaService, RedisService],
+  providers: [ProjectsService],
   exports: [ProjectsService],
 })
 export class ProjectsModule {}

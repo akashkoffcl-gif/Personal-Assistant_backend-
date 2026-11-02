@@ -14,10 +14,19 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleInit() {
-    await this.connectWithTimeout(10000);
+    let retries = 3;
+    while (retries > 0) {
+      const ok = await this.connectWithTimeout(15000);
+      if (ok) return;
+      retries--;
+      if (retries > 0) {
+        this.logger.warn(`Retrying database connection in 2s (${retries} attempts left)...`);
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
   }
 
-  async connectWithTimeout(timeoutMs = 10000): Promise<boolean> {
+  async connectWithTimeout(timeoutMs = 15000): Promise<boolean> {
     try {
       await Promise.race([
         this.$connect(),

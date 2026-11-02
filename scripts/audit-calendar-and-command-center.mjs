@@ -113,7 +113,7 @@ async function runCalendarAndCommandCenterAudit() {
 
     // 4. Calendar & Schedule Planning API Query
     console.log('\n--- 3. Verifying Calendar & Schedule Planning Engine ---');
-    const planRes = await fetch(`${API_BASE}/plans/${todayStr}`, {
+    const planRes = await fetch(`${API_BASE}/plans?date=${todayStr}`, {
       headers: { Authorization: token }
     });
     const planJson = await planRes.json();
@@ -184,14 +184,8 @@ async function runCalendarAndCommandCenterAudit() {
 
         // A. Command Center Checks
         await send('Emulation.setDeviceMetricsOverride', { width: 1920, height: 1080, deviceScaleFactor: 1, mobile: false });
-        await send('Page.navigate', { url: `${WEB_BASE}/?tab=dashboard` });
-        await sleep(3000);
-
-        const debugInfo = await send('Runtime.evaluate', {
-          expression: `({ url: window.location.href, title: document.title, text: document.body.innerText.slice(0, 200) })`,
-          returnByValue: true
-        });
-        console.log('Browser Debug Info on Dashboard:', debugInfo.result?.value);
+        await send('Page.navigate', { url: `${WEB_BASE}/?tab=command-center` });
+        await sleep(1500);
 
         // Verify Independent Scroll Containers
         const scrollCheck = await send('Runtime.evaluate', {

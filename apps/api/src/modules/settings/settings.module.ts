@@ -7,7 +7,7 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [AuthModule],
   controllers: [SettingsController],
-  providers: [SettingsService, PrismaService],
+  providers: [SettingsService],
   exports: [SettingsService],
 })
 export class SettingsModule {}

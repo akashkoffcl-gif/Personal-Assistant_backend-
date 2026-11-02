@@ -132,6 +132,50 @@ export class AutomationService {
     });
   }
 
+  async updateRule(
+    userId: string,
+    ruleId: string,
+    data: {
+      name?: string;
+      condition?: Record<string, any>;
+      action?: Record<string, any>;
+      cooldownMinutes?: number;
+      isEnabled?: boolean;
+    },
+  ) {
+    if (!this.prisma.isConnected) return { id: ruleId, ...data };
+    const rule = await this.prisma.automationRule.findFirst({
+      where: { id: ruleId, userId },
+    });
+    if (!rule) {
+      throw new NotFoundException('Automation rule not found');
+    }
+    return this.prisma.automationRule.update({
+      where: { id: ruleId },
+      data: {
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.condition !== undefined && { condition: data.condition }),
+        ...(data.action !== undefined && { action: data.action }),
+        ...(data.cooldownMinutes !== undefined && { cooldownMinutes: data.cooldownMinutes }),
+        ...(data.isEnabled !== undefined && { isEnabled: data.isEnabled }),
+      },
+    });
+  }
+
+  async deleteRule(userId: string, ruleId: string) {
+    if (!this.prisma.isConnected) return { id: ruleId, deleted: true };
+    const rule = await this.prisma.automationRule.findFirst({
+      where: { id: ruleId, userId },
+    });
+    if (!rule) {
+      throw new NotFoundException('Automation rule not found');
+    }
+    await this.prisma.automationRule.delete({
+      where: { id: ruleId },
+    });
+    return { success: true, id: ruleId };
+  }
+
   async getExecutions(userId: string) {
     if (!this.prisma.isConnected) return [];
 

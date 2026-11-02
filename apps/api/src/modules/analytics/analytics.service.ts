@@ -102,6 +102,14 @@ export class AnalyticsService {
   }
 
   async getTrends(userId: string, days = 7) {
+    const cacheKey = `dashboard:${userId}:trends:${days}`;
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {}
+    }
+
     const dates: string[] = [];
     const today = new Date();
 
@@ -220,13 +228,18 @@ export class AnalyticsService {
       { status: 'Overdue', count: workOverdue, fill: '#DC2626' },
     ];
 
-    return {
+    const result = {
       completionTrends,
       routineAdherenceTrends,
       categoryDistribution,
       workStatusBreakdown,
       wellnessTrends,
     };
+
+    // Cache trends for 60 seconds
+    await this.redis.set(cacheKey, JSON.stringify(result), 60);
+
+    return result;
   }
 
   async getCommandCenterData(userId: string, date: string, rangeDays = 7) {

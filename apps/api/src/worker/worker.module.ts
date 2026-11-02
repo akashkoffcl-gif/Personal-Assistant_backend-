@@ -7,7 +7,6 @@ import { OutboxService } from '../modules/outbox/outbox.service';
 @Module({
   providers: [
     WorkerService,
-    PrismaService,
     NotificationsService,
     OutboxService,
   ],

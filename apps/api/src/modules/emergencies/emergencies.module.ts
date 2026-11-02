@@ -18,7 +18,7 @@ import { AuthModule } from '../auth/auth.module';
     OutboxModule,
   ],
   controllers: [EmergenciesController],
-  providers: [EmergenciesService, PrismaService, RedisService],
+  providers: [EmergenciesService],
   exports: [EmergenciesService],
 })
 export class EmergenciesModule {}

@@ -8,7 +8,7 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [AuthModule],
   controllers: [RemindersController],
-  providers: [RemindersService, PrismaService, RedisService],
+  providers: [RemindersService],
   exports: [RemindersService],
 })
 export class RemindersModule {}

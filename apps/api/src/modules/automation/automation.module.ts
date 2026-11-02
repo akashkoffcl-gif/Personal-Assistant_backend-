@@ -9,7 +9,6 @@ import { NotificationsService } from '../notifications/notifications.service';
   controllers: [AutomationController],
   providers: [
     AutomationService,
-    PrismaService,
     OutboxService,
     NotificationsService,
   ],

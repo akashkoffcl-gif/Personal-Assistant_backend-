@@ -7,7 +7,7 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [AuthModule],
   controllers: [NotificationsController],
-  providers: [NotificationsService, PrismaService],
+  providers: [NotificationsService],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}
