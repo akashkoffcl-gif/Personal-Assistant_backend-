@@ -135,3 +135,4 @@ Records the user's action with strict ownership validation:
 2. **Never Silently Discard Work:** Rescheduling updates existing task records and logs an audited `TaskEvent` in PostgreSQL.
 3. **Multi-Worker Idempotency:** Follow-up notifications are uniquely indexed by `userId`, `category: 'FOLLOW_UP'`, and `actionUrl`. Duplicate job runs or worker restarts detect the existing prompt and skip re-creation.
 4. **Quiet Hours Enforcement:** Evaluates `userSettings.quietHoursStart` and `userSettings.quietHoursEnd`. During quiet hours, notifications for non-urgent tasks are suppressed until working hours resume.
+

@@ -54,3 +54,4 @@ Every static element on the Command Center dashboard has been converted into an 
 - **Number Transitions:** Values transition cleanly using CSS tabular numbers (`tabular-nums`) to prevent layout shifts.
 - **Smooth Chart Animators:** Progress bars animate with `transition-all duration-700 ease-out`.
 - **Accessibility:** All animations and transitions adhere to `prefers-reduced-motion: reduce`, instantly snapping to the target state without disorienting motion.
+

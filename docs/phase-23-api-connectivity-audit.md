@@ -88,3 +88,4 @@ async withRetry<T>(operation: () => Promise<T>, maxRetries = 2): Promise<T> {
 ```
 
 This guarantees self-healing database connectivity during remote Supabase network fluctuations.
+
