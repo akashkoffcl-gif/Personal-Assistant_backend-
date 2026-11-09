@@ -179,6 +179,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (fullName: string, email: string, password: string): Promise<{ error?: string; requireVerification?: boolean }> => {
       setIsLoading(true);
       try {
+        const redirectUrl =
+          typeof window !== 'undefined'
+            ? `${window.location.origin}/login`
+            : process.env.NEXT_PUBLIC_APP_URL
+            ? `${process.env.NEXT_PUBLIC_APP_URL.replace(/\/+$/, '')}/login`
+            : 'https://personal-assistant-frontend-jk5l.onrender.com/login';
+
         const { data, error } = await supabase.auth.signUp({
           email: email.trim().toLowerCase(),
           password,
@@ -186,6 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             data: {
               full_name: fullName.trim(),
             },
+            emailRedirectTo: redirectUrl,
           },
         });
 
