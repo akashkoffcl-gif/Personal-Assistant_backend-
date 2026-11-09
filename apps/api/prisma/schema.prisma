@@ -107,6 +107,28 @@ model User {
   automationRuleExecutions AutomationRuleExecution[]
   usageEvents           UsageEvent[]
   notifications         InAppNotification[]
+  focusSessions         FocusSession[]
+  focusPreference       FocusPreference?
+  goals                 Goal[]
+  goalMilestones        GoalMilestone[]
+  goalProgressLogs      GoalProgressLog[]
+  knowledgeFolders      KnowledgeFolder[]
+  knowledgeNotes        KnowledgeNote[]
+  knowledgeTags         KnowledgeTag[]
+  knowledgeDocuments    KnowledgeDocument[]
+  knowledgeChunks       KnowledgeChunk[]
+  knowledgeRelations    KnowledgeRelation[]
+  bookmarks             Bookmark[]
+  financeAccounts       FinanceAccount[]
+  financeCategories     FinanceCategory[]
+  financeTransactions   FinanceTransaction[]
+  financeBudgets        FinanceBudget[]
+  savingsGoals          SavingsGoal[]
+  recurringTransactions RecurringTransaction[]
+  aiConversations       AIConversation[]
+  aiMessages            AIMessage[]
+  aiActions             AIAction[]
+  planningProposals     PlanningProposal[]
 
   @@map("users")
 }
@@ -170,6 +192,7 @@ model Task {
   reminders                Reminder[]
   taskEvents               TaskEvent[]
   scheduleChanges          ScheduleChange[]
+  focusSessions            FocusSession[]
 
   @@index([userId, category])
   @@index([userId, status])
@@ -193,6 +216,7 @@ model Project {
 
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   tasks       Task[]
+  focusSessions FocusSession[]
 
   @@index([userId, status])
   @@map("projects")
@@ -545,6 +569,534 @@ model InAppNotification {
   @@index([userId, readAt])
   @@index([userId, category])
   @@map("in_app_notifications")
+}
+
+// ==============================================================================
+// 22. FOCUS STUDIO & DEEP WORK (Phase 27)
+// ==============================================================================
+
+enum FocusSessionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ABANDONED
+}
+
+model FocusSession {
+  id                String             @id @default(uuid())
+  userId            String
+  taskId            String?
+  projectId         String?
+  startedAt         DateTime           @db.Timestamptz
+  endedAt           DateTime?          @db.Timestamptz
+  pausedAt          DateTime?          @db.Timestamptz
+  pausedDuration    Int                @default(0) // total paused duration in seconds
+  plannedDuration   Int                // planned focus duration in seconds
+  actualDuration    Int                @default(0) // actual active focus duration in seconds
+  status            FocusSessionStatus @default(ACTIVE)
+  interruptionCount Int                @default(0)
+  sessionType       String             @default("FOCUS") // "FOCUS", "SHORT_BREAK", "LONG_BREAK"
+  notes             String?
+  createdAt         DateTime           @default(now()) @db.Timestamptz
+  updatedAt         DateTime           @updatedAt @db.Timestamptz
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task              Task?              @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  project           Project?           @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([userId, startedAt])
+  @@map("focus_sessions")
+}
+
+model FocusPreference {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  focusDurationMinutes Int      @default(25)
+  shortBreakMinutes    Int      @default(5)
+  longBreakMinutes     Int      @default(15)
+  longBreakInterval    Int      @default(4)
+  dailyTargetMinutes   Int      @default(120)
+  soundEnabled         Boolean  @default(true)
+  autoStartBreaks      Boolean  @default(false)
+  autoStartFocus       Boolean  @default(false)
+  createdAt            DateTime @default(now()) @db.Timestamptz
+  updatedAt            DateTime @updatedAt @db.Timestamptz
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("focus_preferences")
+}
+
+// ==============================================================================
+// 23. GOALS & MILESTONES (Phase 28)
+// ==============================================================================
+
+enum GoalType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  LIFE
+}
+
+enum GoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  PAUSED
+  ARCHIVED
+}
+
+model Goal {
+  id              String            @id @default(uuid())
+  userId          String
+  parentId        String?
+  title           String
+  description     String?
+  type            GoalType          @default(MONTHLY)
+  status          GoalStatus        @default(IN_PROGRESS)
+  priority        Priority          @default(MEDIUM)
+  progressPercent Float             @default(0)
+  startDate       DateTime?         @db.Timestamptz
+  targetDate      DateTime?         @db.Timestamptz
+  completedAt     DateTime?         @db.Timestamptz
+  color           String            @default("#8B45F5")
+  createdAt       DateTime          @default(now()) @db.Timestamptz
+  updatedAt       DateTime          @updatedAt @db.Timestamptz
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentGoal      Goal?             @relation("GoalHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  subGoals        Goal[]            @relation("GoalHierarchy")
+  milestones      GoalMilestone[]
+  progressLogs    GoalProgressLog[]
+
+  @@index([userId, status])
+  @@index([userId, type])
+  @@map("goals")
+}
+
+model GoalMilestone {
+  id          String    @id @default(uuid())
+  goalId      String
+  userId      String
+  title       String
+  order       Int       @default(0)
+  isCompleted Boolean   @default(false)
+  completedAt DateTime? @db.Timestamptz
+  dueDate     DateTime? @db.Timestamptz
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @db.Timestamptz
+
+  goal        Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([goalId, order])
+  @@index([userId])
+  @@map("goal_milestones")
+}
+
+model GoalProgressLog {
+  id               String   @id @default(uuid())
+  goalId           String
+  userId           String
+  previousProgress Float
+  newProgress      Float
+  notes            String?
+  recordedAt       DateTime @default(now()) @db.Timestamptz
+
+  goal             Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([goalId, recordedAt])
+  @@map("goal_progress_logs")
+}
+
+// ==============================================================================
+// 24. PERSONAL KNOWLEDGE HUB (Phase 29)
+// ==============================================================================
+
+enum NoteCategory {
+  NOTE
+  JOURNAL
+  IDEA
+  LEARNING
+}
+
+model KnowledgeFolder {
+  id         String            @id @default(uuid())
+  userId     String
+  name       String
+  color      String            @default("#8B45F5")
+  icon       String            @default("folder")
+  parentId   String?
+  createdAt  DateTime          @default(now()) @db.Timestamptz
+  updatedAt  DateTime          @updatedAt @db.Timestamptz
+
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent     KnowledgeFolder?  @relation("FolderSubfolders", fields: [parentId], references: [id], onDelete: Cascade)
+  subfolders KnowledgeFolder[] @relation("FolderSubfolders")
+  notes      KnowledgeNote[]
+
+  @@index([userId])
+  @@map("knowledge_folders")
+}
+
+enum DocumentIndexStatus {
+  PENDING
+  PROCESSING
+  INDEXED
+  FAILED
+}
+
+model KnowledgeNote {
+  id           String               @id @default(uuid())
+  userId       String
+  folderId     String?
+  projectId    String?
+  title        String
+  content      String               @db.Text
+  summary      String?              @db.Text
+  category     NoteCategory         @default(NOTE)
+  isBookmarked Boolean              @default(false)
+  isArchived   Boolean              @default(false)
+  isPinned     Boolean              @default(false)
+  isJournal    Boolean              @default(false)
+  journalDate  String?
+  deletedAt    DateTime?            @db.Timestamptz
+  createdAt    DateTime             @default(now()) @db.Timestamptz
+  updatedAt    DateTime             @updatedAt @db.Timestamptz
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder       KnowledgeFolder?     @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  tags         KnowledgeTagOnNote[]
+  versions     KnowledgeVersion[]
+
+  @@index([userId, category])
+  @@index([userId, isArchived])
+  @@index([userId, deletedAt])
+  @@map("knowledge_notes")
+}
+
+model KnowledgeVersion {
+  id            String        @id @default(uuid())
+  noteId        String
+  title         String
+  content       String        @db.Text
+  versionNumber Int
+  changeSummary String?
+  createdAt     DateTime      @default(now()) @db.Timestamptz
+
+  note          KnowledgeNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([noteId, versionNumber])
+  @@map("knowledge_versions")
+}
+
+model KnowledgeDocument {
+  id            String              @id @default(uuid())
+  userId        String
+  fileName      String
+  fileSize      Int
+  mimeType      String
+  storagePath   String
+  extractedText String?             @db.Text
+  status        DocumentIndexStatus @default(PENDING)
+  chunkCount    Int                 @default(0)
+  errorMessage  String?
+  noteId        String?
+  createdAt     DateTime            @default(now()) @db.Timestamptz
+  updatedAt     DateTime            @updatedAt @db.Timestamptz
+
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks        KnowledgeChunk[]
+
+  @@index([userId, status])
+  @@map("knowledge_documents")
+}
+
+model KnowledgeChunk {
+  id          String             @id @default(uuid())
+  userId      String
+  documentId  String?
+  noteId      String?
+  chunkIndex  Int
+  content     String             @db.Text
+  tokenCount  Int?
+  embedding   Json?
+  createdAt   DateTime           @default(now()) @db.Timestamptz
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document    KnowledgeDocument? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, noteId])
+  @@index([userId, documentId])
+  @@map("knowledge_chunks")
+}
+
+model KnowledgeRelation {
+  id           String   @id @default(uuid())
+  userId       String
+  sourceNoteId String
+  targetType   String   // "NOTE", "TASK", "PROJECT", "GOAL"
+  targetId     String
+  relationType String   // "RELATED_NOTE", "MENTIONS_TASK", "LINKED_PROJECT", "SUPPORTS_GOAL"
+  confidence   Float    @default(1.0)
+  createdAt    DateTime @default(now()) @db.Timestamptz
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sourceNoteId])
+  @@index([userId, targetId])
+  @@map("knowledge_relations")
+}
+
+model KnowledgeTag {
+  id        String               @id @default(uuid())
+  userId    String
+  name      String
+  createdAt DateTime             @default(now()) @db.Timestamptz
+
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes     KnowledgeTagOnNote[]
+
+  @@unique([userId, name])
+  @@map("knowledge_tags")
+}
+
+model KnowledgeTagOnNote {
+  noteId String
+  tagId  String
+
+  note   KnowledgeNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tag    KnowledgeTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+  @@map("knowledge_tag_notes")
+}
+
+model Bookmark {
+  id          String   @id @default(uuid())
+  userId      String
+  url         String
+  title       String
+  description String?
+  category    String   @default("GENERAL")
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, category])
+  @@map("bookmarks")
+}
+
+// ==============================================================================
+// 25. PERSONAL FINANCE MANAGEMENT (Phase 30)
+// ==============================================================================
+
+enum FinanceAccountType {
+  CHECKING
+  SAVINGS
+  CREDIT
+  INVESTMENT
+  CASH
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+model FinanceAccount {
+  id           String               @id @default(uuid())
+  userId       String
+  name         String
+  type         FinanceAccountType   @default(CHECKING)
+  currency     String               @default("INR")
+  balance      Decimal              @default(0.0) @db.Decimal(14, 2)
+  color        String               @default("#8B45F5")
+  isDefault    Boolean              @default(false)
+  createdAt    DateTime             @default(now()) @db.Timestamptz
+  updatedAt    DateTime             @updatedAt @db.Timestamptz
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions FinanceTransaction[]
+
+  @@index([userId])
+  @@map("finance_accounts")
+}
+
+model FinanceCategory {
+  id           String               @id @default(uuid())
+  userId       String
+  name         String
+  type         TransactionType      @default(EXPENSE)
+  icon         String               @default("tag")
+  color        String               @default("#8B45F5")
+  createdAt    DateTime             @default(now()) @db.Timestamptz
+  updatedAt    DateTime             @updatedAt @db.Timestamptz
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions FinanceTransaction[]
+  budgets      FinanceBudget[]
+
+  @@unique([userId, name, type])
+  @@map("finance_categories")
+}
+
+model FinanceTransaction {
+  id            String           @id @default(uuid())
+  userId        String
+  accountId     String
+  categoryId    String?
+  type          TransactionType
+  amount        Decimal          @db.Decimal(14, 2)
+  currency      String           @default("INR")
+  date          String           // "YYYY-MM-DD"
+  description   String
+  notes         String?
+  paymentMethod String           @default("OTHER") // "CARD", "CASH", "TRANSFER", "OTHER"
+  createdAt     DateTime         @default(now()) @db.Timestamptz
+  updatedAt     DateTime         @updatedAt @db.Timestamptz
+
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account       FinanceAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category      FinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, date])
+  @@index([userId, type])
+  @@index([accountId])
+  @@map("finance_transactions")
+}
+
+model FinanceBudget {
+  id              String          @id @default(uuid())
+  userId          String
+  categoryId      String
+  month           String          // "YYYY-MM"
+  allocatedAmount Decimal         @db.Decimal(14, 2)
+  createdAt       DateTime        @default(now()) @db.Timestamptz
+  updatedAt       DateTime        @updatedAt @db.Timestamptz
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        FinanceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryId, month])
+  @@index([userId, month])
+  @@map("finance_budgets")
+}
+
+model SavingsGoal {
+  id            String    @id @default(uuid())
+  userId        String
+  name          String
+  targetAmount  Decimal   @db.Decimal(14, 2)
+  currentAmount Decimal   @default(0.0) @db.Decimal(14, 2)
+  targetDate    DateTime? @db.Timestamptz
+  status        String    @default("ACTIVE") // ACTIVE, COMPLETED, PAUSED
+  color         String    @default("#16A36A")
+  createdAt     DateTime  @default(now()) @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @db.Timestamptz
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("savings_goals")
+}
+
+model RecurringTransaction {
+  id             String          @id @default(uuid())
+  userId         String
+  accountId      String
+  categoryId     String?
+  title          String
+  amount         Decimal         @db.Decimal(14, 2)
+  currency       String          @default("INR")
+  type           TransactionType @default(EXPENSE)
+  frequency      String          @default("MONTHLY") // "WEEKLY", "MONTHLY", "YEARLY"
+  nextDate       String          // "YYYY-MM-DD"
+  isSubscription Boolean         @default(false)
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now()) @db.Timestamptz
+  updatedAt      DateTime        @updatedAt @db.Timestamptz
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@map("recurring_transactions")
+}
+
+// ==============================================================================
+// 26. INTEGRATED AI PERSONAL ASSISTANT & SMART PLANNER (Phases 31 & 32)
+// ==============================================================================
+
+model AIConversation {
+  id        String      @id @default(uuid())
+  userId    String
+  title     String      @default("New Conversation")
+  createdAt DateTime    @default(now()) @db.Timestamptz
+  updatedAt DateTime    @updatedAt @db.Timestamptz
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  AIMessage[]
+
+  @@index([userId, updatedAt])
+  @@map("ai_conversations")
+}
+
+model AIMessage {
+  id             String         @id @default(uuid())
+  conversationId String
+  userId         String
+  role           String         // "USER", "ASSISTANT", "SYSTEM"
+  content        String         @db.Text
+  toolCalls      Json?
+  toolResults    Json?
+  createdAt      DateTime       @default(now()) @db.Timestamptz
+
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@map("ai_messages")
+}
+
+model AIAction {
+  id             String    @id @default(uuid())
+  userId         String
+  actionType     String    // "DELETE_TASK", "SCHEDULE_CHANGE", "FINANCIAL_MUTATION", "BULK_UPDATE"
+  description    String
+  payload        Json
+  status         String    @default("PROPOSED") // "PROPOSED", "CONFIRMED", "EXECUTED", "REJECTED"
+  idempotencyKey String    @unique
+  executedAt     DateTime? @db.Timestamptz
+  createdAt      DateTime  @default(now()) @db.Timestamptz
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("ai_actions")
+}
+
+model PlanningProposal {
+  id               String    @id @default(uuid())
+  userId           String
+  date             String    // "YYYY-MM-DD"
+  status           String    @default("DRAFT") // "DRAFT", "APPROVED", "APPLIED", "REJECTED"
+  explanation      String?   @db.Text
+  originalSchedule Json
+  proposedSchedule Json
+  diffMetrics      Json?
+  createdAt        DateTime  @default(now()) @db.Timestamptz
+  appliedAt        DateTime? @db.Timestamptz
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("planning_proposals")
 }
 
 

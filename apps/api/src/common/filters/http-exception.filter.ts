@@ -34,6 +34,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
     } else if (exception instanceof Error) {
       message = exception.message;
       errorType = exception.name;
+
+      // Handle Prisma / Database connectivity failures with HTTP 503 Service Unavailable
+      if (
+        message.includes("Can't reach database server") ||
+        message.includes('Timed out fetching a new connection') ||
+        message.includes('connection pool') ||
+        errorType === 'PrismaClientInitializationError' ||
+        (exception as any).code === 'P1001'
+      ) {
+        status = HttpStatus.SERVICE_UNAVAILABLE;
+        errorType = 'DatabaseUnavailableError';
+        message = 'The database service is temporarily unavailable or reconnecting. Please retry shortly.';
+      }
     }
 
     this.logger.error(`[${request.method}] ${request.url} - ${status} - ${JSON.stringify(message)}`);

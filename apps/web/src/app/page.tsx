@@ -29,6 +29,21 @@ import { BottomNav } from '@/components/BottomNav';
 import { SmartCheckInModal, SmartCheckInTarget } from '@/components/SmartCheckInModal';
 import { FollowUpPromptModal, FollowUpItem } from '@/components/FollowUpPromptModal';
 import { ApplicationUsageAnalytics } from '@/components/ApplicationUsageAnalytics';
+import { FocusStudioWorkspace } from '@/components/FocusStudioWorkspace';
+import { GoalsWorkspace } from '@/components/GoalsWorkspace';
+import { KnowledgeWorkspace } from '@/components/KnowledgeWorkspace';
+import { FinanceWorkspace } from '@/components/FinanceWorkspace';
+import { LifeBalanceWorkspace } from '@/components/LifeBalanceWorkspace';
+import { ActivityTimelineWorkspace } from '@/components/ActivityTimelineWorkspace';
+import { AIAssistantDrawer } from '@/components/AIAssistantDrawer';
+import { SmartDayPlannerModal } from '@/components/SmartDayPlannerModal';
+import { SmartDayPlannerWorkspace } from '@/components/SmartDayPlannerWorkspace';
+import { PredictiveProductivityWorkspace } from '@/components/PredictiveProductivityWorkspace';
+import { AIAssistantExperience } from '@/components/AIAssistantExperience';
+import { AIChatWorkspace } from '@/components/AIChatWorkspace';
+import { MyDayTimelineWorkspace } from '@/components/MyDayTimelineWorkspace';
+import { TasksWorkspace } from '@/components/TasksWorkspace';
+import { ProjectsWorkspace } from '@/components/ProjectsWorkspace';
 import {
   TaskCategory,
   TaskStatus,
@@ -78,15 +93,7 @@ import {
 export default function App() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const [currentTab, setCurrentTab] = useState<NavTab>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const tab = params.get('tab') as string | null;
-      if (tab === 'command-center' || tab === 'dashboard') return 'dashboard';
-      if (tab) return tab as NavTab;
-    }
-    return 'dashboard';
-  });
+  const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0],
   );
@@ -108,6 +115,9 @@ export default function App() {
   const [editingWellnessRecord, setEditingWellnessRecord] = useState<any>(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [smartCheckInTarget, setSmartCheckInTarget] = useState<SmartCheckInTarget | null>(null);
+  const [isAIDrawerOpen, setIsAIDrawerOpen] = useState(false);
+  const [isSmartPlannerOpen, setIsSmartPlannerOpen] = useState(false);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -174,7 +184,34 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
 
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    // AI Assistant Navigation Bridge Event Listeners
+    const handleAINavigate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ tab: NavTab }>;
+      if (customEvent.detail?.tab) {
+        setCurrentTab(customEvent.detail.tab);
+      }
+    };
+
+    const handleAIOpenModal = (e: Event) => {
+      const customEvent = e as CustomEvent<{ modal: string }>;
+      const modal = customEvent.detail?.modal;
+      if (modal === 'create-task') setIsCreateTaskModalOpen(true);
+      else if (modal === 'create-routine') setIsCreateRoutineModalOpen(true);
+      else if (modal === 'create-project') setIsProjectModalOpen(true);
+      else if (modal === 'emergency') setIsEmergencyModalOpen(true);
+      else if (modal === 'smart-planner') setIsSmartPlannerOpen(true);
+      else if (modal === 'wellness-checkin') setIsCheckInModalOpen(true);
+      else if (modal === 'notifications') setIsNotificationCenterOpen(true);
+    };
+
+    window.addEventListener('ai-assistant:navigate', handleAINavigate);
+    window.addEventListener('ai-assistant:open-modal', handleAIOpenModal);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('ai-assistant:navigate', handleAINavigate);
+      window.removeEventListener('ai-assistant:open-modal', handleAIOpenModal);
+    };
   }, []);
 
   // Queries
@@ -620,6 +657,10 @@ export default function App() {
           selectedDate={selectedDate}
           onOpenNotifications={() => setIsNotificationCenterOpen(true)}
           unreadNotificationsCount={notificationsData?.unreadCount || 0}
+          onOpenVoiceAssistant={() => {
+            if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ai-assistant:start-voice'));
+          }}
+          onOpenAIAssistant={() => setIsAIDrawerOpen(true)}
         />
       </div>
 
@@ -737,245 +778,34 @@ export default function App() {
             />
           )}
 
-          {/* TAB 2: TASK & WORK MANAGEMENT WORKSPACE */}
-          {(currentTab === 'my-day' || currentTab === 'work') && (
-            <div className="space-y-5">
-              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-3 border-b border-[#E5E2F5]">
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-                      Task & Work Management
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Full lifecycle management, deadlines, priorities, and subtask trees
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setIsCreateTaskModalOpen(true)}
-                      className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#8B45F5] hover:bg-[#7839D6] rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
-                    >
-                      <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> New Task
-                    </button>
-                  </div>
-                </div>
-
-                {/* Search Bar & Project Selector */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                  <div className="sm:col-span-2 relative">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                    <input
-                      ref={searchInputRef}
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search tasks by title, description or keywords (Ctrl+K)..."
-                      className="w-full pl-9 pr-14 py-2 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white text-slate-900 focus:outline-none focus:border-[#8B45F5]"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery('')}
-                        className="absolute right-3 top-2 text-xs font-semibold text-slate-400 hover:text-slate-600"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-
-                  <div>
-                    <select
-                      value={selectedProjectId || ''}
-                      onChange={(e) => setSelectedProjectId(e.target.value || null)}
-                      className="w-full px-3 py-2 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white text-slate-800"
-                    >
-                      <option value="">All Projects</option>
-                      {projects.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          ðŸ“ {p.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Task List */}
-                <div className="space-y-2">
-                  {filteredTaskList.length === 0 ? (
-                    <div className="py-10 text-center rounded-lg border border-dashed border-[#E5E2F5] p-5 bg-[#F4F3FF]/50">
-                      <CheckCircle2 className="w-7 h-7 text-slate-300 mx-auto mb-1.5" />
-                      <p className="text-xs font-semibold text-slate-700">No matching tasks found.</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Try modifying your search or project filter.
-                      </p>
-                    </div>
-                  ) : (
-                    filteredTaskList.map((t) => {
-                      const isDone = t.status === TaskStatus.COMPLETED;
-                      return (
-                        <div
-                          key={t.id}
-                          className={`flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-lg border transition-colors select-none ${
-                            isDone
-                              ? 'bg-[#F4F3FF]/80 border-[#E5E2F5] opacity-75'
-                              : 'bg-white border-[#E5E2F5] hover:border-slate-300'
-                          }`}
-                        >
-                          <div
-                            onClick={() => setSelectedTask(t)}
-                            className="flex-1 cursor-pointer min-w-0"
-                          >
-                            <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                              <span
-                                className={`font-semibold text-xs transition-colors ${
-                                  isDone ? 'line-through text-slate-400' : 'text-slate-900 hover:text-blue-600'
-                                }`}
-                              >
-                                {t.title}
-                              </span>
-                              <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 uppercase">
-                                {t.category}
-                              </span>
-                              <span
-                                className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${
-                                  t.priority === Priority.URGENT
-                                    ? 'bg-red-50 text-red-700 border border-red-200'
-                                    : t.priority === Priority.HIGH
-                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                                    : 'bg-slate-100 text-slate-600'
-                                }`}
-                              >
-                                {t.priority}
-                              </span>
-                              {t.project && (
-                                <span className="text-[10px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 border border-[#E5E2F5]">
-                                  {t.project.title}
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-slate-500 truncate">
-                              Status: <span className="font-semibold text-slate-700">{t.status}</span> â€¢ Duration: {t.estimatedDurationMinutes}m
-                              {t.scheduledStartTime ? ` â€¢ Start: ${format(new Date(t.scheduledStartTime), 'MMM d, h:mm a')}` : ' â€¢ Flexible'}
-                              {t.deadline ? ` â€¢ Due: ${format(new Date(t.deadline), 'MMM d, h:mm a')}` : ''}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0 pt-2 sm:pt-0">
-                            {!isDone && (
-                              <button
-                                onClick={() => completeTaskMutation.mutate(t.id)}
-                                className="px-2.5 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md hover:bg-emerald-100 transition-colors"
-                              >
-                                Complete
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setSelectedTask(t)}
-                              className="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-[#F4F3FF] border border-[#E5E2F5] rounded-md transition-colors"
-                            >
-                              Edit Details
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
+          {/* TAB 2: MY DAY TIMELINE WORKSPACE */}
+          {currentTab === 'my-day' && (
+            <MyDayTimelineWorkspace
+              onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
+              onOpenSmartPlanner={() => setIsSmartPlannerOpen(true)}
+              onNavigateTab={(tab) => setCurrentTab(tab as any)}
+              onSelectTask={(task) => setSelectedTask(task)}
+            />
           )}
 
-          {/* TAB 3: PROJECTS WORKSPACE */}
+          {/* TAB 3: TASKS WORKSPACE */}
+          {currentTab === 'work' && (
+            <TasksWorkspace
+              projects={projects}
+              onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
+              onSelectTask={(task) => setSelectedTask(task)}
+              onNavigateTab={(tab) => setCurrentTab(tab as any)}
+            />
+          )}
+
+          {/* TAB 4: PROJECTS WORKSPACE */}
           {currentTab === 'projects' && (
-            <div className="space-y-5">
-              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)]">
-                <div className="flex items-center justify-between mb-5 pb-3 border-b border-[#E5E2F5]">
-                  <div>
-                    <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-                      Projects & Workspaces
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Organize initiatives, target delivery dates, and group deliverables
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setIsProjectModalOpen(true)}
-                    className="px-3.5 py-1.5 text-xs font-semibold text-white bg-[#8B45F5] hover:bg-[#7839D6] rounded-lg transition-colors shadow-xs flex items-center gap-1.5"
-                  >
-                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> New Project
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                  {projects.length === 0 ? (
-                    <div className="col-span-full py-10 text-center rounded-lg border border-dashed border-[#E5E2F5] p-5 bg-[#F4F3FF]/50">
-                      <FolderKanban className="w-7 h-7 text-slate-400 mx-auto mb-1.5" />
-                      <p className="text-xs font-semibold text-slate-700">No active projects yet.</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5 mb-3">
-                        Create a project workspace to bundle tasks and measure overall velocity.
-                      </p>
-                      <button
-                        onClick={() => setIsProjectModalOpen(true)}
-                        className="px-3 py-1.5 text-xs font-semibold text-white bg-[#8B45F5] hover:bg-[#7839D6] rounded-lg transition-colors shadow-xs"
-                      >
-                        Create Project
-                      </button>
-                    </div>
-                  ) : (
-                    projects.map((proj) => (
-                      <div
-                        key={proj.id}
-                        onClick={() => {
-                          setSelectedProjectId(proj.id);
-                          setCurrentTab('work');
-                        }}
-                        className="p-4 rounded-xl border border-[#E5E2F5] hover:border-slate-300 transition-colors bg-white shadow-xs flex flex-col justify-between cursor-pointer"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <span
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: proj.color }}
-                            />
-                            <span className="text-[10px] font-semibold px-2 py-0.2 rounded bg-slate-100 text-slate-700 uppercase">
-                              {proj.status}
-                            </span>
-                          </div>
-                          <h4 className="font-semibold text-sm text-slate-900 hover:text-blue-600 transition-colors">
-                            {proj.title}
-                          </h4>
-                          {proj.description && (
-                            <p className="text-xs text-slate-500 mt-1 line-clamp-2">
-                              {proj.description}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="mt-4 pt-3 border-t border-[#E5E2F5]">
-                          <div className="flex items-center justify-between text-xs font-medium text-slate-700 mb-1">
-                            <span>Progress</span>
-                            <span className="font-semibold text-blue-600">{proj.progressPercent || 0}%</span>
-                          </div>
-                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-blue-600 transition-all duration-500"
-                              style={{ width: `${proj.progressPercent || 0}%` }}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1.5">
-                            <span>
-                              {proj.completedTasksCount || 0} of {proj.tasksCount || 0} tasks done
-                            </span>
-                            {proj.targetDate && (
-                              <span>Due {format(new Date(proj.targetDate), 'MMM d, yyyy')}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
+            <ProjectsWorkspace
+              onOpenCreateProject={() => setIsProjectModalOpen(true)}
+              onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
+              onNavigateTab={(tab) => setCurrentTab(tab as any)}
+              onSelectTask={(task) => setSelectedTask(task)}
+            />
           )}
 
           {/* TAB 4: ROUTINES & HABITS WORKSPACE */}
@@ -1099,6 +929,55 @@ export default function App() {
               onOpenCreateTask={() => setIsCreateTaskModalOpen(true)}
               onOpenEmergency={() => setIsEmergencyModalOpen(true)}
               initialSubView={currentTab === 'emergency' ? 'replanning' : currentTab === 'planning' ? 'planning' : 'calendar'}
+            />
+          )}
+
+          {/* TAB: AI CONVERSATIONAL WORKSPACE */}
+          {currentTab === 'ai-chat' && (
+            <AIChatWorkspace
+              onOpenVoiceModal={() => {
+                if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('ai-assistant:start-voice'));
+              }}
+              onNavigateToTab={(tab) => setCurrentTab(tab as NavTab)}
+            />
+          )}
+
+          {/* TAB: FOCUS STUDIO & POMODORO */}
+          {currentTab === 'focus' && (
+            <FocusStudioWorkspace
+              tasks={tasks}
+              projects={projects}
+              onCompleteTask={(id: string) => completeTaskMutation.mutate(id)}
+            />
+          )}
+
+          {/* TAB: GOALS & MILESTONES */}
+          {currentTab === 'goals' && <GoalsWorkspace />}
+
+          {/* TAB: PERSONAL KNOWLEDGE HUB */}
+          {currentTab === 'knowledge' && <KnowledgeWorkspace />}
+
+          {/* TAB: PERSONAL FINANCE */}
+          {currentTab === 'finance' && <FinanceWorkspace />}
+
+          {/* TAB: LIFE BALANCE & PREDICTIVE INTELLIGENCE */}
+          {currentTab === 'life-balance' && <LifeBalanceWorkspace />}
+
+          {/* TAB: PERSONAL ACTIVITY TIMELINE */}
+          {currentTab === 'timeline' && <ActivityTimelineWorkspace />}
+
+          {/* TAB: PREDICTIVE PRODUCTIVITY INTELLIGENCE */}
+          {currentTab === 'predictive' && (
+            <PredictiveProductivityWorkspace
+              onNavigateToTab={(tab) => setCurrentTab(tab as NavTab)}
+            />
+          )}
+
+          {/* TAB: AI SMART DAY PLANNER */}
+          {currentTab === 'smart-planner' && (
+            <SmartDayPlannerWorkspace
+              initialDate={selectedDate}
+              onNavigateToCalendar={() => setCurrentTab('calendar')}
             />
           )}
 
@@ -1755,6 +1634,41 @@ export default function App() {
         currentTab={currentTab}
         onSelectTab={setCurrentTab}
         onOpenEmergency={() => setIsEmergencyModalOpen(true)}
+      />
+
+      {/* Floating AI Assistant Trigger Button */}
+      <button
+        onClick={() => setIsAIDrawerOpen(true)}
+        className="fixed bottom-5 right-5 z-40 p-3.5 bg-gradient-to-tr from-[#6935C8] to-[#8B45F5] hover:from-[#5A2BB5] hover:to-[#7839D6] text-white rounded-2xl shadow-[0_8px_25px_rgba(139,69,245,0.35)] transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group"
+        title="Open Executive AI Assistant (Gemini)"
+      >
+        <Sparkles className="w-5 h-5 text-white animate-pulse" />
+        <span className="hidden sm:inline text-xs font-black tracking-tight pr-1">Ask AI</span>
+      </button>
+
+      {/* AI Assistant Drawer */}
+      <AIAssistantDrawer
+        isOpen={isAIDrawerOpen}
+        onClose={() => setIsAIDrawerOpen(false)}
+        onOpenSmartPlanner={() => setIsSmartPlannerOpen(true)}
+        onOpenFullWorkspace={() => setCurrentTab('ai-chat')}
+      />
+
+      {/* Smart Day Planner Modal */}
+      <SmartDayPlannerModal
+        isOpen={isSmartPlannerOpen}
+        onClose={() => setIsSmartPlannerOpen(false)}
+        defaultDate={selectedDate}
+      />
+
+      {/* Google Assistant-Style Persistent 3D AI Avatar Experience */}
+      <AIAssistantExperience
+        onTaskCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['tasks-all'] });
+          queryClient.invalidateQueries({ queryKey: ['daily-kpi'] });
+          queryClient.invalidateQueries({ queryKey: ['activity-timeline'] });
+        }}
       />
     </div>
   );

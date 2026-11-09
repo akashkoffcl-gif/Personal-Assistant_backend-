@@ -35,5 +35,35 @@ export class AnalyticsController {
     const rangeDays = range ? Number(range) : 7;
     return this.analyticsService.getCommandCenterData(user.id, targetDate, rangeDays);
   }
+
+  @Get('predictive')
+  async getPredictiveAnalytics(@CurrentUser() user: AuthenticatedUser) {
+    return this.analyticsService.getPredictiveAnalytics(user.id);
+  }
+
+  @Get('life-balance')
+  async getLifeBalance(@CurrentUser() user: AuthenticatedUser) {
+    return this.analyticsService.getLifeBalance(user.id);
+  }
+
+  @Get('timeline')
+  async getUnifiedTimeline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('limit') limit?: number,
+  ) {
+    return this.analyticsService.getUnifiedTimeline(user.id, limit ? Number(limit) : 50);
+  }
+
+  // ==========================================
+  // PHASE 43.2: INTELLIGENT DAILY TIMELINE
+  // ==========================================
+  @Get('day-timeline')
+  async getDayTimeline(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('date') date?: string,
+  ) {
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    return this.analyticsService.getDayTimelineData(user.id, targetDate);
+  }
 }
 

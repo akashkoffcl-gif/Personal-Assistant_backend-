@@ -18,6 +18,7 @@ describe('Worker, Notifications & Emergency Replan Recovery', () => {
 
   const mockPrisma = {
     isConnected: true,
+    withRetry: jest.fn((cb) => cb()),
     reminder: {
       findUnique: jest.fn(),
       findMany: jest.fn(),
@@ -59,6 +60,8 @@ describe('Worker, Notifications & Emergency Replan Recovery', () => {
 
   const mockRedis = {
     invalidatePattern: jest.fn().mockResolvedValue(undefined),
+    acquireLock: jest.fn().mockResolvedValue(true),
+    releaseLock: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockReminders = {
@@ -70,6 +73,7 @@ describe('Worker, Notifications & Emergency Replan Recovery', () => {
     jest.clearAllMocks();
     workerService = new WorkerService(
       mockPrisma as any,
+      mockRedis as any,
       mockNotifications as any,
       mockOutbox as any,
     );

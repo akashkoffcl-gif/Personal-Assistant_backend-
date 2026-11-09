@@ -29,3 +29,4 @@
 1. **Sprint 1 (Post-Phase 26):** Rotate cloud database and Redis credentials upstream; update cloud Redis instance policy to `noeviction`.
 2. **Sprint 2:** Enhance PWA Service Worker (`sw.js`) with Workbox `fetch` event caching and IndexedDB offline mutation outbox.
 3. **Sprint 3:** Add containerized local database harness for ultra-fast offline unit testing.
+

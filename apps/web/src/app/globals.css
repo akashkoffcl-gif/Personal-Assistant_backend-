@@ -279,3 +279,25 @@ body {
 .custom-card-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #8B45F5;
 }
+
+/* Phase 39 Global & Dashboard Smooth Custom Scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #C4B5FD #F4F3FF;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #F4F3FF;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #C4B5FD;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #8B45F5;
+}
+

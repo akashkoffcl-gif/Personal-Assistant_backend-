@@ -17,8 +17,14 @@ import { OutboxModule } from './modules/outbox/outbox.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { AutomationModule } from './modules/automation/automation.module';
 import { FollowUpsModule } from './modules/follow-ups/follow-ups.module';
+import { FocusModule } from './modules/focus/focus.module';
+import { FinanceModule } from './modules/finance/finance.module';
+import { GoalsModule } from './modules/goals/goals.module';
+import { KnowledgeModule } from './modules/knowledge/knowledge.module';
+import { AIModule } from './modules/ai/ai.module';
 import { CommonModule } from './common/common.module';
 import { WorkerModule } from './worker/worker.module';
+import { HealthController } from './health.controller';
 
 @Module({
   imports: [
@@ -39,8 +45,14 @@ import { WorkerModule } from './worker/worker.module';
     ProjectsModule,
     AutomationModule,
     FollowUpsModule,
+    FocusModule,
+    FinanceModule,
+    GoalsModule,
+    KnowledgeModule,
+    AIModule,
     WorkerModule,
   ],
+  controllers: [HealthController],
 })
 export class AppModule {}
 

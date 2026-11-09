@@ -23,6 +23,16 @@ import {
   Menu,
   X,
   LogOut,
+  Timer,
+  Target,
+  BookOpen,
+  Wallet,
+  Scale,
+  History,
+  Sparkles,
+  Mic,
+  Bot,
+  Brain,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -40,7 +50,16 @@ export type NavTab =
   | 'usage-analytics'
   | 'calendar'
   | 'automation'
-  | 'settings';
+  | 'settings'
+  | 'focus'
+  | 'goals'
+  | 'knowledge'
+  | 'finance'
+  | 'life-balance'
+  | 'timeline'
+  | 'predictive'
+  | 'smart-planner'
+  | 'ai-chat';
 
 export interface HorizontalNavbarProps {
   currentTab: NavTab;
@@ -59,6 +78,8 @@ export interface HorizontalNavbarProps {
   selectedDate?: string;
   onOpenNotifications?: () => void;
   unreadNotificationsCount?: number;
+  onOpenVoiceAssistant?: () => void;
+  onOpenAIAssistant?: () => void;
 }
 
 interface NavItemConfig {
@@ -88,6 +109,8 @@ export function HorizontalNavbar({
   selectedDate,
   onOpenNotifications,
   unreadNotificationsCount = 0,
+  onOpenVoiceAssistant,
+  onOpenAIAssistant,
 }: HorizontalNavbarProps) {
   const { user, profile, logout } = useAuth();
   const displayName = profile?.fullName || user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Selma Knight');
@@ -141,11 +164,20 @@ export function HorizontalNavbar({
 
   // 2. Secondary Dropdown Items in "More ▾"
   const secondaryDropdownList: NavItemConfig[] = [
+    { id: 'ai-chat', label: 'AI Executive Chat', shortLabel: 'AI Chat', icon: Bot, visibility: 'dropdown-only', badge: 'New', badgeColor: 'bg-[#10B981] text-white' },
+    { id: 'focus', label: 'Focus Studio & Pomodoro', shortLabel: 'Focus Studio', icon: Timer, visibility: 'dropdown-only', badge: 'Pro', badgeColor: 'bg-[#8B45F5] text-white' },
+    { id: 'goals', label: 'Goals & Milestones', shortLabel: 'Goals', icon: Target, visibility: 'dropdown-only' },
+    { id: 'smart-planner', label: 'AI Smart Day Planner', shortLabel: 'Smart Planner', icon: Sparkles, visibility: 'dropdown-only' },
+    { id: 'knowledge', label: 'Personal Knowledge Hub', shortLabel: 'Knowledge', icon: BookOpen, visibility: 'dropdown-only' },
+    { id: 'finance', label: 'Personal Finance', shortLabel: 'Finance', icon: Wallet, visibility: 'dropdown-only' },
+    { id: 'predictive', label: 'Predictive Productivity', shortLabel: 'Predictive', icon: Brain, visibility: 'dropdown-only' },
+    { id: 'life-balance', label: 'Life Balance Dashboard', shortLabel: 'Life Balance', icon: Scale, visibility: 'dropdown-only' },
+    { id: 'timeline', label: 'Activity Timeline', shortLabel: 'Timeline', icon: History, visibility: 'dropdown-only' },
     { id: 'projects', label: 'Projects', shortLabel: 'Projects', icon: FolderKanban, visibility: 'dropdown-only' },
     { id: 'routines', label: 'Routines', shortLabel: 'Routines', icon: Repeat, visibility: 'dropdown-only' },
     { id: 'calendar', label: 'Calendar & Planning', shortLabel: 'Calendar', icon: Calendar, visibility: 'dropdown-only' },
     { id: 'analytics', label: 'Analytics', shortLabel: 'Analytics', icon: BarChart3, visibility: 'dropdown-only' },
-    { id: 'usage-analytics', label: 'App Usage Analytics', shortLabel: 'App Usage', icon: Activity, visibility: 'dropdown-only', badge: 'New', badgeColor: 'bg-[#8B45F5] text-white' },
+    { id: 'usage-analytics', label: 'App Usage Analytics', shortLabel: 'App Usage', icon: Activity, visibility: 'dropdown-only' },
     { id: 'automation', label: 'Automation Rules', shortLabel: 'Automation', icon: Cpu, visibility: 'dropdown-only' },
     { id: 'wellness', label: 'Health & Wellness', shortLabel: 'Wellness', icon: HeartPulse, visibility: 'dropdown-only' },
     { id: 'settings', label: 'System Settings', shortLabel: 'Settings', icon: Settings, visibility: 'dropdown-only' },
@@ -153,6 +185,15 @@ export function HorizontalNavbar({
 
   // Check if current tab is one of the secondary dropdown items
   const isDropdownActive = [
+    'ai-chat',
+    'focus',
+    'goals',
+    'smart-planner',
+    'knowledge',
+    'finance',
+    'predictive',
+    'life-balance',
+    'timeline',
     'usage-analytics',
     'automation',
     'wellness',
@@ -254,13 +295,12 @@ export function HorizontalNavbar({
             </button>
 
             {isMoreMenuOpen && (
-              <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-56 bg-white rounded-2xl border border-[#E5E2F5] shadow-[0_10px_35px_rgba(139,69,245,0.12)] p-2 z-50 animate-fade-in">
-                {/* Breakpoint-dependent overflow items */}
+              <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 max-h-[calc(100vh-100px)] overflow-y-auto bg-white rounded-2xl border border-[#E5E2F5] shadow-[0_10px_35px_rgba(139,69,245,0.14)] p-2 z-50 animate-fade-in custom-scrollbar">
+                {/* Breakpoint-dependent overflow items (< 1720px / < 1500px / < xl) */}
                 <div className="min-[1720px]:hidden border-b border-[#F0F2FA] pb-1.5 mb-1.5">
                   <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#74738A]">
                     Primary Workspaces
                   </div>
-                  {/* Shown in dropdown on < 1500px */}
                   <button
                     onClick={() => {
                       onSelectTab('calendar');
@@ -289,8 +329,6 @@ export function HorizontalNavbar({
                     <BarChart3 className="w-3.5 h-3.5" />
                     <span>Analytics</span>
                   </button>
-
-                  {/* Shown in dropdown on < xl */}
                   <div className="xl:hidden">
                     <button
                       onClick={() => {
@@ -323,9 +361,109 @@ export function HorizontalNavbar({
                   </div>
                 </div>
 
+                {/* CATEGORY: PLAN */}
                 <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#74738A]">
-                  Intelligence & Wellness
+                  Plan
                 </div>
+                <button
+                  onClick={() => {
+                    onSelectTab('goals');
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                    currentTab === 'goals'
+                      ? 'bg-[#8B45F5] text-white font-bold'
+                      : 'text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Target className="w-3.5 h-3.5" />
+                    <span>Goals & Milestones</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    onSelectTab('smart-planner');
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                    currentTab === 'smart-planner'
+                      ? 'bg-[#8B45F5] text-white font-bold'
+                      : 'text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5 text-[#8B45F5]" />
+                    <span>AI Smart Day Planner</span>
+                  </div>
+                  <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full bg-[#8B45F5] text-white">
+                    AI
+                  </span>
+                </button>
+
+                {/* CATEGORY: EXECUTE */}
+                <div className="border-t border-[#F0F2FA] my-1" />
+                <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#74738A]">
+                  Execute
+                </div>
+                <button
+                  onClick={() => {
+                    onSelectTab('focus');
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                    currentTab === 'focus'
+                      ? 'bg-[#8B45F5] text-white font-bold'
+                      : 'text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Timer className="w-3.5 h-3.5" />
+                    <span>Focus Studio & Pomodoro</span>
+                  </div>
+                  <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full bg-[#8B45F5] text-white">
+                    Pro
+                  </span>
+                </button>
+
+                {/* CATEGORY: UNDERSTAND */}
+                <div className="border-t border-[#F0F2FA] my-1" />
+                <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#74738A]">
+                  Understand
+                </div>
+                <button
+                  onClick={() => {
+                    onSelectTab('predictive');
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                    currentTab === 'predictive'
+                      ? 'bg-[#8B45F5] text-white font-bold'
+                      : 'text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Brain className="w-3.5 h-3.5 text-[#8B45F5]" />
+                    <span>Predictive Intelligence</span>
+                  </div>
+                  <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full bg-[#8B45F5] text-white">
+                    New
+                  </span>
+                </button>
+                <button
+                  onClick={() => {
+                    onSelectTab('life-balance');
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                    currentTab === 'life-balance'
+                      ? 'bg-[#8B45F5] text-white font-bold'
+                      : 'text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8]'
+                  }`}
+                >
+                  <Scale className="w-3.5 h-3.5" />
+                  <span>Life Balance Dashboard</span>
+                </button>
                 <button
                   onClick={() => {
                     onSelectTab('usage-analytics');
@@ -341,26 +479,103 @@ export function HorizontalNavbar({
                     <Activity className="w-3.5 h-3.5" />
                     <span>App Usage Analytics</span>
                   </div>
-                  <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full bg-[#8B45F5] text-white">
-                    New
-                  </span>
                 </button>
 
+                {/* CATEGORY: REMEMBER */}
+                <div className="border-t border-[#F0F2FA] my-1" />
+                <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#74738A]">
+                  Remember
+                </div>
                 <button
                   onClick={() => {
-                    onSelectTab('automation');
+                    onSelectTab('knowledge');
                     setIsMoreMenuOpen(false);
                   }}
                   className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                    currentTab === 'automation'
+                    currentTab === 'knowledge'
                       ? 'bg-[#8B45F5] text-white font-bold'
                       : 'text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8]'
                   }`}
                 >
-                  <Cpu className="w-3.5 h-3.5" />
-                  <span>Automation Rules</span>
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Personal Knowledge Hub</span>
+                </button>
+                <button
+                  onClick={() => {
+                    onSelectTab('timeline');
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                    currentTab === 'timeline'
+                      ? 'bg-[#8B45F5] text-white font-bold'
+                      : 'text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8]'
+                  }`}
+                >
+                  <History className="w-3.5 h-3.5" />
+                  <span>Activity Timeline</span>
                 </button>
 
+                {/* CATEGORY: FINANCE */}
+                <div className="border-t border-[#F0F2FA] my-1" />
+                <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#74738A]">
+                  Finance
+                </div>
+                <button
+                  onClick={() => {
+                    onSelectTab('finance');
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                    currentTab === 'finance'
+                      ? 'bg-[#8B45F5] text-white font-bold'
+                      : 'text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8]'
+                  }`}
+                >
+                  <Wallet className="w-3.5 h-3.5" />
+                  <span>Personal Finance Overview</span>
+                </button>
+
+                {/* CATEGORY: INTELLIGENCE & VOICE */}
+                <div className="border-t border-[#F0F2FA] my-1" />
+                <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#74738A]">
+                  Intelligence & Voice
+                </div>
+                <button
+                  onClick={() => {
+                    setIsMoreMenuOpen(false);
+                    onOpenAIAssistant?.();
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8] transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Bot className="w-3.5 h-3.5 text-[#8B45F5]" />
+                    <span>AI Executive Assistant</span>
+                  </div>
+                  <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full bg-[#8B45F5] text-white">
+                    Gemini
+                  </span>
+                </button>
+                <button
+                  onClick={() => {
+                    setIsMoreMenuOpen(false);
+                    onOpenVoiceAssistant?.();
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8] transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Mic className="w-3.5 h-3.5 text-[#8B45F5]" />
+                    <span>Voice-Controlled Assistant</span>
+                  </div>
+                  <span className="text-[8px] font-bold px-1.5 py-0.2 rounded-full bg-[#16A36A] text-white">
+                    Live
+                  </span>
+                </button>
+
+                {/* CATEGORY: TOOLS & SETTINGS */}
+                <div className="border-t border-[#F0F2FA] my-1" />
+                <div className="px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[#74738A]">
+                  Tools & System
+                </div>
                 <button
                   onClick={() => {
                     onSelectTab('wellness');
@@ -375,9 +590,20 @@ export function HorizontalNavbar({
                   <HeartPulse className="w-3.5 h-3.5" />
                   <span>Health & Wellness</span>
                 </button>
-
-                <div className="border-t border-[#F0F2FA] my-1" />
-
+                <button
+                  onClick={() => {
+                    onSelectTab('automation');
+                    setIsMoreMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+                    currentTab === 'automation'
+                      ? 'bg-[#8B45F5] text-white font-bold'
+                      : 'text-[#202033] hover:bg-[#F4F3FF] hover:text-[#6935C8]'
+                  }`}
+                >
+                  <Cpu className="w-3.5 h-3.5" />
+                  <span>Automation Rules</span>
+                </button>
                 <button
                   onClick={() => {
                     onSelectTab('settings');
@@ -390,7 +616,7 @@ export function HorizontalNavbar({
                   }`}
                 >
                   <Settings className="w-3.5 h-3.5" />
-                  <span>Settings</span>
+                  <span>System Settings</span>
                 </button>
               </div>
             )}
@@ -476,6 +702,16 @@ export function HorizontalNavbar({
               </div>
             )}
           </div>
+
+          {/* Voice-Controlled Assistant Trigger */}
+          <button
+            onClick={onOpenVoiceAssistant}
+            className="w-8 h-8 rounded-xl border border-[#E5E2F5] bg-white hover:bg-[#F4F3FF] flex items-center justify-center shadow-2xs transition-all text-[#202033] hover:text-[#8B45F5]"
+            title="Voice-Controlled Assistant (Click to Speak)"
+            aria-label="Voice Assistant"
+          >
+            <Mic className="w-3.5 h-3.5 text-[#8B45F5]" />
+          </button>
 
           {/* Notification Center Trigger with Badge */}
           <button
@@ -605,13 +841,22 @@ export function HorizontalNavbar({
           </div>
 
           {/* Full grid of all modules */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 mb-3 max-h-[340px] overflow-y-auto">
             {[
               { id: 'dashboard' as NavTab, label: 'Command Center', icon: LayoutDashboard },
+              { id: 'ai-chat' as NavTab, label: 'AI Executive Chat', icon: Bot },
               { id: 'my-day' as NavTab, label: 'My Day', icon: CalendarCheck },
               { id: 'work' as NavTab, label: 'Tasks', icon: Briefcase },
               { id: 'projects' as NavTab, label: 'Projects', icon: FolderKanban },
               { id: 'routines' as NavTab, label: 'Routines', icon: Repeat },
+              { id: 'focus' as NavTab, label: 'Focus Studio', icon: Timer },
+              { id: 'goals' as NavTab, label: 'Goals', icon: Target },
+              { id: 'smart-planner' as NavTab, label: 'Smart Planner', icon: Sparkles },
+              { id: 'knowledge' as NavTab, label: 'Knowledge Hub', icon: BookOpen },
+              { id: 'finance' as NavTab, label: 'Personal Finance', icon: Wallet },
+              { id: 'predictive' as NavTab, label: 'Predictive Intel', icon: Brain },
+              { id: 'life-balance' as NavTab, label: 'Life Balance', icon: Scale },
+              { id: 'timeline' as NavTab, label: 'Activity Timeline', icon: History },
               { id: 'calendar' as NavTab, label: 'Calendar & Planning', icon: Calendar },
               { id: 'analytics' as NavTab, label: 'Analytics', icon: BarChart3 },
               { id: 'usage-analytics' as NavTab, label: 'App Usage', icon: Activity },

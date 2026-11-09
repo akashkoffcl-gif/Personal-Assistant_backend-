@@ -18,6 +18,8 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@types/three": "^0.187.0",
+    "three": "^0.187.0",
     "web-push": "^3.6.7"
   }
 }

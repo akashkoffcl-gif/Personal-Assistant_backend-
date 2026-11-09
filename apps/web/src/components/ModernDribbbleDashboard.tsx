@@ -33,6 +33,8 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { FocusStudioDashboardWidget } from '@/components/FocusStudioDashboardWidget';
+import { FinanceDashboardWidget } from '@/components/FinanceDashboardWidget';
 
 export interface OverviewChartDay {
   date: string;
@@ -141,7 +143,6 @@ export function ModernDribbbleDashboard({
   const [showCompletedSeries, setShowCompletedSeries] = useState(true);
   const [showScheduledSeries, setShowScheduledSeries] = useState(true);
   const [projectTab, setProjectTab] = useState<'projects' | 'tasks'>('projects');
-  const [analyticsFooterTab, setAnalyticsFooterTab] = useState<'weekly' | 'monthly' | 'custom'>('weekly');
   const [hoveredChartDay, setHoveredChartDay] = useState<OverviewChartDay | null>(null);
   const [isFabMenuOpen, setIsFabMenuOpen] = useState(false);
 
@@ -321,11 +322,11 @@ export function ModernDribbbleDashboard({
   const maxBarValue = 20;
 
   return (
-    <div className="w-full flex-1 min-h-0 select-none overflow-hidden max-lg:space-y-3 max-lg:pb-16 max-lg:overflow-y-auto lg:grid lg:grid-rows-[66px_84px_minmax(210px,1fr)_140px_38px] 2xl:lg:grid-rows-[70px_88px_minmax(240px,1fr)_146px_42px] lg:gap-1.5 2xl:lg:gap-2">
+    <div className="w-full flex-1 min-h-0 select-none overflow-y-auto space-y-2 pb-6 pr-0.5 custom-scrollbar">
       {/* =========================================================================
-          ROW 2 (ROW 1 OF DASHBOARD): COMPACT WELCOME HEADER & QUICK ACTIONS
+          ROW 1: COMPACT WELCOME HEADER & QUICK ACTIONS
          ========================================================================= */}
-      <div className="bg-white rounded-xl sm:rounded-2xl px-3 sm:px-4 py-1.5 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 overflow-hidden h-full">
+      <div className="bg-white rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col sm:flex-row sm:items-center justify-between gap-2 overflow-hidden shrink-0">
         {/* Left Side: Greeting & Daily Progress */}
         <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 min-w-0">
           <div className="flex items-center gap-2">
@@ -427,9 +428,9 @@ export function ModernDribbbleDashboard({
       </div>
 
       {/* =========================================================================
-          ROW 3 (ROW 2 OF DASHBOARD): 6 COMPACT KPI INTELLIGENCE CARDS IN ONE ROW
+          ROW 2: 6 COMPACT KPI INTELLIGENCE CARDS IN ONE ROW
          ========================================================================= */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2 overflow-hidden h-full">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2">
         {/* KPI 1: Task Completion (Progress-focused card with green accent) */}
         <div
           onClick={() => onNavigateTab('work', { filter: 'completed' })}
@@ -680,9 +681,9 @@ export function ModernDribbbleDashboard({
       </div>
 
       {/* =========================================================================
-          ROW 4 (ROW 3 OF DASHBOARD): PRIMARY 3-COLUMN GRID (42% / 32% / 26%)
+          ROW 3: PRIMARY 3-COLUMN GRID (42% / 32% / 26%)
          ========================================================================= */}
-      <div className="flex flex-col lg:grid lg:grid-cols-[42fr_32fr_26fr] gap-1.5 sm:gap-2 min-h-0 overflow-hidden h-full">
+      <div className="flex flex-col lg:grid lg:grid-cols-[42fr_32fr_26fr] gap-1.5 sm:gap-2 min-h-[240px]">
         {/* COLUMN 1: LEFT 42% — PRODUCTIVITY OVERVIEW & TASK DISTRIBUTION */}
         <div className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-3 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col justify-between h-full overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-stretch h-full">
@@ -1126,9 +1127,24 @@ export function ModernDribbbleDashboard({
       </div>
 
       {/* =========================================================================
-          ROW 5 (ROW 4 OF DASHBOARD): SUPPORTING 4-COLUMN BALANCED GRID (25% EACH)
+          ROW 4: FOCUS STUDIO (6 COLS) & FINANCE DASHBOARD (6 COLS)
          ========================================================================= */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2 min-h-0 overflow-hidden h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-1.5 sm:gap-2">
+        <FocusStudioDashboardWidget
+          onOpenFullStudio={() => onNavigateTab('focus')}
+          onOpenCreateTask={onOpenCreateTask}
+        />
+        <FinanceDashboardWidget
+          onOpenFullFinance={() => onNavigateTab('finance')}
+          onOpenAddTransaction={() => onNavigateTab('finance')}
+          onOpenAddAccount={() => onNavigateTab('finance')}
+        />
+      </div>
+
+      {/* =========================================================================
+          ROW 5: SUPPORTING 4-COLUMN BALANCED GRID (25% EACH)
+         ========================================================================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2 min-h-[175px]">
         {/* CARD F: Routine Tracker */}
         <div className="bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-3 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex flex-col justify-between h-full overflow-hidden">
           <div className="flex items-center justify-between mb-1.5 shrink-0">
@@ -1362,82 +1378,6 @@ export function ModernDribbbleDashboard({
             ))}
           </div>
         </div>
-      </div>
-
-      {/* =========================================================================
-          ROW 6 (ROW 5 OF DASHBOARD): COMPACT PRODUCTIVITY ANALYTICS FOOTER STRIP
-         ========================================================================= */}
-      <div className="bg-white rounded-xl sm:rounded-2xl px-3 sm:px-4 py-1 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.035)] flex items-center justify-between gap-2 shrink-0 h-full overflow-hidden">
-        {/* Left Side: Title & Period Switcher */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded-lg bg-[#F4F3FF] flex items-center justify-center text-[#8B45F5]">
-              <BarChart2 className="w-3.5 h-3.5 text-[#8B45F5]" />
-            </div>
-            <span className="text-xs font-bold text-[#202033] whitespace-nowrap">Productivity Analytics</span>
-          </div>
-
-          <div className="flex items-center gap-0.5 bg-[#F4F3FF] p-0.5 rounded-lg border border-[#E5E2F5]">
-            <button
-              onClick={() => setAnalyticsFooterTab('weekly')}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
-                analyticsFooterTab === 'weekly' ? 'bg-white text-[#8B45F5] shadow-xs' : 'text-[#74738A] hover:text-[#202033]'
-              }`}
-            >
-              Weekly
-            </button>
-            <button
-              onClick={() => setAnalyticsFooterTab('monthly')}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
-                analyticsFooterTab === 'monthly' ? 'bg-white text-[#8B45F5] shadow-xs' : 'text-[#74738A] hover:text-[#202033]'
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setAnalyticsFooterTab('custom')}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
-                analyticsFooterTab === 'custom' ? 'bg-white text-[#8B45F5] shadow-xs' : 'text-[#74738A] hover:text-[#202033]'
-              }`}
-            >
-              Custom
-            </button>
-          </div>
-        </div>
-
-        {/* Right Side: Key High-Level Metrics */}
-        <div className="flex items-center gap-3 sm:gap-4 text-[10px] sm:text-[11px] text-[#74738A] truncate">
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[#9CA3AF]">Total Focus:</span>
-            <span className="font-bold text-[#202033]">32h 45m</span>
-            <span className="text-[9px] font-bold text-[#16A36A]">&uarr; 18%</span>
-          </div>
-
-          <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[#9CA3AF]">Avg. Completion:</span>
-            <span className="font-bold text-[#202033]">78%</span>
-            <span className="text-[9px] font-bold text-[#16A36A]">&uarr; 12%</span>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-1 shrink-0">
-            <span className="text-[#9CA3AF]">Most Productive:</span>
-            <span className="font-bold text-[#202033]">Tuesday</span>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-1 shrink-0">
-            <span className="text-[#9CA3AF]">Active Days:</span>
-            <span className="font-bold text-[#202033]">6/7</span>
-          </div>
-        </div>
-
-        {/* Action Button inside tray */}
-        <button
-          onClick={onOpenCreateTask}
-          className="w-7 h-7 rounded-lg bg-[#8B45F5] hover:bg-[#7839D6] text-white flex items-center justify-center shadow-xs transition-transform hover:scale-105 shrink-0"
-          title="Quick Add Task"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-        </button>
       </div>
     </div>
   );

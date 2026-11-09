@@ -16,15 +16,17 @@ export class OutboxService {
   ) {
     if (this.prisma.isConnected) {
       try {
-        return await this.prisma.outboxEvent.create({
-          data: {
-            aggregateType,
-            aggregateId,
-            eventType,
-            payload,
-            status: OutboxEventStatus.PENDING,
-          },
-        });
+        return await this.prisma.withRetry(() =>
+          this.prisma.outboxEvent.create({
+            data: {
+              aggregateType,
+              aggregateId,
+              eventType,
+              payload,
+              status: OutboxEventStatus.PENDING,
+            },
+          }),
+        );
       } catch (err: any) {
         this.logger.error(`Failed to write outbox event: ${err?.message}`);
       }
@@ -35,22 +37,35 @@ export class OutboxService {
 
   async getPendingEvents(limit = 50) {
     if (!this.prisma.isConnected) return [];
-    return this.prisma.outboxEvent.findMany({
-      where: { status: OutboxEventStatus.PENDING },
-      orderBy: { createdAt: 'asc' },
-      take: limit,
-    });
+    try {
+      return await this.prisma.withRetry(() =>
+        this.prisma.outboxEvent.findMany({
+          where: { status: OutboxEventStatus.PENDING },
+          orderBy: { createdAt: 'asc' },
+          take: limit,
+        }),
+      );
+    } catch (err: any) {
+      this.logger.warn(`Failed reading pending outbox events: ${err?.message}`);
+      return [];
+    }
   }
 
   async markProcessed(id: string) {
     if (!this.prisma.isConnected) return;
-    await this.prisma.outboxEvent.update({
-      where: { id },
-      data: {
-        status: OutboxEventStatus.PROCESSED,
-        processedAt: new Date(),
-      },
-    });
+    try {
+      await this.prisma.withRetry(() =>
+        this.prisma.outboxEvent.update({
+          where: { id },
+          data: {
+            status: OutboxEventStatus.PROCESSED,
+            processedAt: new Date(),
+          },
+        }),
+      );
+    } catch (err: any) {
+      this.logger.warn(`Failed marking outbox event ${id} processed: ${err?.message}`);
+    }
   }
 
   async markFailed(id: string, error: string) {

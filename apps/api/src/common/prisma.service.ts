@@ -97,10 +97,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
           throw err;
         }
 
-        this.logger.warn(`Transient database error (${msg.slice(0, 80)}...). Reconnecting & retrying (Attempt ${attempt}/${maxRetries})...`);
+        const delay = Math.min(1000 * Math.pow(2, attempt), 4000) + Math.floor(Math.random() * 500);
+        this.logger.warn(`Transient database error (${msg.slice(0, 80)}...). Reconnecting & retrying (Attempt ${attempt}/${maxRetries} after ${delay}ms)...`);
         this.isConnected = false;
         await this.ensureConnected();
-        await new Promise((res) => setTimeout(res, 500 * attempt));
+        await new Promise((res) => setTimeout(res, delay));
       }
     }
     throw new Error('Database operation failed after retries');

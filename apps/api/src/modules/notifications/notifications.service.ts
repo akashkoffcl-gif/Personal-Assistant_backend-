@@ -42,18 +42,19 @@ export class NotificationsService {
 
   async saveSubscription(userId: string, payload: PushSubscriptionPayload) {
     if (!this.prisma.isConnected) {
-      return { id: 'mock-sub-id', ...payload, isActive: true };
+      throw new Error('Database unavailable. Cannot persist push subscription.');
     }
 
     return this.prisma.pushSubscription.upsert({
       where: { endpoint: payload.endpoint },
       update: {
-        userId,
+        userId, // Account switching: binds active subscription to current authenticated user
         p256dh: payload.keys.p256dh,
         auth: payload.keys.auth,
         deviceType: payload.deviceType || 'desktop',
         userAgent: payload.userAgent,
-        isActive: true,
+        isActive: true, // Reactivate if previously unsubscribed on same device
+        updatedAt: new Date(),
       },
       create: {
         userId,
@@ -67,14 +68,37 @@ export class NotificationsService {
     });
   }
 
-  async revokeSubscription(userId: string, subscriptionId: string) {
-    if (!this.prisma.isConnected) return { success: true };
+  async revokeSubscription(userId: string, subscriptionIdOrEndpoint: string) {
+    if (!this.prisma.isConnected) {
+      throw new Error('Database unavailable. Cannot revoke push subscription.');
+    }
 
-    await this.prisma.pushSubscription.updateMany({
-      where: { id: subscriptionId, userId },
+    // Support revoking either by UUID id or by endpoint URL with strict tenant scoping
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(subscriptionIdOrEndpoint);
+
+    const result = await this.prisma.pushSubscription.updateMany({
+      where: isUuid
+        ? { id: subscriptionIdOrEndpoint, userId }
+        : { endpoint: subscriptionIdOrEndpoint, userId },
       data: { isActive: false },
     });
-    return { success: true };
+
+    return { success: true, deactivatedCount: result.count };
+  }
+
+  async getActiveSubscriptions(userId: string) {
+    if (!this.prisma.isConnected) return [];
+    return this.prisma.pushSubscription.findMany({
+      where: { userId, isActive: true },
+      select: {
+        id: true,
+        endpoint: true,
+        deviceType: true,
+        userAgent: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
   }
 
   async sendPushNotification(
@@ -156,24 +180,40 @@ export class NotificationsService {
 
     // 2. Dispatch Web Push if active subscriptions exist
     if (!this.prisma.isConnected) {
-      this.logger.log(`[Push Notification Mock] User: ${userId} - ${notification.title}: ${notification.body}`);
-      return { deliveredCount: 0 };
+      this.logger.warn(`Cannot dispatch push notifications: database is disconnected.`);
+      return { dispatchAcceptedCount: 0, totalSubscriptions: 0, devicesAttempted: 0 };
     }
 
     const subscriptions = await this.prisma.pushSubscription.findMany({
       where: { userId, isActive: true },
     });
 
-    let delivered = 0;
+    let dispatchAccepted = 0;
+    const deliveryResults: Array<{ endpoint: string; status: 'ACCEPTED' | 'FAILED' | 'EXPIRED'; error?: string }> = [];
+
     for (const sub of subscriptions) {
       const result = await this.sendPushNotification(
         { endpoint: sub.endpoint, p256dh: sub.p256dh, auth: sub.auth },
         notification,
       );
-      if (result.success) delivered++;
+      if (result.success) {
+        dispatchAccepted++;
+        deliveryResults.push({ endpoint: sub.endpoint.slice(0, 30) + '...', status: 'ACCEPTED' });
+      } else {
+        const isExpired = result.statusCode === 404 || result.statusCode === 410;
+        deliveryResults.push({
+          endpoint: sub.endpoint.slice(0, 30) + '...',
+          status: isExpired ? 'EXPIRED' : 'FAILED',
+          error: result.error,
+        });
+      }
     }
 
-    return { deliveredCount: delivered, totalSubscriptions: subscriptions.length };
+    return {
+      dispatchAcceptedCount: dispatchAccepted,
+      totalSubscriptions: subscriptions.length,
+      deliveryResults,
+    };
   }
 
   // Persistent In-App Notification Center Methods

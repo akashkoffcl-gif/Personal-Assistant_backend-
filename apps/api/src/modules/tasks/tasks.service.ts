@@ -132,7 +132,7 @@ export class TasksService {
         userId,
         title: data.title,
         description: data.description,
-        category: data.category,
+        category: data.category || TaskCategory.WORK,
         status: data.status || TaskStatus.TODO,
         priority: data.priority || Priority.MEDIUM,
         schedulingMode: data.schedulingMode || SchedulingMode.FLEXIBLE,

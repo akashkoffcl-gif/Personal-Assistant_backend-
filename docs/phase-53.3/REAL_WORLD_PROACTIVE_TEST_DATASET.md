@@ -1,0 +1,25 @@
+# Real-World Proactive Test Dataset (20 Scenarios)
+
+The test dataset in [`scripts/evaluate-proactive-intelligence.js`](file:///D:/PT/scripts/evaluate-proactive-intelligence.js) assesses 20 distinct proactive scenarios:
+
+1. Upcoming Project Deadline with Incomplete Work (`DEADLINE_RISK`)
+2. Unresolved Technical Blocker in Memory (`UNRESOLVED_BLOCKER`)
+3. Protected Morning Focus Block Active (`PROTECTED_FOCUS_TIME`)
+4. Completed Milestone Next Step Discovery (`MILESTONE_NEXT_STEP`)
+5. Quiet Hours Interruption Suppression (`INTERRUPTION_POLICY`)
+6. Active Focus Session Interruption Suppression (`INTERRUPTION_POLICY`)
+7. User Rejection of Suggestion (DISMISSED) (`FEEDBACK_ADAPTATION`)
+8. User Acceptance of Suggestion (ACCEPTED) (`FEEDBACK_ADAPTATION`)
+9. User Snooze of Suggestion (SNOOZED) (`FEEDBACK_ADAPTATION`)
+10. Duplicate Suggestion Cooldown Suppression (`DEBOUNCE_COOLDOWN`)
+11. Stale Information Decay Evaluation (`CONFIDENCE_SCORING`)
+12. Multiple Competing Priorities Ranking (`PRIORITY_RANKING`)
+13. Schedule Conflict Discovery (`SCHEDULE_ANALYSIS`)
+14. Personal Routine Drift Detection (`ROUTINE_DRIFT`)
+15. Client Review Preparation Assistance (`CONTEXT_AWARENESS`)
+16. Zero Database Mutation Boundary Check (`SAFETY_BOUNDARY`)
+17. Tenant Scoping & Memory Isolation Check (`MULTI_TENANT_ISOLATION`)
+18. Tamil-English Contextual Proactive Trigger (`MULTILINGUAL_CONTEXT`)
+19. Natural Phrasing vs Robotic Alert Check (`COMMUNICATION_STYLE`)
+20. Explicit Read-Only Constraint Adherence (`SAFETY_BOUNDARY`)
+

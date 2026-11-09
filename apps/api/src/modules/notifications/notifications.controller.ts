@@ -96,6 +96,20 @@ export class NotificationsController {
     return { success: true, subscription: sub };
   }
 
+  @Get('subscriptions')
+  async getSubscriptions(@CurrentUser() user: AuthenticatedUser) {
+    const subs = await this.notificationsService.getActiveSubscriptions(user.id);
+    return { success: true, subscriptions: subs };
+  }
+
+  @Post('unsubscribe')
+  async unsubscribeEndpoint(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body('endpoint') endpoint: string,
+  ) {
+    return this.notificationsService.revokeSubscription(user.id, endpoint);
+  }
+
   @Delete('subscriptions/:id')
   async unsubscribe(
     @CurrentUser() user: AuthenticatedUser,

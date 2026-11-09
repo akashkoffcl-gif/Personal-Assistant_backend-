@@ -35,7 +35,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async get(key: string): Promise<string | null> {
     if (this.isConnected && this.client) {
-      return this.client.get(key);
+      try {
+        return await this.client.get(key);
+      } catch (err: any) {
+        this.isConnected = false;
+        this.logger.warn(`Redis get failed (${err.message}); falling back to memory cache.`);
+      }
     }
     const item = this.memoryCache.get(key);
     if (!item) return null;
@@ -48,14 +53,72 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async set(key: string, value: string, ttlSeconds?: number): Promise<'OK'> {
     if (this.isConnected && this.client) {
-      if (ttlSeconds) {
-        return this.client.set(key, value, 'EX', ttlSeconds);
+      try {
+        if (ttlSeconds) {
+          return await this.client.set(key, value, 'EX', ttlSeconds);
+        }
+        return await this.client.set(key, value);
+      } catch (err: any) {
+        this.isConnected = false;
+        this.logger.warn(`Redis set failed (${err.message}); falling back to memory cache.`);
       }
-      return this.client.set(key, value);
     }
     const expiresAt = ttlSeconds ? Date.now() + ttlSeconds * 1000 : undefined;
     this.memoryCache.set(key, { value, expiresAt });
     return 'OK';
+  }
+
+  /**
+   * Acquire a distributed lock using Redis SET NX EX.
+   * STRICT FAIL-CLOSED POLICY FOR CRITICAL COORDINATION:
+   * Distributed locks must NEVER fall back to a process-local in-memory Map in multi-process deployments.
+   * If Redis is disconnected or unavailable, this method returns false or fails closed.
+   */
+  async acquireLock(lockKey: string, ttlSeconds: number): Promise<boolean> {
+    const key = `lock:${lockKey}`;
+    if (this.isConnected && this.client) {
+      try {
+        const res = await this.client.set(key, 'LOCKED', 'EX', ttlSeconds, 'NX');
+        return res === 'OK';
+      } catch (err: any) {
+        this.logger.warn(`Failed acquiring distributed lock via Redis: ${err?.message}`);
+        return false;
+      }
+    }
+
+    // Single-process fallback ONLY if verified single-worker topology:
+    // DISABLE_WORKER must be true AND ALLOW_LOCAL_LOCK must be explicitly set to 'true'.
+    // In multi-worker or dedicated standalone worker deployments, ALLOW_LOCAL_LOCK is strictly rejected.
+    const isSingleProcess = process.env.DISABLE_WORKER === 'true' && process.env.ALLOW_LOCAL_LOCK === 'true';
+    if (isSingleProcess) {
+      const now = Date.now();
+      const existing = this.memoryCache.get(key);
+      if (existing && existing.expiresAt && existing.expiresAt > now) {
+        return false; // lock held
+      }
+      this.memoryCache.set(key, { value: 'LOCKED', expiresAt: now + ttlSeconds * 1000 });
+      return true;
+    }
+
+    // Fail-closed for multi-process safety
+    this.logger.error(`Distributed lock requested for ${lockKey} but Redis is unavailable. Failing closed.`);
+    return false;
+  }
+
+  /**
+   * Release a distributed lock
+   */
+  async releaseLock(lockKey: string): Promise<void> {
+    const key = `lock:${lockKey}`;
+    if (this.isConnected && this.client) {
+      try {
+        await this.client.del(key);
+        return;
+      } catch (err: any) {
+        this.logger.warn(`Failed releasing distributed lock via Redis: ${err?.message}`);
+      }
+    }
+    this.memoryCache.delete(key);
   }
 
   async del(key: string): Promise<number> {

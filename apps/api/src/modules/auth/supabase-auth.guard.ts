@@ -84,17 +84,12 @@ export class SupabaseAuthGuard implements CanActivate {
       }
     } else {
       // 2. Unauthenticated check
-      if (isProduction) {
-        // In production, NEVER use fallback user!
-        throw new UnauthorizedException('Authorization Bearer token is required.');
-      }
-
-      // In development / testing environments only, allow explicit x-user-id header or dev test user
-      if (request.headers['x-user-id']) {
+      // In development / testing environments, allow test scripts passing explicit x-user-id header
+      if (!isProduction && request.headers['x-user-id']) {
         userId = request.headers['x-user-id'];
         email = request.headers['x-user-email'] || email;
       } else {
-        userId = SupabaseAuthGuard.DEFAULT_TEST_USER_ID;
+        throw new UnauthorizedException('Authorization Bearer token is required.');
       }
     }
 
