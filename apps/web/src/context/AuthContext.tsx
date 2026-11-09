@@ -35,18 +35,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(() => ({
-    id: '00000000-0000-0000-0000-000000000001',
-    email: 'demo@assistant.local',
-    user_metadata: { full_name: 'Selma Knight' },
-  } as any));
-  const [profile, setProfile] = useState<UserProfile | null>(() => ({
-    id: '00000000-0000-0000-0000-000000000001',
-    email: 'demo@assistant.local',
-    fullName: 'Selma Knight',
-    timezone: 'UTC',
-  }));
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const queryClient = useQueryClient();
 
   // Synchronize profile from backend
@@ -79,12 +70,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setIsLoading(false);
       } else {
-        // Default to demo session for instant local access if no active session
-        const isDemo = true;
-        if (isDemo) {
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('assistant_demo_mode', 'true');
-          }
+        // Check if explicitly in demo mode
+        const isExplicitDemo = typeof window !== 'undefined' && localStorage.getItem('assistant_demo_mode') === 'true';
+        if (isExplicitDemo) {
           const demoUser: any = {
             id: '00000000-0000-0000-0000-000000000001',
             email: 'demo@assistant.local',
@@ -103,10 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setSession(null);
           setUser(null);
-          const demoToken =
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJlbWFpbCI6ImRlbW9AYXNzaXN0YW50LmxvY2FsIiwiYXVkIjoiYXV0aGVudGljYXRlZCIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzkzNzg0MTYzLCJleHAiOjIxMDkxNDQxNjN9.aDrGqYBqyJj6f-jPGccklhumzCQtlT3pFafjOYFmANQ';
-          setApiAuthToken(demoToken);
           setProfile(null);
+          setApiAuthToken(null);
         }
         setIsLoading(false);
       }
@@ -238,6 +224,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('assistant_demo_mode');
+        localStorage.removeItem('assistant_token');
+        localStorage.removeItem('supabase_access_token');
+        localStorage.removeItem('access_token');
         sessionStorage.clear();
       }
       setSession(null);
@@ -247,7 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       queryClient.clear();
       setIsLoading(false);
       if (typeof window !== 'undefined') {
-        window.location.replace('/login');
+        window.location.href = '/login';
       }
     }
   }, [queryClient]);

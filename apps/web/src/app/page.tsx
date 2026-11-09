@@ -610,8 +610,8 @@ export default function App() {
   if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-[#EAE9FF] flex flex-col items-center justify-center p-6">
-        <div className="w-14 h-14 rounded-2xl bg-[#8B45F5] text-white flex items-center justify-center font-extrabold text-2xl shadow-lg shadow-[#8B45F5]/30 mb-4 animate-bounce">
-          M
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#6935C8] to-[#8B45F5] text-white flex items-center justify-center shadow-lg shadow-[#8B45F5]/30 mb-4 animate-bounce">
+          <Sparkles className="w-7 h-7 text-white" />
         </div>
         <h2 className="text-sm font-extrabold text-[#18181B] tracking-tight">Personal Assistant</h2>
         <p className="text-xs text-[#717182] font-medium mt-1">Synchronizing secure user workspace...</p>

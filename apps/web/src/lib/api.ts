@@ -24,28 +24,25 @@ const API_BASE =
         ? '/api/v1'
         : 'https://nova-assistant-api.onrender.com/api/v1');
 
-const DEFAULT_DEMO_TOKEN =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJlbWFpbCI6ImRlbW9AYXNzaXN0YW50LmxvY2FsIiwiYXVkIjoiYXV0aGVudGljYXRlZCIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzkzNzg0MTYzLCJleHAiOjIxMDkxNDQxNjN9.aDrGqYBqyJj6f-jPGccklhumzCQtlT3pFafjOYFmANQ';
-
-let memoryToken: string | null = DEFAULT_DEMO_TOKEN;
+let memoryToken: string | null = null;
 
 export function setApiAuthToken(token: string | null) {
-  memoryToken = token || DEFAULT_DEMO_TOKEN;
+  memoryToken = token;
 }
 
 export function getApiAuthToken(): string | null {
-  return memoryToken || DEFAULT_DEMO_TOKEN;
+  return memoryToken;
 }
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   if (typeof window !== 'undefined') {
-    const localToken = localStorage.getItem('assistant_token');
+    const localToken = localStorage.getItem('assistant_token') || localStorage.getItem('supabase_access_token');
     if (localToken) {
       memoryToken = localToken;
       return { Authorization: `Bearer ${localToken}` };
     }
   }
-  return { Authorization: `Bearer ${memoryToken || DEFAULT_DEMO_TOKEN}` };
+  return memoryToken ? { Authorization: `Bearer ${memoryToken}` } : {};
 }
 
 interface FetcherOptions extends RequestInit {

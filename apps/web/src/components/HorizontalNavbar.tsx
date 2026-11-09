@@ -223,8 +223,8 @@ export function HorizontalNavbar({
             className="flex items-center gap-2 sm:gap-2.5 text-left group focus:outline-none shrink-0"
             title="Go to Command Center"
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#6935C8] to-[#8B45F5] flex items-center justify-center text-white font-extrabold text-sm sm:text-base shadow-2xs group-hover:scale-105 transition-transform shrink-0">
-              M
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#6935C8] to-[#8B45F5] flex items-center justify-center text-white shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <div className="hidden sm:block shrink-0">
               <span className="text-xs sm:text-sm font-extrabold text-[#202033] tracking-tight block leading-tight whitespace-nowrap">

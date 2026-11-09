@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/components/Toast';
-import { Eye, EyeOff, Lock, Mail, User, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User, ArrowRight, Loader2, CheckCircle2, Sparkles } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -93,8 +93,8 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-[#EAE9FF] flex flex-col justify-center items-center p-4 sm:p-6 lg:p-8">
       {/* Brand Header */}
       <div className="mb-6 text-center">
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#8B45F5] text-white shadow-lg shadow-[#8B45F5]/30 mb-3">
-          <span className="font-extrabold text-2xl tracking-wider">M</span>
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#6935C8] to-[#8B45F5] text-white shadow-lg shadow-[#8B45F5]/30 mb-3">
+          <Sparkles className="w-7 h-7 text-white" />
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-[#18181B] tracking-tight">
           Personal Assistant
