@@ -574,7 +574,10 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
 
       // 2. Open SSE stream for real-time progress
       const token = typeof window !== 'undefined' ? localStorage.getItem('supabase_access_token') || localStorage.getItem('access_token') : null;
-      const response = await fetch(`http://localhost:3001/api/v1/ai/workflows/${workflowId}/execute/stream`, {
+      const apiEndpoint = process.env.NEXT_PUBLIC_API_URL
+        ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')}/ai/workflows/${workflowId}/execute/stream`
+        : `/api/v1/ai/workflows/${workflowId}/execute/stream`;
+      const response = await fetch(apiEndpoint, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },

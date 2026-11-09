@@ -18,9 +18,11 @@ import {
 import { supabase } from './supabaseClient';
 
 const API_BASE =
-  typeof window !== 'undefined'
-    ? '/api/v1'
-    : process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001/api/v1';
+  process.env.NEXT_PUBLIC_API_URL
+    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, '')
+    : (typeof window !== 'undefined'
+        ? '/api/v1'
+        : 'https://nova-assistant-api.onrender.com/api/v1');
 
 const DEFAULT_DEMO_TOKEN =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJlbWFpbCI6ImRlbW9AYXNzaXN0YW50LmxvY2FsIiwiYXVkIjoiYXV0aGVudGljYXRlZCIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzkzNzg0MTYzLCJleHAiOjIxMDkxNDQxNjN9.aDrGqYBqyJj6f-jPGccklhumzCQtlT3pFafjOYFmANQ';
