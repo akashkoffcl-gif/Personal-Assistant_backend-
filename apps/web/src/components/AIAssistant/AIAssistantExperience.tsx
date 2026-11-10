@@ -67,7 +67,7 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
     }
     return {
       assistantName: 'Nova',
-      wakeWordEnabled: true,
+      wakeWordEnabled: false, // Disabled by default to prevent audio beeps/chimes and rapid mic cycling on mobile
       voiceURI: '',
       speechRate: 1.0,
       autoVoiceResponse: true,
@@ -315,7 +315,7 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
+      recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = 'en-US';
 
@@ -339,19 +339,23 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
         }
 
         const currentSpoken = (final || interim).trim();
-        setUserTranscript(currentSpoken);
-        setAudioVolume(0.7);
+        if (currentSpoken) {
+          setUserTranscript(currentSpoken);
+          setAudioVolume(0.7);
+        }
 
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-        if (final) {
+        const textToSubmit = final || currentSpoken;
+        if (textToSubmit) {
           silenceTimerRef.current = setTimeout(() => {
             stopListening();
-            handleSubmitMessage(final);
-          }, 1200);
+            handleSubmitMessage(textToSubmit);
+          }, 1500);
         }
       };
 
       recognition.onerror = (event: any) => {
+        if (event.error === 'no-speech') return; // Ignore silent pauses without toggling UI or erroring
         console.warn('Speech recognition error:', event.error);
         setIsListening(false);
         setAvatarState('error');
@@ -363,6 +367,13 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
       };
 
       recognition.onend = () => {
+        // If still in REQUEST_LISTENING state and not submitting message, keep alive smoothly
+        if (lifecycleRef.current === 'REQUEST_LISTENING') {
+          try {
+            recognition.start();
+            return;
+          } catch (e) {}
+        }
         setIsListening(false);
         setAudioVolume(0);
         if (avatarState === 'listening') {
@@ -419,7 +430,10 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
 
   // Background Wake Word Detection: Invisible listener waiting strictly for configured name
   useEffect(() => {
+    // Only run on non-mobile desktop browsers if explicitly enabled
     if (!settings.wakeWordEnabled || typeof window === 'undefined') return;
+    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) return; // Prevent Android/iOS microphone chime beep loop
 
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;

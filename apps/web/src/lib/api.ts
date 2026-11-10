@@ -36,11 +36,50 @@ export function getApiAuthToken(): string | null {
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   if (typeof window !== 'undefined') {
-    const localToken = localStorage.getItem('assistant_token') || localStorage.getItem('supabase_access_token');
-    if (localToken) {
-      memoryToken = localToken;
-      return { Authorization: `Bearer ${localToken}` };
+    // 1. Direct memory or explicitly stored tokens
+    const directToken =
+      memoryToken ||
+      localStorage.getItem('assistant_token') ||
+      localStorage.getItem('supabase_access_token') ||
+      localStorage.getItem('access_token');
+
+    if (directToken) {
+      memoryToken = directToken;
+      return { Authorization: `Bearer ${directToken}` };
     }
+
+    // 2. Supabase Auth Session Token stored under storageKey 'assistant_auth_token'
+    try {
+      const storedAuth = localStorage.getItem('assistant_auth_token');
+      if (storedAuth) {
+        const parsed = JSON.parse(storedAuth);
+        const token = parsed?.access_token || parsed?.currentSession?.access_token;
+        if (token) {
+          memoryToken = token;
+          return { Authorization: `Bearer ${token}` };
+        }
+      }
+    } catch (e) {
+      // Fallback silently if storage entry is non-JSON
+    }
+
+    // 3. Scan for any default Supabase storage keys (e.g. sb-*-auth-token)
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('auth-token'))) {
+          const val = localStorage.getItem(key);
+          if (val && val.startsWith('{')) {
+            const parsed = JSON.parse(val);
+            const token = parsed?.access_token || parsed?.currentSession?.access_token;
+            if (token) {
+              memoryToken = token;
+              return { Authorization: `Bearer ${token}` };
+            }
+          }
+        }
+      }
+    } catch (e) {}
   }
   return memoryToken ? { Authorization: `Bearer ${memoryToken}` } : {};
 }
