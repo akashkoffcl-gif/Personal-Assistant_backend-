@@ -67,7 +67,7 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
     }
     return {
       assistantName: 'Nova',
-      wakeWordEnabled: false, // Disabled by default to prevent audio beeps/chimes and rapid mic cycling on mobile
+      wakeWordEnabled: true, // Enabled for responsive voice activation when calling "Nova"
       voiceURI: '',
       speechRate: 1.0,
       autoVoiceResponse: true,
@@ -430,10 +430,7 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
 
   // Background Wake Word Detection: Invisible listener waiting strictly for configured name
   useEffect(() => {
-    // Only run on non-mobile desktop browsers if explicitly enabled
     if (!settings.wakeWordEnabled || typeof window === 'undefined') return;
-    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) return; // Prevent Android/iOS microphone chime beep loop
 
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -455,8 +452,13 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
           const phrase = e.results[i][0].transcript.toLowerCase().trim();
           if (
             phrase.includes(targetName) ||
+            phrase.includes('nova') ||
+            phrase.includes('noa') ||
+            phrase.includes('know a') ||
             phrase.includes(`hey ${targetName}`) ||
-            phrase.includes(`ok ${targetName}`)
+            phrase.includes(`ok ${targetName}`) ||
+            phrase.includes('hey nova') ||
+            phrase.includes('hi nova')
           ) {
             toast.info('Assistant Awakened', `Hello! How can ${settings.assistantName || 'Nova'} assist you?`);
             activateAssistant('REQUEST_LISTENING');

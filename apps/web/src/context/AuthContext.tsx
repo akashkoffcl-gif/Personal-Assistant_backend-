@@ -88,6 +88,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const demoToken =
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJlbWFpbCI6ImRlbW9AYXNzaXN0YW50LmxvY2FsIiwiYXVkIjoiYXV0aGVudGljYXRlZCIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzkzNzg0MTYzLCJleHAiOjIxMDkxNDQxNjN9.aDrGqYBqyJj6f-jPGccklhumzCQtlT3pFafjOYFmANQ';
           setApiAuthToken(demoToken);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('assistant_token', demoToken);
+          }
         } else {
           setSession(null);
           setUser(null);
@@ -168,9 +171,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       fullName: 'Selma Knight',
       timezone: 'UTC',
     });
-    setApiAuthToken(null);
+    const demoToken =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDEiLCJlbWFpbCI6ImRlbW9AYXNzaXN0YW50LmxvY2FsIiwiYXVkIjoiYXV0aGVudGljYXRlZCIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzkzNzg0MTYzLCJleHAiOjIxMDkxNDQxNjN9.aDrGqYBqyJj6f-jPGccklhumzCQtlT3pFafjOYFmANQ';
+    setApiAuthToken(demoToken);
     if (typeof window !== 'undefined') {
       localStorage.setItem('assistant_demo_mode', 'true');
+      localStorage.setItem('assistant_token', demoToken);
     }
     setIsLoading(false);
   }, []);
