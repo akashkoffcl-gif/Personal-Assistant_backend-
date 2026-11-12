@@ -459,8 +459,9 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
       wakeRec.lang = 'en-US';
 
       wakeRec.onresult = (e: any) => {
-        if (!isActive || lifecycleRef.current !== 'HIDDEN') return;
-        const targetName = (settings.assistantName || 'Nova').toLowerCase();
+        const rawTarget = (settings.assistantName || 'Nova').trim().toLowerCase();
+        // If single character or empty, default to 'nova' so wake word always works
+        const targetName = rawTarget.length >= 2 ? rawTarget : 'nova';
 
         for (let i = e.resultIndex; i < e.results.length; ++i) {
           const phrase = e.results[i][0].transcript.toLowerCase().trim();
@@ -469,9 +470,14 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
             phrase.includes(`hey ${targetName}`) ||
             phrase.includes(`ok ${targetName}`) ||
             phrase.includes(`hi ${targetName}`) ||
-            (targetName === 'nova' && (phrase.includes('noa') || phrase.includes('know a') || phrase.includes('nova')))
+            phrase.includes('nova') ||
+            phrase.includes('noa') ||
+            phrase.includes('know a') ||
+            phrase.includes('hey nova') ||
+            phrase.includes('hi nova') ||
+            phrase.includes('ok nova')
           ) {
-            toast.info('Assistant Awakened', `Hello! How can ${settings.assistantName || 'Nova'} assist you?`);
+            toast.info('Assistant Awakened', `Hello! How can ${settings.assistantName && settings.assistantName.length >= 2 ? settings.assistantName : 'Nova'} assist you?`);
             activateAssistant('REQUEST_LISTENING');
             break;
           }

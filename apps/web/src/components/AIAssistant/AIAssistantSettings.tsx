@@ -65,8 +65,14 @@ export const AIAssistantSettings: React.FC<AIAssistantSettingsProps> = ({
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                value={settings.assistantName || 'Nova'}
-                onChange={(e) => onUpdateSettings({ assistantName: e.target.value.trim() || 'Nova' })}
+                value={settings.assistantName}
+                onChange={(e) => onUpdateSettings({ assistantName: e.target.value })}
+                onBlur={(e) => {
+                  const trimmed = e.target.value.trim();
+                  if (!trimmed || trimmed.length < 2) {
+                    onUpdateSettings({ assistantName: 'Nova' });
+                  }
+                }}
                 placeholder="e.g. Nova, Jarvis, Friday"
                 className="flex-1 px-3 py-1.5 rounded-xl border border-[#DDD8F8] bg-white text-xs font-bold text-[#8B45F5] focus:outline-hidden focus:border-[#8B45F5]"
               />
