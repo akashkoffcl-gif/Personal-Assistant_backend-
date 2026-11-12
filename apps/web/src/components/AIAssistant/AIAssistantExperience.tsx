@@ -284,150 +284,27 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
     resetAutoCloseTimer();
   };
 
-  // Speech Recognition for actual prompt request
+  // Speech Recognition for actual prompt request (Delegated directly to Unified Pipeline)
   const startRequestListening = () => {
     if (typeof window === 'undefined') return;
     if (isSpeaking) stopSpeaking();
 
-    console.log('[NOVA AUDIO] 🎙️ Starting Active Speech Recognition (Listening for prompt)...');
-
-    // Release background wake-word recognition if active to prevent mic conflicts
-    if (wakeWordRecognitionRef.current) {
-      try {
-        wakeWordRecognitionRef.current.stop();
-        console.log('[NOVA AUDIO] ⏸️ Paused background wake listener for active foreground recording.');
-      } catch (e) {}
-    }
-
-    // Terminate any previous foreground recognition instance cleanly
-    if (requestRecognitionRef.current) {
-      try {
-        requestRecognitionRef.current.abort();
-      } catch (e) {}
-      requestRecognitionRef.current = null;
-    }
-
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      toast.warning('Speech Recognition Unavailable', 'Browser does not support native speech recognition. Please type your query.');
-      setLifecycleState('ACTIVATING');
-      return;
-    }
-
-    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        setLifecycleState('REQUEST_LISTENING');
-        setAvatarState('listening');
-        setUserTranscript('');
-      };
-
-      recognition.onresult = (event: any) => {
-        let interim = '';
-        let final = '';
-
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            final += event.results[i][0].transcript;
-          } else {
-            interim += event.results[i][0].transcript;
-          }
-        }
-
-        const currentSpoken = (final || interim).trim();
-        if (currentSpoken) {
-          setUserTranscript(currentSpoken);
-          setAudioVolume(0.7);
-          console.log(`[NOVA AUDIO] 🗣️ User Speech Detected: "${currentSpoken}" [isFinal: ${Boolean(final)}]`);
-        }
-
-        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-        const textToSubmit = final || currentSpoken;
-        if (textToSubmit) {
-          // Responsive speech detection: submit within 700ms on final transcript, 1100ms on interim pauses
-          const delayMs = final ? 700 : 1100;
-          console.log(`[NOVA AUDIO] ⏱️ Silence detected. Submitting in ${delayMs}ms...`);
-          silenceTimerRef.current = setTimeout(() => {
-            console.log(`[NOVA AUDIO] 🚀 Submitting user query to AI: "${textToSubmit}"`);
-            stopListening();
-            handleSubmitMessage(textToSubmit);
-          }, delayMs);
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        if (event.error === 'no-speech') {
-          // On mobile & desktop, no-speech is normal silence: do not stop or flicker error state
-          return;
-        }
-        if (event.error === 'aborted') return;
-        console.warn('Speech recognition error:', event.error);
-        setIsListening(false);
-        setAvatarState('idle');
-        setAudioVolume(0);
-        resetAutoCloseTimer();
-      };
-
-      recognition.onend = () => {
-        // Never auto-restart in a fast loop on mobile or if user already spoke/submitted
-        if (isMobile) {
-          setIsListening(false);
-          setAudioVolume(0);
-          if (avatarState === 'listening') setAvatarState('idle');
-          resetAutoCloseTimer();
-          return;
-        }
-
-        // On desktop, only restart if still actively in listening state
-        if (lifecycleRef.current === 'REQUEST_LISTENING') {
-          try {
-            recognition.start();
-            return;
-          } catch (e) {}
-        }
-        setIsListening(false);
-        setAudioVolume(0);
-        if (avatarState === 'listening') {
-          setAvatarState('idle');
-        }
-        resetAutoCloseTimer();
-      };
-
-      requestRecognitionRef.current = recognition;
-      recognition.start();
-    } catch (err) {
-      console.error('Failed starting speech recognition:', err);
-      setIsListening(false);
-      setAvatarState('error');
-      setTimeout(() => {
-        setAvatarState('idle');
-        resetAutoCloseTimer();
-      }, 2000);
-    }
+    console.log('[NOVA AUDIO] 🎙️ Switching Pipeline Mode to REQUEST_LISTENING (Listening for prompt)...');
+    setLifecycleState('REQUEST_LISTENING');
+    setAvatarState('listening');
+    setUserTranscript('');
+    resetAutoCloseTimer();
   };
 
   const stopListening = () => {
-    if (requestRecognitionRef.current) {
-      try {
-        requestRecognitionRef.current.stop();
-      } catch (e) {}
-    }
     setIsListening(false);
     setAudioVolume(0);
   };
 
   const toggleListening = () => {
-    if (isListening) {
-      stopListening();
+    if (lifecycleState === 'REQUEST_LISTENING') {
+      setLifecycleState('ACTIVATING');
+      setAvatarState('idle');
       if (userTranscript) {
         handleSubmitMessage(userTranscript);
       }
@@ -440,11 +317,9 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
   const activateAssistant = (targetState: AssistantInvocationState = 'REQUEST_LISTENING') => {
     setLifecycleState(targetState);
     resetAutoCloseTimer();
-
     if (targetState === 'REQUEST_LISTENING') {
-      setTimeout(() => {
-        startRequestListening();
-      }, 150);
+      setAvatarState('listening');
+      setUserTranscript('');
     }
   };
 
