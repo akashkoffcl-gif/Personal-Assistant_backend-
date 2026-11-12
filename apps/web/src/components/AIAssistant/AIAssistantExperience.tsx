@@ -313,6 +313,8 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
       return;
     }
 
+    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
     try {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
@@ -347,27 +349,39 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
         const textToSubmit = final || currentSpoken;
         if (textToSubmit) {
+          // Responsive speech detection: submit within 700ms on final transcript, 1100ms on interim pauses
+          const delayMs = final ? 700 : 1100;
           silenceTimerRef.current = setTimeout(() => {
             stopListening();
             handleSubmitMessage(textToSubmit);
-          }, 1500);
+          }, delayMs);
         }
       };
 
       recognition.onerror = (event: any) => {
-        if (event.error === 'no-speech') return; // Ignore silent pauses without toggling UI or erroring
+        if (event.error === 'no-speech') {
+          // On mobile & desktop, no-speech is normal silence: do not stop or flicker error state
+          return;
+        }
+        if (event.error === 'aborted') return;
         console.warn('Speech recognition error:', event.error);
         setIsListening(false);
-        setAvatarState('error');
+        setAvatarState('idle');
         setAudioVolume(0);
-        setTimeout(() => {
-          setAvatarState('idle');
-          resetAutoCloseTimer();
-        }, 2000);
+        resetAutoCloseTimer();
       };
 
       recognition.onend = () => {
-        // If still in REQUEST_LISTENING state and not submitting message, keep alive smoothly
+        // Never auto-restart in a fast loop on mobile or if user already spoke/submitted
+        if (isMobile) {
+          setIsListening(false);
+          setAudioVolume(0);
+          if (avatarState === 'listening') setAvatarState('idle');
+          resetAutoCloseTimer();
+          return;
+        }
+
+        // On desktop, only restart if still actively in listening state
         if (lifecycleRef.current === 'REQUEST_LISTENING') {
           try {
             recognition.start();
@@ -432,6 +446,14 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
   useEffect(() => {
     if (!settings.wakeWordEnabled || typeof window === 'undefined') return;
 
+    // Mobile check: Android/iOS OS chime audio triggers repeatedly on continuous background listeners
+    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobile) {
+      // On mobile devices, background listeners cause hardware mic loops and system notification beeps.
+      // Voice input is activated smoothly on mobile via tap on the mic button or AI badge.
+      return;
+    }
+
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
@@ -452,13 +474,10 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
           const phrase = e.results[i][0].transcript.toLowerCase().trim();
           if (
             phrase.includes(targetName) ||
-            phrase.includes('nova') ||
-            phrase.includes('noa') ||
-            phrase.includes('know a') ||
             phrase.includes(`hey ${targetName}`) ||
             phrase.includes(`ok ${targetName}`) ||
-            phrase.includes('hey nova') ||
-            phrase.includes('hi nova')
+            phrase.includes(`hi ${targetName}`) ||
+            (targetName === 'nova' && (phrase.includes('noa') || phrase.includes('know a')))
           ) {
             toast.info('Assistant Awakened', `Hello! How can ${settings.assistantName || 'Nova'} assist you?`);
             activateAssistant('REQUEST_LISTENING');
@@ -801,7 +820,7 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
   // Active State Render: Opened strictly on-demand
   return (
     <aside
-      className={`fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center w-[94vw] max-w-2xl select-none animate-in fade-in slide-in-from-bottom-4 duration-300 ${className}`}
+      className={`fixed bottom-16 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center w-[96vw] sm:w-[92vw] max-w-2xl select-none animate-in fade-in slide-in-from-bottom-4 duration-300 ${className}`}
       aria-label="Google Assistant 3D AI On-Demand Interface"
     >
       {/* Top Bar with Dismiss, Minimize, and Settings Controls */}
