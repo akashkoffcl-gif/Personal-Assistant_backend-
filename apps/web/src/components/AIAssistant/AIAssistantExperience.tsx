@@ -289,10 +289,13 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
     if (typeof window === 'undefined') return;
     if (isSpeaking) stopSpeaking();
 
+    console.log('[NOVA AUDIO] 🎙️ Starting Active Speech Recognition (Listening for prompt)...');
+
     // Release background wake-word recognition if active to prevent mic conflicts
     if (wakeWordRecognitionRef.current) {
       try {
         wakeWordRecognitionRef.current.stop();
+        console.log('[NOVA AUDIO] ⏸️ Paused background wake listener for active foreground recording.');
       } catch (e) {}
     }
 
@@ -344,6 +347,7 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
         if (currentSpoken) {
           setUserTranscript(currentSpoken);
           setAudioVolume(0.7);
+          console.log(`[NOVA AUDIO] 🗣️ User Speech Detected: "${currentSpoken}" [isFinal: ${Boolean(final)}]`);
         }
 
         if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
@@ -351,7 +355,9 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
         if (textToSubmit) {
           // Responsive speech detection: submit within 700ms on final transcript, 1100ms on interim pauses
           const delayMs = final ? 700 : 1100;
+          console.log(`[NOVA AUDIO] ⏱️ Silence detected. Submitting in ${delayMs}ms...`);
           silenceTimerRef.current = setTimeout(() => {
+            console.log(`[NOVA AUDIO] 🚀 Submitting user query to AI: "${textToSubmit}"`);
             stopListening();
             handleSubmitMessage(textToSubmit);
           }, delayMs);
@@ -465,6 +471,8 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
 
         for (let i = e.resultIndex; i < e.results.length; ++i) {
           const phrase = e.results[i][0].transcript.toLowerCase().trim();
+          console.log(`[NOVA WAKE-WORD] 👂 Audio Heard: "${phrase}" (Target: "${targetName}")`);
+
           if (
             phrase.includes(targetName) ||
             phrase.includes(`hey ${targetName}`) ||
@@ -477,6 +485,7 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
             phrase.includes('hi nova') ||
             phrase.includes('ok nova')
           ) {
+            console.log(`[NOVA WAKE-WORD] ⚡ WAKE WORD ACTIVATED! Trigger Phrase: "${phrase}" -> Activating Assistant.`);
             toast.info('Assistant Awakened', `Hello! How can ${settings.assistantName && settings.assistantName.length >= 2 ? settings.assistantName : 'Nova'} assist you?`);
             activateAssistant('REQUEST_LISTENING');
             break;
@@ -484,8 +493,14 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
         }
       };
 
+      wakeRec.onstart = () => {
+        console.log(`[NOVA WAKE-WORD] 🟢 Background Wake-Word Listener STARTED. Actively waiting for "${settings.assistantName || 'Nova'}"...`);
+      };
+
       wakeRec.onerror = (err: any) => {
-        // Handle normal silence or aborted gracefully without throwing
+        if (err.error !== 'no-speech' && err.error !== 'aborted') {
+          console.warn('[NOVA WAKE-WORD] ⚠️ Wake-Word Listener notice:', err.error);
+        }
       };
 
       wakeRec.onend = () => {
