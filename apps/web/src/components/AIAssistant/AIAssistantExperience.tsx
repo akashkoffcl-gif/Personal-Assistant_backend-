@@ -448,7 +448,7 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
     }
   };
 
-  // Background Wake Word Detection: Listener waiting for assistant invocation
+  // Background Wake Word Detection: Unified persistent listener
   useEffect(() => {
     if (!settings.wakeWordEnabled || typeof window === 'undefined') return;
 
@@ -456,81 +456,109 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) return;
 
-    let isActive = true;
+    let isEffectActive = true;
 
-    try {
-      const wakeRec = new SpeechRecognition();
-      wakeRec.continuous = true;
-      wakeRec.interimResults = true;
-      wakeRec.lang = 'en-US';
+    const startWakeRec = () => {
+      if (!isEffectActive || wakeWordRecognitionRef.current) return;
 
-      wakeRec.onresult = (e: any) => {
-        const rawTarget = (settings.assistantName || 'Nova').trim().toLowerCase();
-        // If single character or empty, default to 'nova' so wake word always works
-        const targetName = rawTarget.length >= 2 ? rawTarget : 'nova';
-
-        for (let i = e.resultIndex; i < e.results.length; ++i) {
-          const phrase = e.results[i][0].transcript.toLowerCase().trim();
-          console.log(`[NOVA WAKE-WORD] 👂 Audio Heard: "${phrase}" (Target: "${targetName}")`);
-
-          if (
-            phrase.includes(targetName) ||
-            phrase.includes(`hey ${targetName}`) ||
-            phrase.includes(`ok ${targetName}`) ||
-            phrase.includes(`hi ${targetName}`) ||
-            phrase.includes('nova') ||
-            phrase.includes('noa') ||
-            phrase.includes('know a') ||
-            phrase.includes('hey nova') ||
-            phrase.includes('hi nova') ||
-            phrase.includes('ok nova')
-          ) {
-            console.log(`[NOVA WAKE-WORD] ⚡ WAKE WORD ACTIVATED! Trigger Phrase: "${phrase}" -> Activating Assistant.`);
-            toast.info('Assistant Awakened', `Hello! How can ${settings.assistantName && settings.assistantName.length >= 2 ? settings.assistantName : 'Nova'} assist you?`);
-            activateAssistant('REQUEST_LISTENING');
-            break;
-          }
-        }
-      };
-
-      wakeRec.onstart = () => {
-        console.log(`[NOVA WAKE-WORD] 🟢 Background Wake-Word Listener STARTED. Actively waiting for "${settings.assistantName || 'Nova'}"...`);
-      };
-
-      wakeRec.onerror = (err: any) => {
-        if (err.error !== 'no-speech' && err.error !== 'aborted') {
-          console.warn('[NOVA WAKE-WORD] ⚠️ Wake-Word Listener notice:', err.error);
-        }
-      };
-
-      wakeRec.onend = () => {
-        if (isActive && settings.wakeWordEnabled && lifecycleRef.current === 'HIDDEN') {
-          // Add brief timeout before restart to prevent tight loop beeps while maintaining wake capability
-          setTimeout(() => {
-            if (isActive && settings.wakeWordEnabled && lifecycleRef.current === 'HIDDEN') {
-              try {
-                wakeRec.start();
-              } catch (e) {}
-            }
-          }, 400);
-        }
-      };
-
-      wakeWordRecognitionRef.current = wakeRec;
       try {
-        wakeRec.start();
-      } catch (e) {}
-    } catch (err) {}
+        const wakeRec = new SpeechRecognition();
+        wakeRec.continuous = true;
+        wakeRec.interimResults = true;
+        wakeRec.lang = 'en-US';
 
-    return () => {
-      isActive = false;
-      if (wakeWordRecognitionRef.current) {
-        try {
-          wakeWordRecognitionRef.current.stop();
-        } catch (e) {}
+        wakeRec.onstart = () => {
+          console.log(`[NOVA WAKE-WORD] 🟢 Wake Listener READY. State=${lifecycleRef.current}. Name="${settings.assistantName || 'Nova'}"`);
+        };
+
+        wakeRec.onresult = (e: any) => {
+          if (!isEffectActive) return;
+          const rawTarget = (settings.assistantName || 'Nova').trim().toLowerCase();
+          const targetName = rawTarget.length >= 2 ? rawTarget : 'nova';
+
+          let latestSpeech = '';
+          for (let i = e.resultIndex; i < e.results.length; ++i) {
+            latestSpeech += ' ' + e.results[i][0].transcript;
+          }
+          const spoken = latestSpeech.toLowerCase().trim();
+          if (!spoken) return;
+
+          console.log(`[NOVA AUDIO] 👂 Heard: "${spoken}" [Mode: ${lifecycleRef.current}]`);
+
+          // 1. If HIDDEN: Detect Wake Word to awaken
+          if (lifecycleRef.current === 'HIDDEN') {
+            const isWakeMatch =
+              spoken.includes(targetName) ||
+              spoken.includes(`hey ${targetName}`) ||
+              spoken.includes(`ok ${targetName}`) ||
+              spoken.includes(`hi ${targetName}`) ||
+              spoken.includes('nova') ||
+              spoken.includes('noa') ||
+              spoken.includes('know a') ||
+              spoken.includes('hey nova') ||
+              spoken.includes('hi nova') ||
+              spoken.includes('ok nova') ||
+              spoken.includes('jo') ||
+              spoken.includes('hey jo');
+
+            if (isWakeMatch) {
+              console.log(`[NOVA WAKE-WORD] ⚡ WAKE WORD ACTIVATED! Heard: "${spoken}"`);
+              toast.info('Assistant Awakened', `Hello! How can ${settings.assistantName || 'Nova'} assist you?`);
+              setLifecycleState('REQUEST_LISTENING');
+              setAvatarState('listening');
+              setUserTranscript('');
+              resetAutoCloseTimer();
+            }
+          } 
+          // 2. If ACTIVE (REQUEST_LISTENING): Capture actual speech prompt & submit!
+          else if (lifecycleRef.current === 'REQUEST_LISTENING') {
+            setUserTranscript(spoken);
+            setAudioVolume(0.7);
+
+            if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = setTimeout(() => {
+              console.log(`[NOVA AUDIO] 🚀 Submitting user query to AI: "${spoken}"`);
+              handleSubmitMessage(spoken);
+            }, 900);
+          }
+        };
+
+        wakeRec.onerror = (err: any) => {
+          if (err.error !== 'no-speech' && err.error !== 'aborted') {
+            console.warn('[NOVA WAKE-WORD] ⚠️ Listener note:', err.error);
+          }
+        };
+
+        wakeRec.onend = () => {
+          wakeWordRecognitionRef.current = null;
+          if (isEffectActive && settings.wakeWordEnabled && lifecycleRef.current !== 'SPEAKING') {
+            setTimeout(() => {
+              if (isEffectActive && settings.wakeWordEnabled && lifecycleRef.current !== 'SPEAKING') {
+                startWakeRec();
+              }
+            }, 300);
+          }
+        };
+
+        wakeWordRecognitionRef.current = wakeRec;
+        wakeRec.start();
+      } catch (err) {
+        console.warn('Failed starting wakeRec:', err);
       }
     };
-  }, [settings.wakeWordEnabled, settings.assistantName, lifecycleState]);
+
+    startWakeRec();
+
+    return () => {
+      isEffectActive = false;
+      if (wakeWordRecognitionRef.current) {
+        try {
+          wakeWordRecognitionRef.current.abort();
+        } catch (e) {}
+        wakeWordRecognitionRef.current = null;
+      }
+    };
+  }, [settings.wakeWordEnabled, settings.assistantName]);
 
   // Submit Message Mutation (PostgreSQL + Gemini Grounding)
   const chatMutation = useMutation({
