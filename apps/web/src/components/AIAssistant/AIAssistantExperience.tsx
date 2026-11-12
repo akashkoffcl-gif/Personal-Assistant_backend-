@@ -442,17 +442,9 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
     }
   };
 
-  // Background Wake Word Detection: Invisible listener waiting strictly for configured name
+  // Background Wake Word Detection: Listener waiting for assistant invocation
   useEffect(() => {
     if (!settings.wakeWordEnabled || typeof window === 'undefined') return;
-
-    // Mobile check: Android/iOS OS chime audio triggers repeatedly on continuous background listeners
-    const isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    if (isMobile) {
-      // On mobile devices, background listeners cause hardware mic loops and system notification beeps.
-      // Voice input is activated smoothly on mobile via tap on the mic button or AI badge.
-      return;
-    }
 
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -467,7 +459,7 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
       wakeRec.lang = 'en-US';
 
       wakeRec.onresult = (e: any) => {
-        if (!isActive || lifecycleState !== 'HIDDEN') return;
+        if (!isActive || lifecycleRef.current !== 'HIDDEN') return;
         const targetName = (settings.assistantName || 'Nova').toLowerCase();
 
         for (let i = e.resultIndex; i < e.results.length; ++i) {
@@ -477,7 +469,7 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
             phrase.includes(`hey ${targetName}`) ||
             phrase.includes(`ok ${targetName}`) ||
             phrase.includes(`hi ${targetName}`) ||
-            (targetName === 'nova' && (phrase.includes('noa') || phrase.includes('know a')))
+            (targetName === 'nova' && (phrase.includes('noa') || phrase.includes('know a') || phrase.includes('nova')))
           ) {
             toast.info('Assistant Awakened', `Hello! How can ${settings.assistantName || 'Nova'} assist you?`);
             activateAssistant('REQUEST_LISTENING');
@@ -486,15 +478,20 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
         }
       };
 
-      wakeRec.onerror = () => {
-        // Sleep and restart gracefully without unhandled errors
+      wakeRec.onerror = (err: any) => {
+        // Handle normal silence or aborted gracefully without throwing
       };
 
       wakeRec.onend = () => {
-        if (isActive && settings.wakeWordEnabled && lifecycleState === 'HIDDEN') {
-          try {
-            wakeRec.start();
-          } catch (e) {}
+        if (isActive && settings.wakeWordEnabled && lifecycleRef.current === 'HIDDEN') {
+          // Add brief timeout before restart to prevent tight loop beeps while maintaining wake capability
+          setTimeout(() => {
+            if (isActive && settings.wakeWordEnabled && lifecycleRef.current === 'HIDDEN') {
+              try {
+                wakeRec.start();
+              } catch (e) {}
+            }
+          }, 400);
         }
       };
 
