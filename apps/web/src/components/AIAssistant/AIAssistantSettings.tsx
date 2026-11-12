@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Settings, Volume2, Shield, Moon, Sliders, X, Sparkles, Mic, Activity } from 'lucide-react';
 import { AIAssistantSettingsState } from './types';
 
@@ -21,15 +22,21 @@ export const AIAssistantSettings: React.FC<AIAssistantSettingsProps> = ({
   availableVoices,
   className = '',
 }) => {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
+
+  return createPortal(
     <div
-      className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-xs p-3 sm:p-4 overflow-y-auto ${className}`}
+      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto ${className}`}
       role="dialog"
       aria-labelledby="assistant-settings-title"
     >
-      <div className="bg-white rounded-3xl p-4 sm:p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto border border-[#DDD8F8] shadow-2xl space-y-4 animate-in fade-in zoom-in-95 my-auto">
+      <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full max-h-[85vh] overflow-y-auto border border-[#DDD8F8] shadow-2xl space-y-4 animate-in fade-in zoom-in-95 my-auto">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[#F0F2FA]">
           <div className="flex items-center gap-2">
@@ -240,7 +247,8 @@ export const AIAssistantSettings: React.FC<AIAssistantSettingsProps> = ({
           Save & Apply Preferences
         </button>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
