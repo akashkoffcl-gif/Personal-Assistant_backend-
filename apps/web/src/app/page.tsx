@@ -544,11 +544,30 @@ export default function App() {
     if (pendingRoutine && pendingRoutine.routine) {
       const target = pendingRoutine.routine.targetQuantity || 1;
       const actual = pendingRoutine.actualQuantity || 0;
-      const unit = pendingRoutine.routine.unit || 'steps';
+      const titleLower = (pendingRoutine.routine.title || '').toLowerCase();
+      
+      // Determine contextually accurate unit if not specified or incorrectly defaulting to 'steps'
+      let unit = pendingRoutine.routine.unit;
+      if (!unit || unit === 'steps') {
+        if (titleLower.includes('egg') || titleLower.includes('eat') || titleLower.includes('food') || titleLower.includes('meal')) {
+          unit = titleLower.includes('egg') ? 'eggs' : 'servings';
+        } else if (titleLower.includes('water') || titleLower.includes('drink')) {
+          unit = 'glasses';
+        } else if (titleLower.includes('read') || titleLower.includes('study') || titleLower.includes('meditat') || titleLower.includes('focus')) {
+          unit = 'minutes';
+        } else if (titleLower.includes('pushup') || titleLower.includes('squat') || titleLower.includes('reps')) {
+          unit = 'reps';
+        } else if (titleLower.includes('walk') || titleLower.includes('run') || titleLower.includes('step')) {
+          unit = 'steps';
+        } else {
+          unit = pendingRoutine.routine.unit || 'units';
+        }
+      }
+
       return {
         message: actual > 0
           ? `You have logged ${actual.toLocaleString()}/${target.toLocaleString()} ${unit} for '${pendingRoutine.routine.title}'. Time for your follow-up check-in!`
-          : `Daily Habit Check-In: How many ${unit} have you completed today for '${pendingRoutine.routine.title}'?`,
+          : `Daily Habit Check-In: Have you completed '${pendingRoutine.routine.title}' today? (${actual}/${target} ${unit})`,
         target: {
           type: 'routine' as const,
           id: pendingRoutine.id,
@@ -556,7 +575,7 @@ export default function App() {
           title: pendingRoutine.routine.title,
           targetQuantity: pendingRoutine.routine.targetQuantity,
           actualQuantity: pendingRoutine.actualQuantity,
-          unit: pendingRoutine.routine.unit,
+          unit: unit,
         },
       };
     }
