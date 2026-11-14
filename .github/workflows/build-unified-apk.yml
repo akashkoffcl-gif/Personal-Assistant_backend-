@@ -33,7 +33,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.9'
-          cache-read-only: false
+          cache-disabled: true
 
       - name: Assemble Debug APK
         working-directory: apps-mobile/nova-android
@@ -42,7 +42,11 @@ jobs:
             gradle wrapper --gradle-version 8.9 --distribution-type bin
           fi
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee build_output.log
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "::error::Gradle assembleDebug failed!"
+            exit 1
+          fi
 
       - name: Verify APK Generation
         id: verify-apk
