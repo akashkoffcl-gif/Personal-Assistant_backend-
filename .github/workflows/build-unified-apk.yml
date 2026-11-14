@@ -42,7 +42,11 @@ jobs:
             gradle wrapper --gradle-version 8.9 --distribution-type bin
           fi
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --info --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/gradle_build.log || {
+            echo "::error::Gradle build failed. Printing last 100 lines of build log:"
+            tail -n 100 /tmp/gradle_build.log
+            exit 1
+          }
 
       - name: Verify APK Generation
         id: verify-apk
