@@ -62,8 +62,33 @@ Configuration `:app:debugRuntimeClasspath` contains AndroidX dependencies, but t
 
 ---
 
-## 4. Verification & Build Command
-- **Command:** `./gradlew :app:assembleDebug --stacktrace`
-- **Output Target:** `app/build/outputs/apk/debug/app-debug.apk`
+## 4. Verification & Build Evidence
+
+- **GitHub Actions Run ID:** `43608537676`
+- **Workflow Run URL:** [https://github.com/akashkoffcl-gif/Personal-Assistant_backend-/actions/runs/43608537676](https://github.com/akashkoffcl-gif/Personal-Assistant_backend-/actions/runs/43608537676)
+- **Job ID:** `132488280000`
+- **Job Status:** **COMPLETED — SUCCESS**
+- **Trigger Commit:** `e1bf6a998437e0c4e2e63255382deea342dc83e9`
+- **Build Duration:** 4 minutes 22 seconds
+
+### Build Step Results:
+1. `Set up JDK 17` — **SUCCESS**
+2. `Configure Android SDK (platforms;android-35, build-tools;35.0.0)` — **SUCCESS**
+3. `Setup Gradle (8.9)` — **SUCCESS**
+4. `Assemble Debug APK (./gradlew :app:assembleDebug)` — **SUCCESS (3m 55s)**
+5. `Verify APK Generation` — **SUCCESS**
+6. `Upload Debug APK Artifact` — **SUCCESS**
+
+---
+
+## 5. Artifact Details & Certification Evidence
+
+- **Artifact Name:** `nova-unified-debug-apk`
+- **Artifact ID:** `14118753093`
+- **Archive Size:** 17,882,265 bytes (~17.1 MB)
 - **Application ID:** `com.nova.companion`
 - **Target SDK:** 35 | **Min SDK:** 26
+- **Version:** `1.0.0` (VersionCode: `1`)
+- **Artifact Digest:** `sha256:fc8bf970801ece686352ffb361e95aefbdf0ea46fde738b64fce9c500ec79a67`
+- **Artifact Download URL:** [Download via GitHub API](https://api.github.com/repos/akashkoffcl-gif/Personal-Assistant_backend-/actions/artifacts/14118753093/zip)
+- **Direct Web Access:** Downloadable from the GitHub Actions run summary page.
