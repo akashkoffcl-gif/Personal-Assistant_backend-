@@ -21,29 +21,47 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Configure Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || yes | $ANDROID_SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager --licenses || true
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" || $ANDROID_SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Cache Gradle packages
-        uses: actions/cache@v4
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('apps-mobile/nova-android/**/*.gradle*', 'apps-mobile/nova-android/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          gradle-version: '8.9'
+          cache-read-only: false
 
       - name: Assemble Debug APK
         working-directory: apps-mobile/nova-android
         run: |
-          chmod +x gradlew || gradle wrapper
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          # Ensure gradlew exists or generate it using gradle 8.9
+          if [ ! -f "gradlew" ]; then
+            gradle wrapper --gradle-version 8.9 --distribution-type bin
+          fi
+          chmod +x gradlew
+          ./gradlew clean assembleDebug --no-daemon --stacktrace
+
+      - name: Verify APK Generation
+        id: verify-apk
+        run: |
+          APK_PATH=$(find apps-mobile/nova-android/app/build/outputs/apk/debug -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ] || [ ! -f "$APK_PATH" ]; then
+            echo "ERROR: Debug APK was not generated!"
+            exit 1
+          fi
+          echo "APK Found: $APK_PATH"
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+          ls -lh "$APK_PATH"
+          sha256sum "$APK_PATH"
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: nova-unified-debug-apk
-          path: apps-mobile/nova-android/app/build/outputs/apk/debug/*.apk
+          path: ${{ steps.verify-apk.outputs.apk_path }}
+          if-no-files-found: error
           retention-days: 14
