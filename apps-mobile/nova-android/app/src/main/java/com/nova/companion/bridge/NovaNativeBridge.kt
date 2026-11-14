@@ -24,6 +24,7 @@ class NovaNativeBridge(
     companion object {
         const val JAVASCRIPT_INTERFACE_NAME = "NovaAndroidBridge"
         private val TRUSTED_HOSTS = setOf(
+            "personal-assistant-frontend-jk5l.onrender.com",
             "nova-assistant-web.onrender.com",
             "localhost",
             "127.0.0.1",
