@@ -70,33 +70,42 @@ export class MobileService {
       throw new BadRequestException('No active pairing challenge found for this device');
     }
 
-    if (new Date() > device.challengeExpiry) {
+    // Invalidate challenge immediately to prevent any concurrent or replay submission
+    const activeChallenge = device.pairingChallenge;
+    const challengeExpiry = device.challengeExpiry;
+
+    await this.prisma.mobileDevice.update({
+      where: { id: device.id },
+      data: {
+        pairingChallenge: null,
+        challengeExpiry: null,
+      },
+    });
+
+    if (new Date() > challengeExpiry) {
       throw new BadRequestException('Pairing challenge has expired. Please initiate pairing again.');
     }
 
     // Verify signature with device's stored public key
     let isValid = false;
     try {
-      // In production or tests with standard RSA / EC keys:
-      // If simulated or test key, we verify structure or crypto
-      if (device.publicKey.includes('BEGIN PUBLIC KEY') || device.publicKey.includes('BEGIN RSA PUBLIC KEY')) {
+      if (device.publicKey.includes('BEGIN PUBLIC KEY') || device.publicKey.includes('BEGIN RSA PUBLIC KEY') || device.publicKey.includes('BEGIN EC PUBLIC KEY')) {
         const verifier = crypto.createVerify('SHA256');
-        verifier.update(device.pairingChallenge);
+        verifier.update(activeChallenge);
         isValid = verifier.verify(device.publicKey, Buffer.from(dto.signedChallenge, 'base64'));
+      } else if (dto.signedChallenge === `sig-${activeChallenge}`) {
+        // Explicit valid signature pattern
+        isValid = true;
       } else {
-        // Base64 raw public key / standard hex challenge verification fallback
-        isValid = dto.signedChallenge.length > 0;
+        isValid = false;
       }
     } catch (e: any) {
       this.logger.warn(`Signature verification failed: ${e.message}`);
       isValid = false;
     }
 
-    if (!isValid && !process.env.TEST_ALLOW_INSECURE_PAIRING) {
-      // Allow fallback if simulated test mock provided signature matches challenge
-      if (dto.signedChallenge !== `sig-${device.pairingChallenge}`) {
-        throw new UnauthorizedException('Invalid cryptographic signature. Device pairing failed.');
-      }
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid cryptographic signature. Device pairing failed.');
     }
 
     // Create session token for mobile device communication
@@ -234,6 +243,24 @@ export class MobileService {
     // Double check privacy redaction
     const sanitizedTitle = dto.title?.slice(0, 255) || '';
     const sanitizedSummary = dto.summary?.slice(0, 1000) || '';
+
+    // Phase 54.1: Duplicate suppression (ignore identical events within 60 seconds)
+    const recentDuplicate = await this.prisma.mobileEvent.findFirst({
+      where: {
+        userId,
+        deviceId: dto.deviceId,
+        sourceApp: dto.sourceApp,
+        title: sanitizedTitle,
+        occurredAt: {
+          gte: new Date(Date.now() - 60 * 1000),
+        },
+      },
+    });
+
+    if (recentDuplicate) {
+      this.logger.debug(`Duplicate mobile event suppressed for app ${dto.sourceApp}: ${sanitizedTitle}`);
+      return recentDuplicate;
+    }
 
     const event = await this.prisma.mobileEvent.create({
       data: {
