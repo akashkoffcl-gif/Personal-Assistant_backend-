@@ -129,6 +129,10 @@ model User {
   aiMessages            AIMessage[]
   aiActions             AIAction[]
   planningProposals     PlanningProposal[]
+  mobileDevices         MobileDevice[]
+  mobilePushTokens      MobilePushToken[]
+  mobileEvents          MobileEvent[]
+  mobileCommands        MobileCommand[]
 
   @@map("users")
 }
@@ -1098,6 +1102,142 @@ model PlanningProposal {
   @@index([userId, date])
   @@map("planning_proposals")
 }
+
+// -------------------------------------------------------------
+// PHASE 54: ANDROID MOBILE COMPANION & DEVICE INTELLIGENCE
+// -------------------------------------------------------------
+
+enum MobileDeviceStatus {
+  PENDING_PAIRING
+  PAIRED
+  REVOKED
+  BLOCKED
+}
+
+enum MobileCommandStatus {
+  PENDING_CONFIRMATION
+  APPROVED
+  SENT_TO_DEVICE
+  EXECUTED
+  FAILED
+  REJECTED
+  TIMED_OUT
+}
+
+model MobileDevice {
+  id               String             @id @default(uuid())
+  userId           String
+  deviceName       String
+  deviceModel      String
+  osVersion        String
+  appVersion       String
+  publicKey        String             @db.Text
+  status           MobileDeviceStatus @default(PENDING_PAIRING)
+  pairingChallenge String?            @db.Text
+  challengeExpiry  DateTime?          @db.Timestamptz
+  lastSeenAt       DateTime?          @db.Timestamptz
+  createdAt        DateTime           @default(now()) @db.Timestamptz
+  updatedAt        DateTime           @updatedAt @db.Timestamptz
+
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions         MobileDeviceSession[]
+  pushTokens       MobilePushToken[]
+  permissions      MobilePermission[]
+  events           MobileEvent[]
+  commands         MobileCommand[]
+
+  @@index([userId, status])
+  @@map("mobile_devices")
+}
+
+model MobileDeviceSession {
+  id           String       @id @default(uuid())
+  deviceId     String
+  sessionToken String       @unique
+  expiresAt    DateTime     @db.Timestamptz
+  isActive     Boolean      @default(true)
+  createdAt    DateTime     @default(now()) @db.Timestamptz
+
+  device       MobileDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, isActive])
+  @@map("mobile_device_sessions")
+}
+
+model MobilePushToken {
+  id         String       @id @default(uuid())
+  deviceId   String
+  userId     String
+  fcmToken   String       @unique
+  isActive   Boolean      @default(true)
+  createdAt  DateTime     @default(now()) @db.Timestamptz
+  updatedAt  DateTime     @updatedAt @db.Timestamptz
+
+  device     MobileDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+  @@index([deviceId])
+  @@map("mobile_push_tokens")
+}
+
+model MobilePermission {
+  id            String       @id @default(uuid())
+  deviceId      String
+  permissionKey String       // "NOTIFICATION_LISTENER", "AUDIO_RECORD", "SYSTEM_ALERT_WINDOW", etc.
+  isGranted     Boolean      @default(false)
+  updatedAt     DateTime     @updatedAt @db.Timestamptz
+
+  device        MobileDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, permissionKey])
+  @@map("mobile_permissions")
+}
+
+model MobileEvent {
+  id              String       @id @default(uuid())
+  deviceId        String
+  userId          String
+  sourceApp       String       // Package name e.g. "com.whatsapp", "com.slack"
+  appName         String?      // Display name e.g. "WhatsApp", "Slack"
+  category        String       // "COMMUNICATION", "CALENDAR", "SYSTEM", "ALERT"
+  title           String?
+  summary         String?      @db.Text
+  rawMetadata     Json?        // Redacted payload, never raw sensitive 2FA / financial data
+  isDismissed     Boolean      @default(false)
+  occurredAt      DateTime     @db.Timestamptz
+  createdAt       DateTime     @default(now()) @db.Timestamptz
+
+  device          MobileDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, occurredAt])
+  @@index([deviceId, occurredAt])
+  @@map("mobile_events")
+}
+
+model MobileCommand {
+  id                   String              @id @default(uuid())
+  deviceId             String
+  userId               String
+  commandType          String              // "OPEN_APP", "OPEN_URL", "SHARE_TEXT", "CREATE_CALENDAR_EVENT", "SPEAK_PROMPT"
+  payload              Json
+  status               MobileCommandStatus @default(PENDING_CONFIRMATION)
+  requiresConfirmation Boolean             @default(false)
+  confirmationExpires  DateTime?           @db.Timestamptz
+  executedAt           DateTime?           @db.Timestamptz
+  failureReason        String?
+  createdAt            DateTime            @default(now()) @db.Timestamptz
+  updatedAt            DateTime            @updatedAt @db.Timestamptz
+
+  device               MobileDevice        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([deviceId, status])
+  @@map("mobile_commands")
+}
+
 
 
 

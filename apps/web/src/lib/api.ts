@@ -713,6 +713,14 @@ export const api = {
   getLifeBalance: () => fetcher<any>('/analytics/life-balance'),
   getUnifiedTimeline: (limit = 50) => fetcher<any[]>(`/analytics/timeline?limit=${limit}`),
   getDayTimeline: (date: string) => fetcher<any>(`/analytics/day-timeline?date=${date}`),
+
+  // Phase 54: Android Mobile Companion
+  getMobileDevices: () => fetcher<any[]>('/mobile/devices'),
+  revokeMobileDevice: (deviceId: string) =>
+    fetcher<any>(`/mobile/devices/${deviceId}`, {
+      method: 'DELETE',
+    }),
+  getMobileEvents: (limit = 30) => fetcher<any[]>(`/mobile/events?limit=${limit}`),
 };
 
 if (typeof window !== 'undefined') {

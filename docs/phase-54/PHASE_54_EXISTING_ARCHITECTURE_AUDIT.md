@@ -57,3 +57,4 @@ The objective of Phase 54 is to extend NOVA into a JARVIS-style native Android c
 2. **Device Key Protection:** Android Keystore will generate and store an asymmetric key pair on the mobile hardware. Pairing challenges ensure that devices cannot be spoofed.
 3. **Notification Privacy:** Android `NotificationListenerService` must filter out banking, 2FA/authenticator, and excluded apps on-device before transmitting any summary or event data to the backend.
 4. **No Direct Model Execution:** Gemini will never generate or execute raw SQL or arbitrary shell scripts. Commands are strictly dispatched via validated NestJS DTOs.
+
