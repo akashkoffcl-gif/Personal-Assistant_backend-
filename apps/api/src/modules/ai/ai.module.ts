@@ -11,6 +11,11 @@ import { ConversationalIntentService } from './conversational-intent.service';
 import { BehaviouralContextService } from './behavioral-context.service';
 import { ConversationalPersonalityEngine } from './conversational-personality.service';
 import { ProactiveIntelligenceService } from './proactive-intelligence.service';
+import { UnifiedContextService } from './unified-context.service';
+import { ReasoningEngineService } from './reasoning-engine.service';
+import { DigitalActionOrchestratorService } from './digital-action-orchestrator.service';
+import { AdaptivePersonalizationService } from './adaptive-personalization.service';
+import { MobileModule } from '../mobile/mobile.module';
 import { AIController } from './ai.controller';
 import { WorkerModule } from '../../worker/worker.module';
 import { TasksModule } from '../tasks/tasks.module';
@@ -43,6 +48,7 @@ import { SettingsModule } from '../settings/settings.module';
     NotificationsModule,
     FollowUpsModule,
     SettingsModule,
+    MobileModule,
   ],
   controllers: [AIController],
   providers: [
@@ -58,6 +64,10 @@ import { SettingsModule } from '../settings/settings.module';
     BehaviouralContextService,
     ConversationalPersonalityEngine,
     ProactiveIntelligenceService,
+    UnifiedContextService,
+    ReasoningEngineService,
+    DigitalActionOrchestratorService,
+    AdaptivePersonalizationService,
   ],
   exports: [
     AIService,
@@ -72,6 +82,10 @@ import { SettingsModule } from '../settings/settings.module';
     BehaviouralContextService,
     ConversationalPersonalityEngine,
     ProactiveIntelligenceService,
+    UnifiedContextService,
+    ReasoningEngineService,
+    DigitalActionOrchestratorService,
+    AdaptivePersonalizationService,
   ],
 })
 export class AIModule {}
