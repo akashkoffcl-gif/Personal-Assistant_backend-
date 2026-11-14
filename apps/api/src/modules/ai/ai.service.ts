@@ -652,6 +652,19 @@ export class AIService {
     }
 
     // 1. Executive Briefing & Daily Planning
+    // 0. Phone Notification & Mobile Event Intent (Phases 54 & 54.1 Awareness)
+    if (
+      lower.includes('notification') ||
+      lower.includes('phone message') ||
+      lower.includes('incoming message') ||
+      lower.includes('did i receive') ||
+      lower.includes('what did i miss') ||
+      lower.includes('check my phone')
+    ) {
+      const data = await this.jarvisRegistry.executeTool(userId, 'get_phone_notifications', { limit: 10 });
+      return { toolUsed: 'get_phone_notifications', toolData: data };
+    }
+
     if (
       lower.includes('brief') ||
       lower.includes('morning') ||
@@ -879,8 +892,12 @@ ${memoryGrounding}
 Live Platform Data Grounding:
 ${toolContext.toolUsed ? `[Grounded via ${toolContext.toolUsed}]\n${JSON.stringify(toolContext.toolData, null, 2)}` : 'No domain tool context triggered.'}
 
-Core Rules:
-1. Never act like a generic question-answering bot. Never ask "How can I assist you?" after every turn.
+5. Notification Intelligence Directive:
+   - When asked about phone notifications or received messages, NEVER say "I don't have direct access to your phone's live notifications for privacy and security reasons".
+   - You HAVE direct Android Notification Access via the paired Android companion.
+   - If grounded phone events are present in tool context or Unified Context, summarize them accurately.
+   - If no events are present, state that no new messages or alerts have arrived on the connected device.
+   - If device permission is disabled or listener disconnected, guide the user to enable Notification Access in Android Settings.
 2. If the user shares context, vents, or expresses feeling overwhelmed (e.g. "I have a lot to finish today", "This project is becoming a mess"), acknowledge it naturally, offer clear structure or help prioritize, but NEVER immediately create tasks unless explicitly told to do so.
 3. When the user asks for advice or asks "What should I do first?", review their current active priorities, compare them, and recommend a clear, actionable next step.
 4. When an explicit action is requested (and confirmed by intent policy):
@@ -1142,6 +1159,14 @@ Core Rules:
       } else if (contextualAction) {
         fallbackAction = contextualAction;
         actionReply = `I've prepared the requested operation on the active record: ${contextualAction.description}. Please confirm to execute.`;
+      } else if (toolContext.toolUsed === 'get_phone_notifications') {
+        const events = Array.isArray(toolContext.toolData) ? toolContext.toolData : [];
+        if (events.length === 0) {
+          actionReply = `I checked your paired phone's notifications, but you haven't received any new permitted messages or alerts recently.`;
+        } else {
+          const formatted = events.slice(0, 5).map((e: any) => `• [${e.appName || e.sourceApp}] ${e.title}: ${e.summary}`).join('\n');
+          actionReply = `Here are the latest permitted notifications received from your phone:\n${formatted}`;
+        }
       } else if (toolContext.toolUsed === 'get_personal_briefing') {
         const d = toolContext.toolData;
         actionReply = `Good morning, Selma. I'm ${name}. Today you have ${d?.tasksTotal || 0} scheduled tasks (${d?.tasksCompleted || 0} completed, ${d?.tasksPending || 0} pending) and ${d?.routinesTotal || 0} habits. ${d?.topPriorities?.length > 0 ? `Your top priority is "${d.topPriorities[0]}".` : 'No urgent priorities flagged.'

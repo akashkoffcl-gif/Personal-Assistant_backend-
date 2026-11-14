@@ -721,6 +721,8 @@ export const api = {
       method: 'DELETE',
     }),
   getMobileEvents: (limit = 30) => fetcher<any[]>(`/mobile/events?limit=${limit}`),
+  getMobileCapabilityStatus: (targetPackage?: string) =>
+    fetcher<any>(`/mobile/capability/status${targetPackage ? `?targetPackage=${encodeURIComponent(targetPackage)}` : ''}`),
 };
 
 if (typeof window !== 'undefined') {

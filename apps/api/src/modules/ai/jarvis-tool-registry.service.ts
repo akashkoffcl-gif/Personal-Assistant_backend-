@@ -794,6 +794,26 @@ export class JarvisToolRegistryService {
     });
 
     this.register({
+      id: 'get_phone_notifications',
+      name: 'Get Phone Notifications',
+      category: 'NOTIFICATIONS',
+      description: 'Retrieves actual permitted notifications received from paired Android device.',
+      riskLevel: 'LOW',
+      requiresConfirmation: false,
+      inputSchema: { limit: 'number', appName: 'string' },
+      execute: async (userId, input) => {
+        return this.prisma.mobileEvent.findMany({
+          where: {
+            userId,
+            ...(input?.appName ? { sourceApp: { contains: input.appName, mode: 'insensitive' } } : {}),
+          },
+          orderBy: { occurredAt: 'desc' },
+          take: input?.limit ?? 10,
+        });
+      },
+    });
+
+    this.register({
       id: 'get_in_app_notifications',
       name: 'Get In-App Notifications',
       category: 'NOTIFICATIONS',

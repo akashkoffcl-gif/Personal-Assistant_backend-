@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
+import { NotificationCapabilityService } from '../mobile/notification-capability.service';
 
 export interface UnifiedContextSnapshot {
   timestamp: string;
@@ -15,6 +16,9 @@ export interface UnifiedContextSnapshot {
   };
   mobileIntelligence: {
     pairedDevicesCount: number;
+    capabilityState: string;
+    isNotificationAccessGranted: boolean;
+    isListenerConnected: boolean;
     recentEvents: Array<{
       id: string;
       sourceApp: string;
@@ -24,6 +28,7 @@ export interface UnifiedContextSnapshot {
       summary?: string | null;
       occurredAt: string;
     }>;
+    aiDirective: string;
   };
   memories: Array<{
     category: string;
@@ -38,16 +43,19 @@ export interface UnifiedContextSnapshot {
 export class UnifiedContextService {
   private readonly logger = new Logger(UnifiedContextService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly capabilityService: NotificationCapabilityService,
+  ) {}
 
   /**
    * Assembles a bounded, relevance-ranked context snapshot for a specific user tenant.
-   * Pulls from tasks, routines, projects, mobile events, and personal memory.
+   * Pulls from tasks, routines, projects, mobile events, capability status, and personal memory.
    */
   async assembleContext(userId: string, query?: string): Promise<UnifiedContextSnapshot> {
     const now = new Date();
 
-    const [tasks, routines, projects, mobileDevices, recentEvents, memoryNotes] = await Promise.all([
+    const [tasks, routines, projects, capabilityStatus, memoryNotes] = await Promise.all([
       // 1. Active Tasks (Top priority, non-completed)
       this.prisma.task.findMany({
         where: {
@@ -87,32 +95,10 @@ export class UnifiedContextService {
         },
       }),
 
-      // 4. Paired Mobile Devices
-      this.prisma.mobileDevice.findMany({
-        where: { userId, status: 'PAIRED' },
-        select: { id: true, deviceName: true, lastSeenAt: true },
-      }),
+      // 4. Real-time Android Notification Capability Status
+      this.capabilityService.getCapabilityStatus(userId),
 
-      // 5. Recent Mobile Notifications / Ingested Events (Past 24 hours, top 8)
-      this.prisma.mobileEvent.findMany({
-        where: {
-          userId,
-          occurredAt: { gte: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
-        },
-        orderBy: { occurredAt: 'desc' },
-        take: 8,
-        select: {
-          id: true,
-          sourceApp: true,
-          appName: true,
-          category: true,
-          title: true,
-          summary: true,
-          occurredAt: true,
-        },
-      }),
-
-      // 6. Explicit & Inferred Personal Memories
+      // 5. Explicit & Inferred Personal Memories
       this.prisma.knowledgeNote.findMany({
         where: {
           userId,
@@ -162,11 +148,15 @@ export class UnifiedContextService {
       operationalLines.push(`Projects: ` + projects.map((p) => p.title).join(', '));
     }
 
-    const mobileLines: string[] = [];
-    if (recentEvents.length > 0) {
+    const mobileLines: string[] = [
+      `Android Notification Integration: ${capabilityStatus.state} (Device: ${capabilityStatus.deviceName || 'None'}, Listener: ${capabilityStatus.isListenerConnected ? 'Connected' : 'Disconnected'})`,
+      `AI Guidance: ${capabilityStatus.aiDirective}`,
+    ];
+
+    if (capabilityStatus.recentEvents.length > 0) {
       mobileLines.push(
-        `Recent Phone Notifications (${recentEvents.length}): ` +
-          recentEvents
+        `Recent Phone Notifications (${capabilityStatus.recentEvents.length}): ` +
+          capabilityStatus.recentEvents
             .map((e) => `[${e.appName || e.sourceApp}] ${e.title || ''}: ${e.summary || ''}`)
             .join(' | '),
       );
@@ -211,20 +201,15 @@ export class UnifiedContextService {
         })),
       },
       mobileIntelligence: {
-        pairedDevicesCount: mobileDevices.length,
-        recentEvents: recentEvents.map((e) => ({
-          id: e.id,
-          sourceApp: e.sourceApp,
-          appName: e.appName,
-          category: e.category,
-          title: e.title,
-          summary: e.summary,
-          occurredAt: e.occurredAt.toISOString(),
-        })),
+        pairedDevicesCount: capabilityStatus.hasPairedDevice ? 1 : 0,
+        capabilityState: capabilityStatus.state,
+        isNotificationAccessGranted: capabilityStatus.isPermissionGranted,
+        isListenerConnected: capabilityStatus.isListenerConnected,
+        recentEvents: capabilityStatus.recentEvents,
+        aiDirective: capabilityStatus.aiDirective,
       },
       memories: parsedMemories,
       summaryPrompt,
     };
   }
 }
-

@@ -15,6 +15,7 @@ import { UnifiedContextService } from './unified-context.service';
 import { ReasoningEngineService } from './reasoning-engine.service';
 import { DigitalActionOrchestratorService } from './digital-action-orchestrator.service';
 import { AdaptivePersonalizationService } from './adaptive-personalization.service';
+import { NotificationCapabilityService } from '../mobile/notification-capability.service';
 import { MobileModule } from '../mobile/mobile.module';
 import { AIController } from './ai.controller';
 import { WorkerModule } from '../../worker/worker.module';

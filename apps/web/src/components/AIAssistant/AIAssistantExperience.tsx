@@ -741,11 +741,11 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
   // Active State Render: Opened strictly on-demand
   return (
     <aside
-      className={`fixed bottom-16 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center w-[96vw] sm:w-[92vw] max-w-2xl select-none animate-in fade-in slide-in-from-bottom-4 duration-300 ${className}`}
+      className={`fixed bottom-16 lg:bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center w-[96vw] sm:w-[92vw] max-w-2xl select-none animate-in fade-in slide-in-from-bottom-4 duration-300 ${className}`}
       aria-label="Google Assistant 3D AI On-Demand Interface"
     >
       {/* Top Bar with Dismiss, Minimize, and Settings Controls */}
-      <div className="w-full flex justify-between items-center mb-1.5 px-3">
+      <div className="w-full flex justify-between items-center mb-1.5 px-3 bg-white/70 backdrop-blur-md py-1 rounded-xl border border-violet-100 shadow-2xs">
         <div className="flex items-center gap-2">
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>

@@ -25,6 +25,10 @@ import {
   VolumeX,
   Shield,
   Moon,
+  Smartphone,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
 } from 'lucide-react';
 import { InAppNotificationDto } from '@assistant/shared';
 
@@ -103,10 +107,25 @@ export function NotificationCenterModal({
     queryKey: ['in-app-notifications', selectedCategory, unreadOnly],
     queryFn: () =>
       api.getNotifications({
-        category: selectedCategory === 'ALL' || selectedCategory === 'UNREAD' ? undefined : selectedCategory,
+        category: selectedCategory === 'ALL' || selectedCategory === 'UNREAD' || selectedCategory === 'APPS' ? undefined : selectedCategory,
         unreadOnly: unreadOnly || selectedCategory === 'UNREAD',
         limit: 50,
       }),
+    enabled: isOpen && selectedCategory !== 'APPS',
+    refetchInterval: isOpen && selectedCategory !== 'APPS' ? 10000 : false,
+  });
+
+  // 1b. Fetch Android Notification Capability & Mobile Events
+  const { data: capabilityStatus } = useQuery({
+    queryKey: ['mobile-capability-status'],
+    queryFn: () => api.getMobileCapabilityStatus(),
+    enabled: isOpen,
+    refetchInterval: isOpen ? 15000 : false,
+  });
+
+  const { data: mobileEvents = [], isLoading: isLoadingMobileEvents } = useQuery({
+    queryKey: ['mobile-events'],
+    queryFn: () => api.getMobileEvents(50),
     enabled: isOpen,
     refetchInterval: isOpen ? 10000 : false,
   });
@@ -275,6 +294,7 @@ export function NotificationCenterModal({
   const filterTabs = [
     { id: 'ALL', label: 'All' },
     { id: 'UNREAD', label: `Unread (${unreadCount})` },
+    { id: 'APPS', label: `Apps (${mobileEvents.length})` },
     { id: 'TASKS', label: 'Tasks' },
     { id: 'ROUTINES', label: 'Routines' },
     { id: 'REMINDERS', label: 'Reminders' },
@@ -384,6 +404,46 @@ export function NotificationCenterModal({
                 >
                   {isPushSubscribed ? 'Enabled' : 'Disabled'}
                 </button>
+              </div>
+
+              {/* Android Notification Access Status */}
+              <div className="flex items-center justify-between pt-2 border-t border-[#E5E2F5]/60">
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-[#202033]">Android Notification Access</p>
+                    <span
+                      className={`px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase ${
+                        capabilityStatus?.state === 'FULLY_CONNECTED'
+                          ? 'bg-[#ECFDF5] text-[#16A36A] border border-[#A7F3D0]'
+                          : capabilityStatus?.state === 'PERMISSION_NOT_GRANTED'
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-[#F4F3FF] text-[#8B45F5] border border-[#DDD8F8]'
+                      }`}
+                    >
+                      {capabilityStatus?.state === 'FULLY_CONNECTED'
+                        ? 'Active & Synced'
+                        : capabilityStatus?.state === 'PERMISSION_NOT_GRANTED'
+                        ? 'Permission Needed'
+                        : capabilityStatus?.state || 'Checking'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-[#74738A]">
+                    {capabilityStatus?.hasPairedDevice
+                      ? `${capabilityStatus.deviceName || 'Android'} • ${capabilityStatus.approvedAppsCount || 0} apps approved`
+                      : 'No Android companion paired'}
+                  </p>
+                </div>
+                {onNavigateTab && (
+                  <button
+                    onClick={() => {
+                      onNavigateTab('settings');
+                      onClose();
+                    }}
+                    className="px-2.5 py-1 rounded-xl text-xs font-bold border border-[#DDD8F8] bg-white text-[#8B45F5] hover:bg-[#F4F3FF] transition-colors"
+                  >
+                    Manage
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-[#E5E2F5]/60">
@@ -498,7 +558,86 @@ export function NotificationCenterModal({
             NOTIFICATIONS LIST
            ===================================================================== */}
         <div className="flex-1 min-h-0 overflow-y-auto custom-card-scrollbar p-3 space-y-2">
-          {isLoading ? (
+          {selectedCategory === 'APPS' ? (
+            /* =====================================================================
+                ANDROID APPS NOTIFICATION FEED
+               ===================================================================== */
+            isLoadingMobileEvents ? (
+              <div className="py-12 flex flex-col items-center justify-center text-center">
+                <div className="w-6 h-6 border-2 border-[#8B45F5] border-t-transparent rounded-full animate-spin mb-2" />
+                <p className="text-xs text-[#74738A] font-medium">Syncing Android notifications...</p>
+              </div>
+            ) : mobileEvents.length === 0 ? (
+              <div className="py-12 text-center flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-[#F4F3FF] text-[#8B45F5] flex items-center justify-center mb-3">
+                  <Smartphone className="w-6 h-6 stroke-[2]" />
+                </div>
+                <p className="text-sm font-bold text-[#202033]">No Phone Notifications Ingested</p>
+                <p className="text-xs text-[#74738A] mt-1 max-w-xs">
+                  {capabilityStatus?.state === 'PERMISSION_NOT_GRANTED'
+                    ? 'Android Notification Access is not granted yet. Enable access on your paired phone.'
+                    : capabilityStatus?.state === 'LISTENER_DISCONNECTED'
+                    ? 'NOVA Companion is disconnected. Open the app on your phone to resume live sync.'
+                    : 'When approved apps on your phone receive notifications, NOVA syncs and displays them here.'}
+                </p>
+              </div>
+            ) : (
+              mobileEvents.map((evt: any) => {
+                let relativeTime = 'Just now';
+                try {
+                  if (evt.occurredAt || evt.createdAt) {
+                    relativeTime = formatDistanceToNow(parseISO(evt.occurredAt || evt.createdAt), { addSuffix: true });
+                  }
+                } catch {
+                  relativeTime = 'Recently';
+                }
+
+                return (
+                  <div
+                    key={evt.id}
+                    className="p-3 rounded-xl border border-[#E5E2F5] hover:border-[#DDD8F8] bg-white transition-all relative flex items-start gap-3 group"
+                  >
+                    <div className="w-8 h-8 rounded-xl bg-[#F4F3FF] border border-[#DDD8F8] flex items-center justify-center shrink-0 shadow-2xs mt-0.5 text-[#8B45F5]">
+                      <Smartphone className="w-4 h-4" />
+                    </div>
+
+                    <div className="flex-1 min-w-0 pr-6">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase bg-[#F4F3FF] text-[#8B45F5] border border-[#DDD8F8]">
+                          {evt.appName || evt.sourceApp || 'Phone App'}
+                        </span>
+                        <h4 className="text-xs font-bold text-[#202033] truncate">
+                          {evt.title || 'Notification'}
+                        </h4>
+                      </div>
+
+                      <p className="text-[11px] text-[#74738A] leading-snug line-clamp-2">
+                        {evt.summary || evt.content || 'Content filtered for privacy.'}
+                      </p>
+
+                      <div className="flex items-center gap-3 mt-2 text-[10px] text-[#9CA3AF] font-medium">
+                        <span>{relativeTime}</span>
+                        <span className="text-emerald-600 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-2.5 h-2.5" />
+                          <span>Verified Device Sync</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => speakNotification(evt.appName || 'Phone', evt.title || evt.summary || '')}
+                        className="p-1 rounded-md text-[#74738A] hover:text-[#8B45F5] hover:bg-[#F4F3FF] transition-colors"
+                        title="Listen to notification"
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )
+          ) : isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center text-center">
               <div className="w-6 h-6 border-2 border-[#8B45F5] border-t-transparent rounded-full animate-spin mb-2" />
               <p className="text-xs text-[#74738A] font-medium">Loading notifications...</p>

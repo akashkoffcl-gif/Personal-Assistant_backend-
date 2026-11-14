@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { MobileService } from './mobile.service';
+import { NotificationCapabilityService } from './notification-capability.service';
 import {
   InitiateDevicePairingDto,
   ConfirmDevicePairingDto,
@@ -14,7 +15,16 @@ import { SupabaseAuthGuard } from '../auth/supabase-auth.guard';
 @Controller('mobile')
 @UseGuards(SupabaseAuthGuard)
 export class MobileController {
-  constructor(private readonly mobileService: MobileService) {}
+  constructor(
+    private readonly mobileService: MobileService,
+    private readonly capabilityService: NotificationCapabilityService,
+  ) {}
+
+  @Get('capability/status')
+  async getCapabilityStatus(@Req() req: any, @Query('package') targetPackage?: string) {
+    const userId = req.user.id;
+    return this.capabilityService.getCapabilityStatus(userId, targetPackage);
+  }
 
   @Post('pair/initiate')
   async initiatePairing(@Req() req: any, @Body() dto: InitiateDevicePairingDto) {
