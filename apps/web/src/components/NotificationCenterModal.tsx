@@ -433,17 +433,30 @@ export function NotificationCenterModal({
                       : 'No Android companion paired'}
                   </p>
                 </div>
-                {onNavigateTab && (
-                  <button
-                    onClick={() => {
-                      onNavigateTab('settings');
-                      onClose();
-                    }}
-                    className="px-2.5 py-1 rounded-xl text-xs font-bold border border-[#DDD8F8] bg-white text-[#8B45F5] hover:bg-[#F4F3FF] transition-colors"
-                  >
-                    Manage
-                  </button>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {typeof window !== 'undefined' && (window as any).NovaAndroidBridge && (
+                    <button
+                      onClick={() => {
+                        (window as any).NovaAndroidBridge.openNotificationAccessSettings();
+                      }}
+                      className="px-2.5 py-1 rounded-xl text-xs font-bold border border-violet-300 bg-violet-600 text-white hover:bg-violet-700 transition-colors shadow-2xs"
+                      title="Open Android System Notification Access Settings"
+                    >
+                      Grant on Phone
+                    </button>
+                  )}
+                  {onNavigateTab && (
+                    <button
+                      onClick={() => {
+                        onNavigateTab('settings');
+                        onClose();
+                      }}
+                      className="px-2.5 py-1 rounded-xl text-xs font-bold border border-[#DDD8F8] bg-white text-[#8B45F5] hover:bg-[#F4F3FF] transition-colors"
+                    >
+                      Manage
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-[#E5E2F5]/60">

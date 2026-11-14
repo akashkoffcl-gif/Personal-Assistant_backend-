@@ -28,6 +28,13 @@ let memoryToken: string | null = null;
 
 export function setApiAuthToken(token: string | null) {
   memoryToken = token;
+  // If running inside the unified Android APK, synchronize session with native Keystore
+  if (typeof window !== 'undefined' && token && (window as any).NovaAndroidBridge?.syncAuthSession) {
+    try {
+      const storedUser = localStorage.getItem('assistant_user_id') || 'current_user';
+      (window as any).NovaAndroidBridge.syncAuthSession(token, storedUser);
+    } catch (_e) {}
+  }
 }
 
 export function getApiAuthToken(): string | null {
