@@ -7,12 +7,30 @@
 
 ---
 
-## 1. Confirmed Root Cause
-During project evaluation of `:app`, the Gradle build failed with:
+## 1. Confirmed Root Causes & Remediations
+
+### A. Missing Hilt & Room Annotation Processors
+During project evaluation of `:app`, the Gradle build initially failed with:
 ```
 The Hilt Android Gradle plugin is applied but no com.google.dagger:hilt-compiler dependency was found.
 ```
-While `libs.plugins.hilt.android` and `implementation(libs.hilt.android)` were applied, the project was missing an annotation processor plugin (`ksp` or `kapt`) and the corresponding compiler dependency `ksp(libs.hilt.compiler)` in `apps-mobile/nova-android/app/build.gradle.kts`.
+- **Remediation**:
+  - Integrated Kotlin Symbol Processing (`ksp = "2.0.21-1.0.28"`) matching Kotlin `2.0.21`.
+  - Added `alias(libs.plugins.ksp)` in root `build.gradle.kts` and app `build.gradle.kts`.
+  - Added `ksp(libs.hilt.compiler)` and `ksp(libs.androidx.room.compiler)` in app `build.gradle.kts`.
+
+### B. Missing `gradle.properties` (`android.useAndroidX=true`)
+During execution of task `:app:checkDebugAarMetadata`:
+```
+Configuration `:app:debugRuntimeClasspath` contains AndroidX dependencies, but the `android.useAndroidX` property is not enabled.
+```
+- **Remediation**:
+  - Created `apps-mobile/nova-android/gradle.properties` with:
+    ```properties
+    org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+    android.useAndroidX=true
+    android.nonTransitiveRClass=true
+    ```
 
 ---
 
