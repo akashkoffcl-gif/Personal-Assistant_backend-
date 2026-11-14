@@ -42,13 +42,7 @@ jobs:
             gradle wrapper --gradle-version 8.9 --distribution-type bin
           fi
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace > /tmp/gradle_build.log 2>&1 || {
-            BUILD_STATUS=$?
-            echo "ERROR: Gradle build exited with status $BUILD_STATUS"
-            cat /tmp/gradle_build.log
-            exit $BUILD_STATUS
-          }
-          cat /tmp/gradle_build.log | tail -n 50
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
 
       - name: Verify APK Generation
         id: verify-apk
