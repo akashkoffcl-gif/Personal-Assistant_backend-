@@ -42,11 +42,14 @@ jobs:
             gradle wrapper --gradle-version 8.9 --distribution-type bin
           fi
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee build_output.log
-          if [ ${PIPESTATUS[0]} -ne 0 ]; then
-            echo "::error::Gradle assembleDebug failed!"
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace > build.log 2>&1 || {
+            echo "::error title=Gradle Error::$(grep -E 'error:|FAILURE:|FAILED|Exception:' build.log | head -n 10 | tr '\n' ' ')"
+            echo "--- FIRST 100 LINES ---"
+            head -n 100 build.log
+            echo "--- LAST 150 LINES ---"
+            tail -n 150 build.log
             exit 1
-          fi
+          }
 
       - name: Verify APK Generation
         id: verify-apk
