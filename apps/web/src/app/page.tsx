@@ -39,6 +39,7 @@ import { AIAssistantDrawer } from '@/components/AIAssistantDrawer';
 import { SmartDayPlannerModal } from '@/components/SmartDayPlannerModal';
 import { SmartDayPlannerWorkspace } from '@/components/SmartDayPlannerWorkspace';
 import { PredictiveProductivityWorkspace } from '@/components/PredictiveProductivityWorkspace';
+import { AppAllowlistManager } from '@/components/mobile/AppAllowlistManager';
 import { AIAssistantExperience } from '@/components/AIAssistantExperience';
 import { AIChatWorkspace } from '@/components/AIChatWorkspace';
 import { MyDayTimelineWorkspace } from '@/components/MyDayTimelineWorkspace';
@@ -94,6 +95,7 @@ export default function App() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
+  const [settingsSection, setSettingsSection] = useState<'general' | 'mobile'>('general');
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0],
   );
@@ -1433,94 +1435,125 @@ export default function App() {
 
           {/* TAB 10: SETTINGS WORKSPACE */}
           {currentTab === 'settings' && (
-            <div className="space-y-5">
-              <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)] max-w-2xl">
-                <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-0.5 tracking-tight">
-                  User Settings & Data Portability
-                </h3>
-                <p className="text-xs text-slate-500 mb-5">
-                  Configure working hours, quiet hours, default task duration, and data portability
-                </p>
+            <div className="space-y-6 max-w-4xl">
+              {/* Settings Sub-Navigation */}
+              <div className="flex items-center gap-2 border-b border-[#E5E2F5] pb-3">
+                <button
+                  onClick={() => setSettingsSection('general')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    settingsSection === 'general'
+                      ? 'bg-[#8B45F5] text-white shadow-2xs'
+                      : 'bg-[#F4F3FF] text-[#74738A] hover:text-[#202033] hover:bg-[#EDE9FE]'
+                  }`}
+                >
+                  General & Productivity
+                </button>
+                <button
+                  onClick={() => setSettingsSection('mobile')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    settingsSection === 'mobile'
+                      ? 'bg-[#8B45F5] text-white shadow-2xs'
+                      : 'bg-[#F4F3FF] text-[#74738A] hover:text-[#202033] hover:bg-[#EDE9FE]'
+                  }`}
+                >
+                  <span>Mobile Companion</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase bg-violet-200 text-violet-900">
+                    Live
+                  </span>
+                </button>
+              </div>
 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Work Start Hour (0-23)
-                      </label>
-                      <input
-                        type="number"
-                        defaultValue={settings?.workStartHour || 9}
-                        className="w-full px-3 py-1.5 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Work End Hour (1-24)
-                      </label>
-                      <input
-                        type="number"
-                        defaultValue={settings?.workEndHour || 18}
-                        className="w-full px-3 py-1.5 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white"
-                      />
-                    </div>
-                  </div>
+              {settingsSection === 'general' ? (
+                <div className="bg-white rounded-2xl p-5 sm:p-6 border border-[#E5E2F5] shadow-[0_4px_20px_rgba(139,69,245,0.04)] max-w-2xl">
+                  <h3 className="text-base sm:text-lg font-bold text-slate-900 mb-0.5 tracking-tight">
+                    User Settings & Data Portability
+                  </h3>
+                  <p className="text-xs text-slate-500 mb-5">
+                    Configure working hours, quiet hours, default task duration, and data portability
+                  </p>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Quiet Hours Start (Hour)
-                      </label>
-                      <input
-                        type="number"
-                        defaultValue={settings?.quietHoursStart || 22}
-                        className="w-full px-3 py-1.5 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white"
-                      />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Work Start Hour (0-23)
+                        </label>
+                        <input
+                          type="number"
+                          defaultValue={settings?.workStartHour || 9}
+                          className="w-full px-3 py-1.5 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Work End Hour (1-24)
+                        </label>
+                        <input
+                          type="number"
+                          defaultValue={settings?.workEndHour || 18}
+                          className="w-full px-3 py-1.5 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">
-                        Quiet Hours End (Hour)
-                      </label>
-                      <input
-                        type="number"
-                        defaultValue={settings?.quietHoursEnd || 7}
-                        className="w-full px-3 py-1.5 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white"
-                      />
-                    </div>
-                  </div>
 
-                  <div className="pt-4 border-t border-[#E5E2F5] flex flex-col gap-2.5">
-                    <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                      Data Portability & Export (GDPR / CCPA)
-                    </span>
-                    <button
-                      onClick={async () => {
-                        const exportJob = (async () => {
-                          const data = await api.exportUserData();
-                          const blob = new Blob([JSON.stringify(data, null, 2)], {
-                            type: 'application/json',
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Quiet Hours Start (Hour)
+                        </label>
+                        <input
+                          type="number"
+                          defaultValue={settings?.quietHoursStart || 22}
+                          className="w-full px-3 py-1.5 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">
+                          Quiet Hours End (Hour)
+                        </label>
+                        <input
+                          type="number"
+                          defaultValue={settings?.quietHoursEnd || 7}
+                          className="w-full px-3 py-1.5 text-xs font-medium border border-[#E5E2F5] rounded-lg bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-[#E5E2F5] flex flex-col gap-2.5">
+                      <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                        Data Portability & Export (GDPR / CCPA)
+                      </span>
+                      <button
+                        onClick={async () => {
+                          const exportJob = (async () => {
+                            const data = await api.exportUserData();
+                            const blob = new Blob([JSON.stringify(data, null, 2)], {
+                              type: 'application/json',
+                            });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `personal-assistant-export-${new Date().toISOString()}.json`;
+                            a.click();
+                            return data;
+                          })();
+
+                          toast.promise(exportJob, {
+                            loading: 'Preparing comprehensive archive...',
+                            success: 'Export package downloaded successfully!',
+                            error: (err: any) => `Export failed: ${err?.message || 'API error'}`,
                           });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = `personal-assistant-export-${new Date().toISOString()}.json`;
-                          a.click();
-                          return data;
-                        })();
-
-                        toast.promise(exportJob, {
-                          loading: 'Preparing comprehensive archive...',
-                          success: 'Export package downloaded successfully!',
-                          error: (err: any) => `Export failed: ${err?.message || 'API error'}`,
-                        });
-                      }}
-                      className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-[#8B45F5] hover:bg-[#7839D6] text-white text-xs font-semibold transition-colors shadow-xs"
-                    >
-                      <Download className="w-4 h-4 text-white" /> Download Complete User Archive (JSON)
-                    </button>
+                        }}
+                        className="flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-[#8B45F5] hover:bg-[#7839D6] text-white text-xs font-semibold transition-colors shadow-xs"
+                      >
+                        <Download className="w-4 h-4 text-white" /> Download Complete User Archive (JSON)
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <AppAllowlistManager />
+              )}
             </div>
           )}
         </main>
@@ -1634,7 +1667,12 @@ export default function App() {
         isPushSubscribed={push.isSubscribed}
         onTogglePush={push.isSubscribed ? () => {} : push.subscribe}
         pushLoading={push.loading}
-        onNavigateTab={(tab) => setCurrentTab(tab as any)}
+        onNavigateTab={(tab, subSection) => {
+          setCurrentTab(tab as any);
+          if (subSection === 'mobile' || subSection === 'general') {
+            setSettingsSection(subSection);
+          }
+        }}
       />
 
       {/* Wellness Add / Edit Record Modal */}

@@ -40,7 +40,7 @@ interface NotificationCenterModalProps {
   isPushSubscribed: boolean;
   onTogglePush: () => void;
   pushLoading: boolean;
-  onNavigateTab?: (tab: string) => void;
+  onNavigateTab?: (tab: string, subSection?: string) => void;
   triggerRef?: React.RefObject<HTMLElement | null>;
 }
 
@@ -480,12 +480,13 @@ export function NotificationCenterModal({
                   {onNavigateTab && (
                     <button
                       onClick={() => {
-                        onNavigateTab('settings');
+                        onNavigateTab('settings', 'mobile');
                         onClose();
                       }}
                       className="px-2.5 py-1 rounded-xl text-xs font-bold border border-[#DDD8F8] bg-white text-[#8B45F5] hover:bg-[#F4F3FF] transition-colors"
+                      title="Open Mobile Companion App Allowlist in Settings"
                     >
-                      Manage
+                      Manage Approved Apps
                     </button>
                   )}
                 </div>
