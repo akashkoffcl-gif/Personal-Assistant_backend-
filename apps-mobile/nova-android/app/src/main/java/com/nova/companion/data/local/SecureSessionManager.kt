@@ -7,6 +7,7 @@ object SecureSessionManager {
     private const val PREF_NAME = "nova_secure_session_prefs"
     private const val KEY_AUTH_TOKEN = "auth_token"
     private const val KEY_USER_ID = "user_id"
+    private const val KEY_DEVICE_ID = "device_id"
     private const val KEY_LAST_SYNC = "last_sync_timestamp"
 
     private fun getPrefs(context: Context): SharedPreferences {
@@ -19,6 +20,16 @@ object SecureSessionManager {
             .putString(KEY_USER_ID, userId)
             .putLong(KEY_LAST_SYNC, System.currentTimeMillis())
             .apply()
+    }
+
+    fun saveDeviceId(context: Context, deviceId: String) {
+        getPrefs(context).edit()
+            .putString(KEY_DEVICE_ID, deviceId)
+            .apply()
+    }
+
+    fun getDeviceId(context: Context): String? {
+        return getPrefs(context).getString(KEY_DEVICE_ID, null)
     }
 
     fun getAuthToken(context: Context): String? {

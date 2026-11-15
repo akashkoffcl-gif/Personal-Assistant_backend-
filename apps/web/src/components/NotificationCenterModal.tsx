@@ -29,6 +29,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
+  Search,
+  Filter,
 } from 'lucide-react';
 import { InAppNotificationDto } from '@assistant/shared';
 
@@ -55,6 +57,9 @@ export function NotificationCenterModal({
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [unreadOnly, setUnreadOnly] = useState<boolean>(false);
   const [showPreferences, setShowPreferences] = useState<boolean>(false);
+  const [appSearchQuery, setAppSearchQuery] = useState<string>('');
+  const [selectedAppFilter, setSelectedAppFilter] = useState<string>('ALL');
+  const [discoveredApps, setDiscoveredApps] = useState<any[]>([]);
   const modalRef = useRef<HTMLDivElement>(null);
 
   const [voicePrefs, setVoicePrefs] = useState(() => {
@@ -129,6 +134,33 @@ export function NotificationCenterModal({
     enabled: isOpen,
     refetchInterval: isOpen ? 10000 : false,
   });
+
+  // Load dynamically discovered apps from native bridge if available
+  useEffect(() => {
+    if (isOpen && typeof window !== 'undefined' && (window as any).NovaAndroidBridge?.getInstalledEligibleApps) {
+      try {
+        const raw = (window as any).NovaAndroidBridge.getInstalledEligibleApps();
+        const parsed = JSON.parse(raw);
+        setDiscoveredApps(parsed);
+      } catch (e) {
+        console.error('Failed to parse discovered apps from bridge', e);
+      }
+    }
+  }, [isOpen]);
+
+  const handleToggleAppApproval = (packageName: string, currentApproved: boolean) => {
+    if (typeof window !== 'undefined' && (window as any).NovaAndroidBridge?.setAppApproval) {
+      const res = (window as any).NovaAndroidBridge.setAppApproval(packageName, !currentApproved);
+      if (res) {
+        setDiscoveredApps((prev) =>
+          prev.map((app) => (app.packageName === packageName ? { ...app, isApproved: !currentApproved } : app))
+        );
+        toast.success(!currentApproved ? 'App Approved' : 'App Revoked', `${packageName} notification capture updated`);
+      } else {
+        toast.error('Action Blocked', 'Mandatory security exclusions cannot be overridden.');
+      }
+    }
+  };
 
   // Fallback defaults to ensure instantaneous visual feedback
   const fallbackNotifications: InAppNotificationDto[] = [
@@ -573,83 +605,188 @@ export function NotificationCenterModal({
         <div className="flex-1 min-h-0 overflow-y-auto custom-card-scrollbar p-3 space-y-2">
           {selectedCategory === 'APPS' ? (
             /* =====================================================================
-                ANDROID APPS NOTIFICATION FEED
+                ANDROID APPS NOTIFICATION FEED & CONTROLS
                ===================================================================== */
-            isLoadingMobileEvents ? (
-              <div className="py-12 flex flex-col items-center justify-center text-center">
-                <div className="w-6 h-6 border-2 border-[#8B45F5] border-t-transparent rounded-full animate-spin mb-2" />
-                <p className="text-xs text-[#74738A] font-medium">Syncing Android notifications...</p>
-              </div>
-            ) : mobileEvents.length === 0 ? (
-              <div className="py-12 text-center flex flex-col items-center justify-center">
-                <div className="w-12 h-12 rounded-2xl bg-[#F4F3FF] text-[#8B45F5] flex items-center justify-center mb-3">
-                  <Smartphone className="w-6 h-6 stroke-[2]" />
-                </div>
-                <p className="text-sm font-bold text-[#202033]">No Phone Notifications Ingested</p>
-                <p className="text-xs text-[#74738A] mt-1 max-w-xs">
-                  {capabilityStatus?.state === 'PERMISSION_NOT_GRANTED'
-                    ? 'Android Notification Access is not granted yet. Enable access on your paired phone.'
-                    : capabilityStatus?.state === 'LISTENER_DISCONNECTED'
-                    ? 'NOVA Companion is disconnected. Open the app on your phone to resume live sync.'
-                    : 'When approved apps on your phone receive notifications, NOVA syncs and displays them here.'}
-                </p>
-              </div>
-            ) : (
-              mobileEvents.map((evt: any) => {
-                let relativeTime = 'Just now';
-                try {
-                  if (evt.occurredAt || evt.createdAt) {
-                    relativeTime = formatDistanceToNow(parseISO(evt.occurredAt || evt.createdAt), { addSuffix: true });
-                  }
-                } catch {
-                  relativeTime = 'Recently';
-                }
-
-                return (
-                  <div
-                    key={evt.id}
-                    className="p-3 rounded-xl border border-[#E5E2F5] hover:border-[#DDD8F8] bg-white transition-all relative flex items-start gap-3 group"
-                  >
-                    <div className="w-8 h-8 rounded-xl bg-[#F4F3FF] border border-[#DDD8F8] flex items-center justify-center shrink-0 shadow-2xs mt-0.5 text-[#8B45F5]">
-                      <Smartphone className="w-4 h-4" />
-                    </div>
-
-                    <div className="flex-1 min-w-0 pr-6">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase bg-[#F4F3FF] text-[#8B45F5] border border-[#DDD8F8]">
-                          {evt.appName || evt.sourceApp || 'Phone App'}
-                        </span>
-                        <h4 className="text-xs font-bold text-[#202033] truncate">
-                          {evt.title || 'Notification'}
-                        </h4>
-                      </div>
-
-                      <p className="text-[11px] text-[#74738A] leading-snug line-clamp-2">
-                        {evt.summary || evt.content || 'Content filtered for privacy.'}
-                      </p>
-
-                      <div className="flex items-center gap-3 mt-2 text-[10px] text-[#9CA3AF] font-medium">
-                        <span>{relativeTime}</span>
-                        <span className="text-emerald-600 font-bold flex items-center gap-1">
-                          <CheckCircle2 className="w-2.5 h-2.5" />
-                          <span>Verified Device Sync</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="absolute top-2.5 right-2.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => speakNotification(evt.appName || 'Phone', evt.title || evt.summary || '')}
-                        className="p-1 rounded-md text-[#74738A] hover:text-[#8B45F5] hover:bg-[#F4F3FF] transition-colors"
-                        title="Listen to notification"
-                      >
-                        <Volume2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+            <div className="space-y-3">
+              {/* Universal Multi-App Filter & Search */}
+              <div className="p-2.5 bg-[#F8F7FF] rounded-xl border border-[#E5E2F5] space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-[#74738A]" />
+                    <input
+                      type="text"
+                      placeholder="Search phone notifications..."
+                      value={appSearchQuery}
+                      onChange={(e) => setAppSearchQuery(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-[#E5E2F5] rounded-lg focus:outline-none focus:border-[#8B45F5]"
+                    />
                   </div>
-                );
-              })
-            )
+                </div>
+
+                {/* Dynamic App Filter Pills */}
+                {mobileEvents.length > 0 && (
+                  <div className="flex items-center gap-1.5 overflow-x-auto custom-card-scrollbar pt-1">
+                    <button
+                      onClick={() => setSelectedAppFilter('ALL')}
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${
+                        selectedAppFilter === 'ALL'
+                          ? 'bg-[#8B45F5] text-white border-[#8B45F5]'
+                          : 'bg-white text-[#74738A] border-[#E5E2F5]'
+                      }`}
+                    >
+                      All Apps
+                    </button>
+                    {Array.from(new Set(mobileEvents.map((e: any) => e.appName || e.sourceApp))).map((name: any) => (
+                      <button
+                        key={name}
+                        onClick={() => setSelectedAppFilter(name)}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors whitespace-nowrap ${
+                          selectedAppFilter === name
+                            ? 'bg-[#8B45F5] text-white border-[#8B45F5]'
+                            : 'bg-white text-[#74738A] border-[#E5E2F5]'
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Installed App Approval Manager (when running inside Android APK) */}
+              {discoveredApps.length > 0 && (
+                <div className="p-3 bg-[#F8F7FF] rounded-xl border border-[#E5E2F5] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Shield className="w-3.5 h-3.5 text-[#8B45F5]" />
+                      <h4 className="text-xs font-bold text-[#202033]">Installed App Allowlist</h4>
+                    </div>
+                    <span className="text-[10px] text-[#74738A]">
+                      {discoveredApps.filter((a) => a.isApproved).length} approved
+                    </span>
+                  </div>
+
+                  <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 custom-card-scrollbar">
+                    {discoveredApps.map((app) => (
+                      <div
+                        key={app.packageName}
+                        className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#E5E2F5] text-xs"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <p className="font-bold text-[#202033] truncate">{app.appName}</p>
+                          <p className="text-[9px] text-[#74738A] truncate">{app.packageName}</p>
+                        </div>
+                        {app.isSecurityBlocked ? (
+                          <span className="px-2 py-0.5 rounded text-[9px] font-black bg-red-50 text-red-600 border border-red-200 uppercase">
+                            Security Excluded
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleToggleAppApproval(app.packageName, app.isApproved)}
+                            className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-colors ${
+                              app.isApproved
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-300'
+                                : 'bg-[#F4F3FF] text-[#8B45F5] border border-[#DDD8F8]'
+                            }`}
+                          >
+                            {app.isApproved ? 'Approved' : 'Enable'}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Ingested Mobile Events List */}
+              {isLoadingMobileEvents ? (
+                <div className="py-12 flex flex-col items-center justify-center text-center">
+                  <div className="w-6 h-6 border-2 border-[#8B45F5] border-t-transparent rounded-full animate-spin mb-2" />
+                  <p className="text-xs text-[#74738A] font-medium">Syncing Android notifications...</p>
+                </div>
+              ) : mobileEvents.length === 0 ? (
+                <div className="py-12 text-center flex flex-col items-center justify-center">
+                  <div className="w-12 h-12 rounded-2xl bg-[#F4F3FF] text-[#8B45F5] flex items-center justify-center mb-3">
+                    <Smartphone className="w-6 h-6 stroke-[2]" />
+                  </div>
+                  <p className="text-sm font-bold text-[#202033]">No Phone Notifications Ingested</p>
+                  <p className="text-xs text-[#74738A] mt-1 max-w-xs">
+                    {capabilityStatus?.state === 'PERMISSION_NOT_GRANTED'
+                      ? 'Android Notification Access is not granted yet. Enable access on your paired phone.'
+                      : capabilityStatus?.state === 'LISTENER_DISCONNECTED'
+                      ? 'NOVA Companion is disconnected. Open the app on your phone to resume live sync.'
+                      : 'When approved apps on your phone receive notifications, NOVA syncs and displays them here.'}
+                  </p>
+                </div>
+              ) : (
+                mobileEvents
+                  .filter((evt: any) => {
+                    const matchesApp =
+                      selectedAppFilter === 'ALL' ||
+                      (evt.appName || evt.sourceApp) === selectedAppFilter;
+                    const matchesSearch =
+                      !appSearchQuery ||
+                      (evt.title || '').toLowerCase().includes(appSearchQuery.toLowerCase()) ||
+                      (evt.summary || '').toLowerCase().includes(appSearchQuery.toLowerCase()) ||
+                      (evt.appName || '').toLowerCase().includes(appSearchQuery.toLowerCase());
+                    return matchesApp && matchesSearch;
+                  })
+                  .map((evt: any) => {
+                    let relativeTime = 'Just now';
+                    try {
+                      if (evt.occurredAt || evt.createdAt) {
+                        relativeTime = formatDistanceToNow(parseISO(evt.occurredAt || evt.createdAt), { addSuffix: true });
+                      }
+                    } catch {
+                      relativeTime = 'Recently';
+                    }
+
+                    return (
+                      <div
+                        key={evt.id}
+                        className="p-3 rounded-xl border border-[#E5E2F5] hover:border-[#DDD8F8] bg-white transition-all relative flex items-start gap-3 group"
+                      >
+                        <div className="w-8 h-8 rounded-xl bg-[#F4F3FF] border border-[#DDD8F8] flex items-center justify-center shrink-0 shadow-2xs mt-0.5 text-[#8B45F5]">
+                          <Smartphone className="w-4 h-4" />
+                        </div>
+
+                        <div className="flex-1 min-w-0 pr-6">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase bg-[#F4F3FF] text-[#8B45F5] border border-[#DDD8F8]">
+                              {evt.appName || evt.sourceApp || 'Phone App'}
+                            </span>
+                            <h4 className="text-xs font-bold text-[#202033] truncate">
+                              {evt.title || 'Notification'}
+                            </h4>
+                          </div>
+
+                          <p className="text-[11px] text-[#74738A] leading-snug line-clamp-2">
+                            {evt.summary || evt.content || 'Content filtered for privacy.'}
+                          </p>
+
+                          <div className="flex items-center gap-3 mt-2 text-[10px] text-[#9CA3AF] font-medium">
+                            <span>{relativeTime}</span>
+                            <span className="text-emerald-600 font-bold flex items-center gap-1">
+                              <CheckCircle2 className="w-2.5 h-2.5" />
+                              <span>Verified Device Sync</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="absolute top-2.5 right-2.5 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => speakNotification(evt.appName || 'Phone', evt.title || evt.summary || '')}
+                            className="p-1 rounded-md text-[#74738A] hover:text-[#8B45F5] hover:bg-[#F4F3FF] transition-colors"
+                            title="Listen to notification"
+                          >
+                            <Volume2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
           ) : isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center text-center">
               <div className="w-6 h-6 border-2 border-[#8B45F5] border-t-transparent rounded-full animate-spin mb-2" />
