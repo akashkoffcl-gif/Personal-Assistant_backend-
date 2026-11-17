@@ -24,6 +24,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import com.nova.companion.voice.NovaVoiceForegroundService
+import com.nova.companion.voice.VoiceActivationManager
 
 class NovaNativeBridge(
     private val context: Context,
@@ -43,6 +45,16 @@ class NovaNativeBridge(
     }
 
     private val bridgeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var voiceActivationManager: VoiceActivationManager? = null
+
+    init {
+        // Initialize voice manager for in-app or bridge interactions
+        try {
+            voiceActivationManager = VoiceActivationManager(context)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to initialize VoiceActivationManager in bridge", e)
+        }
+    }
 
     @JavascriptInterface
     fun isNativeApp(): Boolean = true
@@ -249,5 +261,80 @@ class NovaNativeBridge(
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(chooser)
+    }
+
+    // ==================== PHASE 63: NATIVE VOICE SUBSYSTEM BRIDGE ====================
+
+    @JavascriptInterface
+    fun startVoiceSession(): Boolean {
+        return try {
+            voiceActivationManager?.startVoiceSession()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start voice session from bridge", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
+    fun stopVoiceSession(): Boolean {
+        return try {
+            voiceActivationManager?.stopVoiceSession()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to stop voice session from bridge", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
+    fun setWakeWordEnabled(enabled: Boolean): Boolean {
+        return try {
+            voiceActivationManager?.setWakeWordEnabled(enabled) ?: false
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to set wake-word state from bridge", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
+    fun startVoiceForegroundService(): Boolean {
+        return try {
+            NovaVoiceForegroundService.startService(context)
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start voice foreground service", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
+    fun stopVoiceForegroundService(): Boolean {
+        return try {
+            NovaVoiceForegroundService.stopService(context)
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to stop voice foreground service", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
+    fun getVoiceStatus(): String {
+        return try {
+            val status = voiceActivationManager?.getVoiceStatus()
+            val json = JSONObject().apply {
+                put("state", status?.state?.name ?: "DISABLED")
+                put("isWakeWordActive", status?.isWakeWordActive ?: false)
+                put("isTtsActive", status?.isTtsActive ?: false)
+                put("isRecognitionAvailable", status?.isRecognitionAvailable ?: false)
+                put("lastTranscript", status?.lastTranscript ?: JSONObject.NULL)
+                put("lastError", status?.lastError ?: JSONObject.NULL)
+            }
+            json.toString()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to get voice status", e)
+            "{\"state\":\"ERROR\",\"lastError\":\"${e.message}\"}"
+        }
     }
 }

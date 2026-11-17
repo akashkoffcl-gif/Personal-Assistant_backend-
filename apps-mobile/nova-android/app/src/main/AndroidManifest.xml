@@ -48,6 +48,12 @@
             </intent-filter>
         </service>
 
+        <!-- Native Voice Intelligence Foreground Service -->
+        <service
+            android:name=".voice.NovaVoiceForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+
     </application>
 
 </manifest>

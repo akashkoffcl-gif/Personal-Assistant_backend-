@@ -240,6 +240,53 @@ export const AIAssistantSettings: React.FC<AIAssistantSettingsProps> = ({
           />
         </div>
 
+        {/* 6. Native Android Voice Subsystem Controls (Phase 63) */}
+        {typeof window !== 'undefined' && (window as any).NovaAndroidBridge && (
+          <div className="p-3.5 rounded-2xl bg-[#F4F3FF] border border-[#DDD8F8] space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mic className="w-4 h-4 text-[#8B45F5]" />
+                <span className="text-xs font-bold text-[#202033]">Android Native Voice Engine</span>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-[#8B45F5] text-white">
+                Phase 63
+              </span>
+            </div>
+            <p className="text-[11px] text-[#74738A]">
+              Execute direct voice activation through native Android speech recognition and audio focus management.
+            </p>
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    (window as any).NovaAndroidBridge?.startVoiceSession();
+                    onClose();
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }}
+                className="flex-1 py-1.5 px-3 rounded-xl bg-[#8B45F5] text-white text-xs font-bold hover:bg-[#7839D6] transition-colors"
+              >
+                Start Native Voice
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    (window as any).NovaAndroidBridge?.setWakeWordEnabled(true);
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }}
+                className="py-1.5 px-3 rounded-xl bg-white text-[#8B45F5] border border-[#DDD8F8] text-xs font-bold hover:bg-[#EDE9FE] transition-colors"
+              >
+                Enable Wake-Word
+              </button>
+            </div>
+          </div>
+        )}
+
         <button
           onClick={onClose}
           className="w-full py-2.5 rounded-2xl bg-[#8B45F5] hover:bg-[#7839D6] text-white text-xs font-black transition-colors shadow-sm"

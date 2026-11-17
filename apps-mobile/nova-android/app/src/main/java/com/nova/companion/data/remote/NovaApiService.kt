@@ -101,4 +101,10 @@ interface NovaApiService {
         @Header("Authorization") authHeader: String,
         @Body request: DeviceHeartbeatRequest
     ): Response<Map<String, Any>>
+
+    @POST("ai/chat")
+    suspend fun sendChatMessage(
+        @Header("Authorization") authHeader: String,
+        @Body request: ChatMessageDto
+    ): Response<ChatResponseDto>
 }
