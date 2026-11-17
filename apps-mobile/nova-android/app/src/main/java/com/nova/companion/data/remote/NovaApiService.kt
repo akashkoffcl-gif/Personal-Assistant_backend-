@@ -58,6 +58,19 @@ data class PermissionEntry(
     @SerializedName("isGranted") val isGranted: Boolean
 )
 
+data class DeviceHeartbeatRequest(
+    @SerializedName("deviceId") val deviceId: String,
+    @SerializedName("appVersion") val appVersion: String,
+    @SerializedName("osVersion") val osVersion: String,
+    @SerializedName("isListenerConnected") val isListenerConnected: Boolean,
+    @SerializedName("isNotificationAccessGranted") val isNotificationAccessGranted: Boolean,
+    @SerializedName("isBatteryOptimizationIgnored") val isBatteryOptimizationIgnored: Boolean,
+    @SerializedName("pendingQueueCount") val pendingQueueCount: Int,
+    @SerializedName("oldestPendingEventTime") val oldestPendingEventTime: String? = null,
+    @SerializedName("lastSyncError") val lastSyncError: String? = null,
+    @SerializedName("lastSuccessfulSync") val lastSuccessfulSync: String? = null
+)
+
 interface NovaApiService {
     @POST("mobile/pair/initiate")
     suspend fun initiatePairing(
@@ -81,5 +94,11 @@ interface NovaApiService {
     suspend fun updatePermissions(
         @Header("Authorization") authHeader: String,
         @Body request: UpdatePermissionsRequest
+    ): Response<Map<String, Any>>
+
+    @POST("mobile/heartbeat")
+    suspend fun sendHeartbeat(
+        @Header("Authorization") authHeader: String,
+        @Body request: DeviceHeartbeatRequest
     ): Response<Map<String, Any>>
 }

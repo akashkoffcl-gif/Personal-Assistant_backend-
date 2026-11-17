@@ -36,6 +36,12 @@ class MainActivity : ComponentActivity() {
             requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
 
+        // Schedule periodic device telemetry heartbeat if session is established
+        if (!com.nova.companion.data.local.SecureSessionManager.getAuthToken(this).isNullOrBlank()) {
+            com.nova.companion.worker.DeviceHeartbeatWorker.schedulePeriodic(this)
+            com.nova.companion.worker.DeviceHeartbeatWorker.enqueueImmediate(this)
+        }
+
         setContent {
             MaterialTheme(colorScheme = NovaDarkColorScheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {

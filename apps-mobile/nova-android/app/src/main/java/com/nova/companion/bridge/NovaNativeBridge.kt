@@ -118,6 +118,9 @@ class NovaNativeBridge(
         if (token.isNotBlank() && userId.isNotBlank()) {
             SecureSessionManager.saveSession(context, token, userId)
             autoPairDeviceIfNeeded(token, userId)
+            // Schedule periodic background heartbeat and trigger immediate telemetry ping
+            com.nova.companion.worker.DeviceHeartbeatWorker.schedulePeriodic(context)
+            com.nova.companion.worker.DeviceHeartbeatWorker.enqueueImmediate(context)
         }
     }
 
