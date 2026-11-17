@@ -50,7 +50,8 @@ data class IngestMobileEventResponse(
 
 data class UpdatePermissionsRequest(
     @SerializedName("deviceId") val deviceId: String,
-    @SerializedName("permissions") val permissions: List<PermissionEntry>
+    @SerializedName("permissions") val permissions: List<PermissionEntry>,
+    @SerializedName("approvedPackages") val approvedPackages: List<String>? = null
 )
 
 data class PermissionEntry(

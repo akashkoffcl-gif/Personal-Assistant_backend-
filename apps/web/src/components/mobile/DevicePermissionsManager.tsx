@@ -201,6 +201,26 @@ export function DevicePermissionsManager() {
     setTimeout(inspectDeviceState, 300);
   };
 
+  const handleTestVoiceOutput = () => {
+    const bridge = (window as any).NovaAndroidBridge;
+    if (!bridge?.testVoiceOutput) {
+      toast.error('Native Only', 'Testing native voice output requires the unified Android APK.');
+      return;
+    }
+    try {
+      const res = bridge.testVoiceOutput('Hello! This is NOVA. Native Android voice output is working properly.');
+      const parsed = JSON.parse(res);
+      if (parsed.success) {
+        toast.success('Voice Test Triggered', 'Speaking through Android TextToSpeech engine.');
+      } else {
+        toast.error('Voice Test Failed', parsed.error || 'TTS error');
+      }
+    } catch (e: any) {
+      toast.error('Test Execution Error', e.message);
+    }
+    setTimeout(inspectDeviceState, 500);
+  };
+
   return (
     <div className="space-y-6">
       {/* HEADER & ENVIRONMENT BADGE */}
@@ -529,6 +549,14 @@ export function DevicePermissionsManager() {
             }`}
           >
             {voiceStatus.isWakeWordActive ? 'Disable Wake-Word' : 'Enable Wake-Word Spotting'}
+          </button>
+
+          <button
+            onClick={handleTestVoiceOutput}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold border border-[#DDD8F8] bg-white text-[#74738A] hover:bg-[#F4F3FF] transition-colors flex items-center gap-1.5"
+          >
+            <Volume2 className="w-3.5 h-3.5 text-[#8B45F5]" />
+            <span>Test Voice Output</span>
           </button>
         </div>
 

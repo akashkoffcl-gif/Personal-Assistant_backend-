@@ -52,6 +52,10 @@ export class UpdatePermissionsDto {
     permissionKey: string;
     isGranted: boolean;
   }[];
+
+  @IsOptional()
+  @IsArray()
+  approvedPackages?: string[];
 }
 
 export class DeviceHeartbeatDto {

@@ -197,15 +197,17 @@ class NovaNativeBridge(
                 val isGranted = enabledPackages.contains(context.packageName)
 
                 val apiService = NovaApiClient.getApiService()
+                val approvedAppsList = AppApprovalRegistry.getApprovedPackages(context).toList()
                 val req = UpdatePermissionsRequest(
                     deviceId = deviceId,
                     permissions = listOf(
                         PermissionEntry("NOTIFICATION_LISTENER", isGranted),
                         PermissionEntry("RECORD_AUDIO", true)
-                    )
+                    ),
+                    approvedPackages = approvedAppsList
                 )
                 apiService.updatePermissions(authHeader, req)
-                Log.i(TAG, "Device permissions state synchronized to backend")
+                Log.i(TAG, "Device permissions and ${approvedAppsList.size} approved apps synchronized to backend")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to sync permissions to backend", e)
             }
@@ -376,6 +378,18 @@ class NovaNativeBridge(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to stop voice foreground service", e)
             false
+        }
+    }
+
+    @JavascriptInterface
+    fun testVoiceOutput(phrase: String?): String {
+        return try {
+            val textToSpeak = if (!phrase.isNullOrBlank()) phrase else "Hello! This is NOVA. Native Android voice output is working properly."
+            voiceActivationManager?.testSpeechOutput(textToSpeak)
+            "{\"success\":true,\"message\":\"Speech output triggered\"}"
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to test speech output", e)
+            "{\"success\":false,\"error\":\"${e.message}\"}"
         }
     }
 

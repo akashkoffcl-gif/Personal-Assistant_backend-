@@ -199,8 +199,12 @@ export class MobileService {
       throw new NotFoundException(`Device ${dto.deviceId} not found`);
     }
 
-    const updates = dto.permissions.map((p) =>
-      this.prisma.mobilePermission.upsert({
+    const updates = dto.permissions.map((p) => {
+      const metadata = p.permissionKey === 'NOTIFICATION_LISTENER' && dto.approvedPackages
+        ? { approvedPackages: dto.approvedPackages }
+        : undefined;
+
+      return this.prisma.mobilePermission.upsert({
         where: {
           deviceId_permissionKey: {
             deviceId: dto.deviceId,
@@ -210,14 +214,16 @@ export class MobileService {
         update: {
           isGranted: p.isGranted,
           updatedAt: new Date(),
+          ...(metadata ? { metadata } : {}),
         },
         create: {
           deviceId: dto.deviceId,
           permissionKey: p.permissionKey,
           isGranted: p.isGranted,
+          ...(metadata ? { metadata } : {}),
         },
-      }),
-    );
+      });
+    });
 
     await this.prisma.$transaction(updates);
     return { success: true, count: dto.permissions.length };

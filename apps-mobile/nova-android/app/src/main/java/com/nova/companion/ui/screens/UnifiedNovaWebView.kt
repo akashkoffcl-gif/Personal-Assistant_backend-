@@ -185,6 +185,22 @@ fun UnifiedNovaWebView(
                             isLoading = false
                             if (errorMessage == null) {
                                 pageLoadSuccess = true
+                                // Inject session sync probe to ensure bridge is synchronized on page reload
+                                val jsProbe = """
+                                    (function() {
+                                        try {
+                                            const token = localStorage.getItem('assistant_token') || 
+                                                          localStorage.getItem('supabase_access_token');
+                                            const userId = localStorage.getItem('assistant_user_id') || 'current_user';
+                                            if (token && window.NovaAndroidBridge && typeof window.NovaAndroidBridge.syncAuthSession === 'function') {
+                                                window.NovaAndroidBridge.syncAuthSession(token, userId);
+                                            }
+                                        } catch (e) {
+                                            console.warn('Bridge auto-sync probe failed', e);
+                                        }
+                                    })();
+                                """.trimIndent()
+                                view?.evaluateJavascript(jsProbe, null)
                             }
                         }
 

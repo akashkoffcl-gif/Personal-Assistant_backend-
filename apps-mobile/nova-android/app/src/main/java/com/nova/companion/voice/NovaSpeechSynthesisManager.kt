@@ -47,6 +47,19 @@ class NovaSpeechSynthesisManager(
                 }
             })
 
+            // Explicitly route to STREAM_MUSIC / USAGE_MEDIA to avoid OEM policy ducking or muting
+            try {
+                val audioAttributes = android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_ASSISTANT)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .setLegacyStreamType(android.media.AudioManager.STREAM_MUSIC)
+                    .build()
+                tts?.setAudioAttributes(audioAttributes)
+                Log.i(TAG, "TTS AudioAttributes configured with USAGE_ASSISTANT and STREAM_MUSIC")
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not set custom AudioAttributes on TextToSpeech", e)
+            }
+
             isInitialized = true
             Log.i(TAG, "Native Android TextToSpeech engine initialized successfully")
         } else {

@@ -88,6 +88,14 @@ class VoiceActivationManager(
 
     fun isWakeWordEnabled(): Boolean = isWakeWordEnabled
 
+    fun testSpeechOutput(text: String) {
+        Log.i(TAG, "Triggering test speech output: $text")
+        currentState = VoiceState.RESPONDING
+        notifyStatus()
+        audioFocusManager.requestAudioFocus()
+        speechSynthesisManager.speak(text)
+    }
+
     fun getVoiceStatus(): VoiceStatusInfo {
         return VoiceStatusInfo(
             state = currentState,
