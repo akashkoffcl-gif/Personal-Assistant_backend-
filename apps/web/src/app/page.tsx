@@ -40,6 +40,7 @@ import { SmartDayPlannerModal } from '@/components/SmartDayPlannerModal';
 import { SmartDayPlannerWorkspace } from '@/components/SmartDayPlannerWorkspace';
 import { PredictiveProductivityWorkspace } from '@/components/PredictiveProductivityWorkspace';
 import { AppAllowlistManager } from '@/components/mobile/AppAllowlistManager';
+import { DevicePermissionsManager } from '@/components/mobile/DevicePermissionsManager';
 import { AIAssistantExperience } from '@/components/AIAssistantExperience';
 import { AIChatWorkspace } from '@/components/AIChatWorkspace';
 import { MyDayTimelineWorkspace } from '@/components/MyDayTimelineWorkspace';
@@ -95,7 +96,7 @@ export default function App() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
-  const [settingsSection, setSettingsSection] = useState<'general' | 'mobile'>('general');
+  const [settingsSection, setSettingsSection] = useState<'general' | 'mobile' | 'permissions'>('general');
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0],
   );
@@ -1449,6 +1450,19 @@ export default function App() {
                   General & Productivity
                 </button>
                 <button
+                  onClick={() => setSettingsSection('permissions')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    settingsSection === 'permissions'
+                      ? 'bg-[#8B45F5] text-white shadow-2xs'
+                      : 'bg-[#F4F3FF] text-[#74738A] hover:text-[#202033] hover:bg-[#EDE9FE]'
+                  }`}
+                >
+                  <span>Device Permissions & Capabilities</span>
+                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-800">
+                    Native
+                  </span>
+                </button>
+                <button
                   onClick={() => setSettingsSection('mobile')}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                     settingsSection === 'mobile'
@@ -1551,6 +1565,8 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+              ) : settingsSection === 'permissions' ? (
+                <DevicePermissionsManager />
               ) : (
                 <AppAllowlistManager />
               )}

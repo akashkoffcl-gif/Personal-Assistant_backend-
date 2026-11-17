@@ -71,6 +71,7 @@ const val DEFAULT_PRODUCTION_FRONTEND_URL = "https://personal-assistant-frontend
 fun UnifiedNovaWebView(
     initialUrl: String = DEFAULT_PRODUCTION_FRONTEND_URL,
     onRequestMicPermission: () -> Unit,
+    onRequestNotificationPermission: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
@@ -118,7 +119,7 @@ fun UnifiedNovaWebView(
                     }
 
                     // 2. Register Javascript Bridge Interface
-                    val bridge = NovaNativeBridge(context, onRequestMicPermission)
+                    val bridge = NovaNativeBridge(context, onRequestMicPermission, onRequestNotificationPermission)
                     addJavascriptInterface(bridge, NovaNativeBridge.JAVASCRIPT_INTERFACE_NAME)
 
                     // 3. WebChromeClient for Progress, Permissions, and Console Debugging

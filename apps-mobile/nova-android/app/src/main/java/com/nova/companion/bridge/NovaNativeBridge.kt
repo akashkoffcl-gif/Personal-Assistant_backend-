@@ -29,7 +29,8 @@ import com.nova.companion.voice.VoiceActivationManager
 
 class NovaNativeBridge(
     private val context: Context,
-    private val onRequestMicPermission: () -> Unit
+    private val onRequestMicPermission: () -> Unit,
+    private val onRequestNotificationPermission: () -> Unit = {}
 ) {
 
     companion object {
@@ -214,6 +215,65 @@ class NovaNativeBridge(
     @JavascriptInterface
     fun requestMicrophonePermission() {
         onRequestMicPermission()
+    }
+
+    @JavascriptInterface
+    fun requestNotificationPermission() {
+        onRequestNotificationPermission()
+    }
+
+    @JavascriptInterface
+    fun openAppSettings() {
+        try {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", context.packageName, null)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to open application settings", e)
+        }
+    }
+
+    @JavascriptInterface
+    fun getDevicePermissionStatus(): String {
+        return try {
+            val micGranted = androidx.core.content.ContextCompat.checkSelfPermission(
+                context,
+                android.Manifest.permission.RECORD_AUDIO
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+            val notifGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                androidx.core.content.ContextCompat.checkSelfPermission(
+                    context,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            } else {
+                NotificationManagerCompat.from(context).areNotificationsEnabled()
+            }
+
+            val enabledPackages = NotificationManagerCompat.getEnabledListenerPackages(context)
+            val listenerGranted = enabledPackages.contains(context.packageName)
+
+            val powerManager = context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+            val batteryOptimizationIgnored = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                powerManager?.isIgnoringBatteryOptimizations(context.packageName) ?: false
+            } else {
+                true
+            }
+
+            val json = JSONObject().apply {
+                put("recordAudioGranted", micGranted)
+                put("postNotificationsGranted", notifGranted)
+                put("notificationListenerGranted", listenerGranted)
+                put("batteryOptimizationIgnored", batteryOptimizationIgnored)
+                put("sdkInt", Build.VERSION.SDK_INT)
+            }
+            json.toString()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to inspect permission status", e)
+            "{\"error\":\"${e.message}\"}"
+        }
     }
 
     @JavascriptInterface

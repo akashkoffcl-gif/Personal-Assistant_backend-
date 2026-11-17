@@ -494,7 +494,12 @@ export function NotificationCenterModal({
 
               <div className="flex items-center justify-between pt-2 border-t border-[#E5E2F5]/60">
                 <div>
-                  <p className="text-xs font-bold text-[#202033]">Foreground Voice Announcements</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-[#202033]">In-App Spoken Announcements</p>
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase bg-[#F4F3FF] text-[#8B45F5] border border-[#DDD8F8]">
+                      TTS Preference
+                    </span>
+                  </div>
                   <p className="text-[10px] text-[#74738A]">Speak alerts automatically via text-to-speech when app is open</p>
                 </div>
                 <button
@@ -505,9 +510,37 @@ export function NotificationCenterModal({
                       : 'bg-white border-[#E5E2F5] text-[#74738A]'
                   }`}
                 >
-                  {voicePrefs.voiceEnabled ? 'Active' : 'Muted'}
+                  {voicePrefs.voiceEnabled ? 'Enabled' : 'Muted'}
                 </button>
               </div>
+
+              {/* Native Voice Foreground Service Status */}
+              {typeof window !== 'undefined' && (window as any).NovaAndroidBridge && (
+                <div className="flex items-center justify-between pt-2 border-t border-[#E5E2F5]/60">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-[#202033]">Native Voice Foreground Service</p>
+                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black uppercase bg-violet-100 text-violet-800 border border-violet-200">
+                        Android 16
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-[#74738A]">Ongoing microphone service & acoustic keyword spotting</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {onNavigateTab && (
+                      <button
+                        onClick={() => {
+                          onNavigateTab('settings', 'permissions');
+                          onClose();
+                        }}
+                        className="px-2.5 py-1 rounded-xl text-xs font-bold border border-[#DDD8F8] bg-white text-[#8B45F5] hover:bg-[#F4F3FF] transition-colors"
+                      >
+                        Permission Center
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 2. Quiet Hours */}
