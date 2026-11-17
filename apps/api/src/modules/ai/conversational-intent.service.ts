@@ -111,8 +111,22 @@ export class ConversationalIntentService {
     let decisionPolicy: DecisionPolicy = 'DIRECT_ANSWER';
     let actionRequired = false;
 
-    // Correction check: "no, I meant...", "actually, that's wrong"
+    // Check for phone notification intent
     if (
+      lower.includes('notification') ||
+      lower.includes('phone message') ||
+      lower.includes('incoming message') ||
+      lower.includes('did i receive') ||
+      lower.includes('what did i miss') ||
+      lower.includes('check my phone') ||
+      lower.includes('what arrived') ||
+      lower.includes('check phone')
+    ) {
+      primaryIntent = 'STATUS_INQUIRY';
+      decisionPolicy = 'STATUS_REPORT';
+    }
+    // Correction check: "no, I meant...", "actually, that's wrong"
+    else if (
       lower.startsWith('no ') ||
       lower.startsWith('actually ') ||
       lower.includes("that's not what i meant") ||
