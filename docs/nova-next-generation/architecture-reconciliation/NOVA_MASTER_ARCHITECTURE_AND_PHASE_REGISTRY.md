@@ -25,8 +25,9 @@
 | **P-62** | Android Runtime Health & Telemetry | **CERTIFIED** | `mobile.service.ts`, `NovaNativeBridge.kt`, `AppAllowlistManager.tsx` | `a816f72` | Certified; baseline established |
 | **P-63** | Native Android Voice Subsystem | **COMPILED & VERIFIED** | `NovaVoiceForegroundService`, `WakeWordEngine`, `VoiceActivationManager`, `NovaAudioFocusManager`, `NovaSpeechSynthesisManager` | `d55eb78` | CI Build `44047425280` SUCCESS (Artifact `14312551328`) |
 | **P-63.1** | Native Voice Evidence Closure & Certification Audit | **AUDITED & VERIFIED** | 10 Audit Evidence Reports | `308a037` | Technical inspection and evidence closure |
-| **P-63.2** | Fresh APK Build & Physical Certification | **PARTIALLY COMPLETE** | CI Build Provenance & 10 Physical Certification Reports | Current HEAD | IMPLEMENTED — PHYSICAL CERTIFICATION PARTIALLY COMPLETE |
-| **P-64** | Unified Context & Event Processing | **NOT STARTED** | `unified-context.service.ts` | Pending | Blocked by Phase 63 closure |
+| **P-63.2** | Fresh APK Build & Physical Certification | **PARTIALLY COMPLETE** | CI Build Provenance & 10 Physical Certification Reports | `98e7a95` | Artifact `14312551328` compiled & verified |
+| **P-63.2.1** | Authenticated APK Download & Physical Device Installation | **PARTIALLY COMPLETE** | 10 Deployment & Device Evidence Reports | Current HEAD | IMPLEMENTED — PHYSICAL CERTIFICATION PARTIALLY COMPLETE |
+| **P-64** | Unified Context & Event Processing | **NOT STARTED** | `unified-context.service.ts` | Pending | Blocked by Phase 63 physical flashing |
 | **P-65** | High-Autonomy Action Policy Boundary | **NOT STARTED** | `jarvis-tool-registry.service.ts`, Policy Executor | Pending | Blocked by P-64 completion |
 | **P-66** | Proactive Intelligence & Dispatch Engine | **NOT STARTED** | `proactive-intelligence.service.ts`, BullMQ | Pending | Blocked by P-65 completion |
 | **P-67** | Cross-Platform End-to-End Integration | **NOT STARTED** | Full system regression suite | Pending | Blocked by P-66 completion |
