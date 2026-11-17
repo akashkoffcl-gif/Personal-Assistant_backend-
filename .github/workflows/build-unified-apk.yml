@@ -43,7 +43,8 @@ jobs:
           fi
           chmod +x gradlew
           ./gradlew :app:assembleDebug --no-daemon --stacktrace > build.log 2>&1 || {
-            echo "::error title=Gradle Error::$(grep -E 'error:|FAILURE:|FAILED|Exception:' build.log | head -n 10 | tr '\n' ' ')"
+            ERR_MSG=$(grep -E 'e: |error:|FAILURE:|FAILED|Compilation error' build.log | grep -v 'Caused by' | head -n 5 | tr '\n' ' ' | tr -d '"')
+            echo "::error title=Kotlin Compilation Error::$ERR_MSG"
             echo "--- FIRST 100 LINES ---"
             head -n 100 build.log
             echo "--- LAST 150 LINES ---"
