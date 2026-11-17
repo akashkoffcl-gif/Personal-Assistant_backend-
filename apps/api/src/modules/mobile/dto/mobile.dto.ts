@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsArray, IsBoolean } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsArray, IsBoolean, IsNumber } from 'class-validator';
 
 export class InitiateDevicePairingDto {
   @IsString()
@@ -52,6 +52,44 @@ export class UpdatePermissionsDto {
     permissionKey: string;
     isGranted: boolean;
   }[];
+}
+
+export class DeviceHeartbeatDto {
+  @IsString()
+  @IsNotEmpty()
+  deviceId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  appVersion: string;
+
+  @IsString()
+  @IsNotEmpty()
+  osVersion: string;
+
+  @IsBoolean()
+  isListenerConnected: boolean;
+
+  @IsBoolean()
+  isNotificationAccessGranted: boolean;
+
+  @IsBoolean()
+  isBatteryOptimizationIgnored: boolean;
+
+  @IsNumber()
+  pendingQueueCount: number;
+
+  @IsOptional()
+  @IsString()
+  oldestPendingEventTime?: string;
+
+  @IsOptional()
+  @IsString()
+  lastSyncError?: string;
+
+  @IsOptional()
+  @IsString()
+  lastSuccessfulSync?: string;
 }
 
 export class IngestMobileEventDto {

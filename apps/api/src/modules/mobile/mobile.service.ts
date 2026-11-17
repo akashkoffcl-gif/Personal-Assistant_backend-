@@ -222,6 +222,76 @@ export class MobileService {
   }
 
   /**
+   * Record authenticated device runtime health & telemetry heartbeat.
+   */
+  async recordHeartbeat(userId: string, dto: import('./dto/mobile.dto').DeviceHeartbeatDto) {
+    const device = await this.prisma.mobileDevice.findFirst({
+      where: { id: dto.deviceId, userId, status: 'PAIRED' },
+    });
+
+    if (!device) {
+      throw new UnauthorizedException(`Device ${dto.deviceId} is not paired or unauthorized`);
+    }
+
+    const now = new Date();
+
+    // 1. Update device heartbeat and versions
+    await this.prisma.mobileDevice.update({
+      where: { id: dto.deviceId },
+      data: {
+        lastSeenAt: now,
+        appVersion: dto.appVersion,
+        osVersion: dto.osVersion,
+      },
+    });
+
+    // 2. Synchronize key permissions (Notification Access & Battery Optimization)
+    await Promise.all([
+      this.prisma.mobilePermission.upsert({
+        where: {
+          deviceId_permissionKey: {
+            deviceId: dto.deviceId,
+            permissionKey: 'NOTIFICATION_LISTENER',
+          },
+        },
+        update: {
+          isGranted: dto.isNotificationAccessGranted && dto.isListenerConnected,
+          updatedAt: now,
+        },
+        create: {
+          deviceId: dto.deviceId,
+          permissionKey: 'NOTIFICATION_LISTENER',
+          isGranted: dto.isNotificationAccessGranted && dto.isListenerConnected,
+        },
+      }),
+      this.prisma.mobilePermission.upsert({
+        where: {
+          deviceId_permissionKey: {
+            deviceId: dto.deviceId,
+            permissionKey: 'BATTERY_OPTIMIZATION_EXEMPTION',
+          },
+        },
+        update: {
+          isGranted: dto.isBatteryOptimizationIgnored,
+          updatedAt: now,
+        },
+        create: {
+          deviceId: dto.deviceId,
+          permissionKey: 'BATTERY_OPTIMIZATION_EXEMPTION',
+          isGranted: dto.isBatteryOptimizationIgnored,
+        },
+      }),
+    ]);
+
+    return {
+      success: true,
+      timestamp: now.toISOString(),
+      status: 'HEARTBEAT_ACKNOWLEDGED',
+      deviceId: dto.deviceId,
+    };
+  }
+
+  /**
    * Register active FCM Token for device.
    */
   async registerPushToken(userId: string, dto: RegisterFcmTokenDto) {

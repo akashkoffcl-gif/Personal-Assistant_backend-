@@ -730,6 +730,12 @@ export const api = {
   getMobileEvents: (limit = 30) => fetcher<any[]>(`/mobile/events?limit=${limit}`),
   getMobileCapabilityStatus: (targetPackage?: string) =>
     fetcher<any>(`/mobile/capability/status${targetPackage ? `?targetPackage=${encodeURIComponent(targetPackage)}` : ''}`),
+
+  sendDeviceHeartbeat: (data: any) =>
+    fetcher<any>('/mobile/heartbeat', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 if (typeof window !== 'undefined') {

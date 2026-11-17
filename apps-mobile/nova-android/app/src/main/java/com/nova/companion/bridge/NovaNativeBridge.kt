@@ -85,6 +85,21 @@ class NovaNativeBridge(
     }
 
     @JavascriptInterface
+    fun getDeviceDiagnostics(): String {
+        return kotlinx.coroutines.runBlocking {
+            com.nova.companion.health.NovaDeviceDiagnosticsManager.collectDiagnosticsJson(context)
+        }
+    }
+
+    @JavascriptInterface
+    fun openBatteryOptimizationSettings() {
+        val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(intent)
+    }
+
+    @JavascriptInterface
     fun getInstalledEligibleApps(): String {
         return AppApprovalRegistry.getDiscoveredAppsJson(context)
     }

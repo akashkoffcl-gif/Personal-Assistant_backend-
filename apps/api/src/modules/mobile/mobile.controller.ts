@@ -6,6 +6,7 @@ import {
   ConfirmDevicePairingDto,
   RegisterFcmTokenDto,
   UpdatePermissionsDto,
+  DeviceHeartbeatDto,
   IngestMobileEventDto,
   ExecuteMobileCommandDto,
   RespondMobileCommandDto,
@@ -54,6 +55,12 @@ export class MobileController {
   async updatePermissions(@Req() req: any, @Body() dto: UpdatePermissionsDto) {
     const userId = req.user.id;
     return this.mobileService.updatePermissions(userId, dto);
+  }
+
+  @Post('heartbeat')
+  async recordHeartbeat(@Req() req: any, @Body() dto: DeviceHeartbeatDto) {
+    const userId = req.user.id;
+    return this.mobileService.recordHeartbeat(userId, dto);
   }
 
   @Post('push-token')
