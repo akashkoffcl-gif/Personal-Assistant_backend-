@@ -1,5 +1,6 @@
-import { Injectable, Logger, BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, UnauthorizedException, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma.service';
+import { RedisService } from '../../common/redis.service';
 import { MobilePushService } from './mobile-push.service';
 import {
   InitiateDevicePairingDto,
@@ -19,6 +20,7 @@ export class MobileService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly pushService: MobilePushService,
+    private readonly redis: RedisService,
   ) {}
 
   /**
@@ -232,6 +234,24 @@ export class MobileService {
     if (!device) {
       throw new UnauthorizedException(`Device ${dto.deviceId} is not paired or unauthorized`);
     }
+
+    // Rate Limiting: Minimum 5 seconds between consecutive heartbeats per device
+    const rateLimitKey = `rate:heartbeat:${dto.deviceId}`;
+    const isRateLimited = await this.redis.get(rateLimitKey);
+    if (isRateLimited) {
+      throw new HttpException(
+        {
+          success: false,
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          error: 'Too Many Requests',
+          message: 'Heartbeat rate limit exceeded. Please wait 5 seconds between telemetry pings.',
+          retryAfterSeconds: 5,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    // Set 5s rate limit window in Redis
+    await this.redis.set(rateLimitKey, '1', 5);
 
     const now = new Date();
 
