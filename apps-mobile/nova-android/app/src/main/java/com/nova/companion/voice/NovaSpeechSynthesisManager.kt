@@ -82,6 +82,10 @@ class NovaSpeechSynthesisManager(
         }
     }
 
+    fun isSpeaking(): Boolean {
+        return tts?.isSpeaking == true
+    }
+
     fun shutdown() {
         tts?.stop()
         tts?.shutdown()
