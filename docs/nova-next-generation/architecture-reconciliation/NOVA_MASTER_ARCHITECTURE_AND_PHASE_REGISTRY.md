@@ -23,8 +23,9 @@
 | **P-55 to P-60** | Personal Intelligence, Reasoning & Action Orchestrator | **INTEGRATION TESTED** | `ai` (`reasoning-engine`, `behavioral-context`) | `57e9910` | Extend into Phase 64 & 65 |
 | **P-61** | Live Physical Notification Certification | **CERTIFIED** | Full 10-Stage Pipeline on iQOO I2305 | `03c07c8` | Baseline certified; ready for P-62 |
 | **P-62** | Android Runtime Health & Telemetry | **CERTIFIED** | `mobile.service.ts`, `NovaNativeBridge.kt`, `AppAllowlistManager.tsx` | `a816f72` | Certified; baseline established |
-| **P-63** | Native Android Voice Subsystem | **CERTIFIED** | `NovaVoiceForegroundService`, `WakeWordEngine`, `VoiceActivationManager`, `NovaAudioFocusManager`, `NovaSpeechSynthesisManager` | In Progress / P-63 | Ready for P-64 authorization |
-| **P-64** | Unified Context & Event Processing | **NOT STARTED** | `unified-context.service.ts` | Pending | Blocked by P-63 sign-off |
+| **P-63** | Native Android Voice Subsystem | **IMPLEMENTED** | `NovaVoiceForegroundService`, `WakeWordEngine`, `VoiceActivationManager`, `NovaAudioFocusManager`, `NovaSpeechSynthesisManager` | `c953f26` | Code complete; verified in Phase 63.1 |
+| **P-63.1** | Native Voice Evidence Closure & Certification Audit | **AUDITED & VERIFIED** | 10 Audit Evidence Reports | Current HEAD | IMPLEMENTED — PHYSICAL CERTIFICATION PENDING |
+| **P-64** | Unified Context & Event Processing | **NOT STARTED** | `unified-context.service.ts` | Pending | Blocked by P-63.1 sign-off |
 | **P-65** | High-Autonomy Action Policy Boundary | **NOT STARTED** | `jarvis-tool-registry.service.ts`, Policy Executor | Pending | Blocked by P-64 completion |
 | **P-66** | Proactive Intelligence & Dispatch Engine | **NOT STARTED** | `proactive-intelligence.service.ts`, BullMQ | Pending | Blocked by P-65 completion |
 | **P-67** | Cross-Platform End-to-End Integration | **NOT STARTED** | Full system regression suite | Pending | Blocked by P-66 completion |
