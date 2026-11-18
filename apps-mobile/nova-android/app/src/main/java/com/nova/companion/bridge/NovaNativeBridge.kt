@@ -160,12 +160,12 @@ class NovaNativeBridge(
                 )
 
                 val initRes = apiService.initiatePairing(authHeader, initReq)
-                if (!initRes.isSuccessful || initRes.body() == null) {
+                val pairingData = initRes.body()?.data
+                if (!initRes.isSuccessful || pairingData == null) {
                     Log.e(TAG, "Failed to initiate pairing: HTTP ${initRes.code()}")
                     return@launch
                 }
 
-                val pairingData = initRes.body()!!
                 val signedChallenge = KeyStoreManager.signChallenge(pairingData.challenge)
 
                 val confirmReq = ConfirmPairingRequest(
@@ -174,7 +174,8 @@ class NovaNativeBridge(
                 )
 
                 val confirmRes = apiService.confirmPairing(authHeader, confirmReq)
-                if (confirmRes.isSuccessful && confirmRes.body()?.success == true) {
+                val confirmData = confirmRes.body()?.data
+                if (confirmRes.isSuccessful && confirmData != null && confirmData.status == "PAIRED") {
                     SecureSessionManager.saveDeviceId(context, pairingData.deviceId)
                     Log.i(TAG, "Device pairing completed successfully! Device ID: ${pairingData.deviceId}")
                     syncApprovedAppsToBackend()

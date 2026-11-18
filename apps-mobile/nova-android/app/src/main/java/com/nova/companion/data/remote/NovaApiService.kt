@@ -14,6 +14,12 @@ data class InitiatePairingRequest(
     @SerializedName("publicKey") val publicKey: String
 )
 
+data class ApiResponseWrapper<T>(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("data") val data: T?,
+    @SerializedName("timestamp") val timestamp: String? = null
+)
+
 data class InitiatePairingResponse(
     @SerializedName("deviceId") val deviceId: String,
     @SerializedName("challenge") val challenge: String,
@@ -27,9 +33,11 @@ data class ConfirmPairingRequest(
 )
 
 data class ConfirmPairingResponse(
-    @SerializedName("success") val success: Boolean,
+    @SerializedName("status") val status: String,
     @SerializedName("deviceId") val deviceId: String,
-    @SerializedName("status") val status: String
+    @SerializedName("sessionToken") val sessionToken: String? = null,
+    @SerializedName("expiresAt") val expiresAt: String? = null,
+    @SerializedName("message") val message: String? = null
 )
 
 data class IngestMobileEventRequest(
@@ -77,31 +85,31 @@ interface NovaApiService {
     suspend fun initiatePairing(
         @Header("Authorization") authHeader: String,
         @Body request: InitiatePairingRequest
-    ): Response<InitiatePairingResponse>
+    ): Response<ApiResponseWrapper<InitiatePairingResponse>>
 
     @POST("mobile/pair/confirm")
     suspend fun confirmPairing(
         @Header("Authorization") authHeader: String,
         @Body request: ConfirmPairingRequest
-    ): Response<ConfirmPairingResponse>
+    ): Response<ApiResponseWrapper<ConfirmPairingResponse>>
 
     @POST("mobile/events")
     suspend fun ingestEvent(
         @Header("Authorization") authHeader: String,
         @Body request: IngestMobileEventRequest
-    ): Response<IngestMobileEventResponse>
+    ): Response<ApiResponseWrapper<IngestMobileEventResponse>>
 
     @POST("mobile/permissions")
     suspend fun updatePermissions(
         @Header("Authorization") authHeader: String,
         @Body request: UpdatePermissionsRequest
-    ): Response<Map<String, Any>>
+    ): Response<ApiResponseWrapper<Map<String, Any>>>
 
     @POST("mobile/heartbeat")
     suspend fun sendHeartbeat(
         @Header("Authorization") authHeader: String,
         @Body request: DeviceHeartbeatRequest
-    ): Response<Map<String, Any>>
+    ): Response<ApiResponseWrapper<Map<String, Any>>>
 
     @POST("ai/chat")
     suspend fun sendChatMessage(
