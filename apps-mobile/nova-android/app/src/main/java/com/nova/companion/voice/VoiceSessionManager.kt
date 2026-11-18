@@ -75,20 +75,27 @@ class VoiceSessionManager(
 
                     override fun onError(error: Int) {
                         isRecording = false
-                        val errorMsg = when (error) {
-                            SpeechRecognizer.ERROR_AUDIO -> "Audio recording error"
-                            SpeechRecognizer.ERROR_CLIENT -> "Client side error"
-                            SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission denied"
-                            SpeechRecognizer.ERROR_NETWORK -> "Network error during speech recognition"
-                            SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
-                            SpeechRecognizer.ERROR_NO_MATCH -> "No speech recognized"
-                            SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Recognition service busy"
-                            SpeechRecognizer.ERROR_SERVER -> "Server recognition error"
-                            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech detected"
-                            else -> "Recognition error: $error"
+                        when (error) {
+                            SpeechRecognizer.ERROR_NO_MATCH,
+                            SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> {
+                                Log.d(TAG, "Speech recognition timed out with no speech detected (code $error). Returning to READY.")
+                                onStateChanged(VoiceState.READY, null)
+                            }
+                            else -> {
+                                val errorMsg = when (error) {
+                                    SpeechRecognizer.ERROR_AUDIO -> "Audio recording error"
+                                    SpeechRecognizer.ERROR_CLIENT -> "Client side error"
+                                    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission denied"
+                                    SpeechRecognizer.ERROR_NETWORK -> "Network error during speech recognition"
+                                    SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Network timeout"
+                                    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Recognition service busy"
+                                    SpeechRecognizer.ERROR_SERVER -> "Server recognition error"
+                                    else -> "Recognition error: $error"
+                                }
+                                Log.e(TAG, "SpeechRecognizer fatal error: $errorMsg ($error)")
+                                onStateChanged(VoiceState.ERROR, errorMsg)
+                            }
                         }
-                        Log.e(TAG, "SpeechRecognizer onError: $errorMsg ($error)")
-                        onStateChanged(VoiceState.ERROR, errorMsg)
                     }
 
                     override fun onResults(results: Bundle?) {
