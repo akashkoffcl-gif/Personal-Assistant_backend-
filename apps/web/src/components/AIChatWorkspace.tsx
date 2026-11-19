@@ -156,11 +156,18 @@ export const AIChatWorkspace: React.FC<AIChatWorkspaceProps> = ({
       queryClient.invalidateQueries({ queryKey: ['ai-conversation', data.conversationId || activeConversationId] });
       setInputMessage('');
 
-      if (!voiceMuted && 'speechSynthesis' in window && data?.message?.content) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(data.message.content);
-        utterance.rate = 1.05;
-        window.speechSynthesis.speak(utterance);
+      if (!voiceMuted && data?.message?.content) {
+        const bridge = typeof window !== 'undefined' ? (window as any).NovaAndroidBridge : null;
+        if (bridge && typeof bridge.speakText === 'function') {
+          try {
+            bridge.speakText(data.message.content);
+          } catch (_e) {}
+        } else if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(data.message.content);
+          utterance.rate = 1.05;
+          window.speechSynthesis.speak(utterance);
+        }
       }
     },
     onError: (err: any) => {

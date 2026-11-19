@@ -398,6 +398,31 @@ class NovaNativeBridge(
     }
 
     @JavascriptInterface
+    fun speakText(text: String?): String {
+        return try {
+            if (text.isNullOrBlank()) {
+                return "{\"success\":false,\"error\":\"Empty text\"}"
+            }
+            voiceActivationManager?.testSpeechOutput(text)
+            "{\"success\":true,\"message\":\"Speech output triggered\"}"
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to speak text via native bridge", e)
+            "{\"success\":false,\"error\":\"${e.message}\"}"
+        }
+    }
+
+    @JavascriptInterface
+    fun stopSpeaking(): Boolean {
+        return try {
+            voiceActivationManager?.stopVoiceSession()
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to stop speaking via native bridge", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
     fun testVoiceOutput(phrase: String?): String {
         return try {
             val textToSpeak = if (!phrase.isNullOrBlank()) phrase else "Hello! This is NOVA. Native Android voice output is working properly."

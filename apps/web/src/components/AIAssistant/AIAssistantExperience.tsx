@@ -201,7 +201,7 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
 
   // Text-To-Speech Playback with Interruption Support
   const speakText = (text: string) => {
-    if (!synthRef.current || typeof window === 'undefined') return;
+    if (typeof window === 'undefined') return;
 
     if (isWithinQuietHours()) {
       toast.info('Quiet Hours Active', 'Vocal response silenced in accordance with your schedule.');
@@ -217,7 +217,41 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
     }
     speechSanitized = speechSanitized.replace(/[*_#`]/g, '').trim();
 
-    synthRef.current.cancel();
+    // Check if running inside Android companion with native bridge
+    const bridge = (window as any).NovaAndroidBridge;
+    if (bridge && typeof bridge.speakText === 'function') {
+      try {
+        setIsSpeaking(true);
+        setLifecycleState('SPEAKING');
+        setAvatarState('speaking');
+        setAudioVolume(0.8);
+
+        bridge.speakText(speechSanitized);
+
+        // Reset state after estimated speaking duration (roughly 15 chars per sec)
+        const durationMs = Math.max(2000, (speechSanitized.length / 15) * 1000);
+        setTimeout(() => {
+          setIsSpeaking(false);
+          setAudioVolume(0);
+          setAvatarState('idle');
+          resetAutoCloseTimer();
+          if (lifecycleRef.current !== 'HIDDEN' && settings.autoVoiceResponse) {
+            setTimeout(() => {
+              if (lifecycleRef.current !== 'HIDDEN') {
+                startRequestListening();
+              }
+            }, 350);
+          } else {
+            setLifecycleState('ACTIVATING');
+          }
+        }, durationMs);
+        return;
+      } catch (e) {
+        console.warn('Native bridge speakText failed, falling back to Web Speech API', e);
+      }
+    }
+
+    if (!synthRef.current) return;
 
     const utterance = new SpeechSynthesisUtterance(speechSanitized);
     utterance.rate = settings.speechRate;
@@ -274,6 +308,12 @@ export const AIAssistantExperience: React.FC<AIAssistantExperienceProps> = ({
   };
 
   const stopSpeaking = () => {
+    const bridge = (window as any).NovaAndroidBridge;
+    if (bridge && typeof bridge.stopSpeaking === 'function') {
+      try {
+        bridge.stopSpeaking();
+      } catch (_e) {}
+    }
     if (synthRef.current) {
       synthRef.current.cancel();
     }

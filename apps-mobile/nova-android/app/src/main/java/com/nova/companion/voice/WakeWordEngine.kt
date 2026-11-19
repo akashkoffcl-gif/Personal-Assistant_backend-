@@ -3,6 +3,8 @@ package com.nova.companion.voice
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -31,6 +33,7 @@ class WakeWordEngine(
 
     private var speechRecognizer: SpeechRecognizer? = null
     private var isSpotting = false
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     fun isSupported(): Boolean {
         return SpeechRecognizer.isRecognitionAvailable(context)
@@ -43,109 +46,115 @@ class WakeWordEngine(
             return
         }
 
-        try {
-            speechRecognizer?.destroy()
-            speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
-                setRecognitionListener(object : RecognitionListener {
-                    override fun onReadyForSpeech(params: Bundle?) {
-                        Log.d(TAG, "WakeWordEngine ready for speech")
-                    }
-
-                    override fun onBeginningOfSpeech() {}
-                    override fun onRmsChanged(rmsdB: Float) {}
-                    override fun onBufferReceived(buffer: ByteArray?) {}
-
-                    override fun onEndOfSpeech() {
-                        // Restart spotting if still active
-                        if (isSpotting) {
-                            restartSpotting()
+        mainHandler.post {
+            try {
+                speechRecognizer?.destroy()
+                speechRecognizer = SpeechRecognizer.createSpeechRecognizer(context).apply {
+                    setRecognitionListener(object : RecognitionListener {
+                        override fun onReadyForSpeech(params: Bundle?) {
+                            Log.d(TAG, "WakeWordEngine ready for speech")
                         }
-                    }
 
-                    override fun onError(error: Int) {
-                        Log.d(TAG, "WakeWordEngine recognition error code: $error")
-                        if (isSpotting) {
-                            // Retry after short delay to prevent thrashing
-                            restartSpotting()
-                        }
-                    }
+                        override fun onBeginningOfSpeech() {}
+                        override fun onRmsChanged(rmsdB: Float) {}
+                        override fun onBufferReceived(buffer: ByteArray?) {}
 
-                    override fun onResults(results: Bundle?) {
-                        val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                        if (!matches.isNullOrEmpty()) {
-                            val candidate = matches[0].lowercase(Locale.ROOT).trim()
-                            Log.d(TAG, "WakeWord candidate heard: $candidate")
-                            val detected = KEYWORDS.firstOrNull { candidate.contains(it) }
-                            if (detected != null) {
-                                Log.i(TAG, "WakeWord DETECTED: $detected")
-                                stopListening()
-                                onWakeWordDetected(detected)
-                                return
+                        override fun onEndOfSpeech() {
+                            if (isSpotting) {
+                                restartSpotting()
                             }
                         }
-                        if (isSpotting) {
-                            restartSpotting()
-                        }
-                    }
 
-                    override fun onPartialResults(partialResults: Bundle?) {
-                        val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                        if (!matches.isNullOrEmpty()) {
-                            val candidate = matches[0].lowercase(Locale.ROOT).trim()
-                            val detected = KEYWORDS.firstOrNull { candidate.contains(it) }
-                            if (detected != null) {
-                                Log.i(TAG, "WakeWord DETECTED on partial: $detected")
-                                stopListening()
-                                onWakeWordDetected(detected)
+                        override fun onError(error: Int) {
+                            Log.d(TAG, "WakeWordEngine recognition error code: $error")
+                            if (isSpotting) {
+                                mainHandler.postDelayed({
+                                    restartSpotting()
+                                }, 500)
                             }
                         }
-                    }
 
-                    override fun onEvent(eventType: Int, params: Bundle?) {}
-                })
+                        override fun onResults(results: Bundle?) {
+                            val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                            if (!matches.isNullOrEmpty()) {
+                                val candidate = matches[0].lowercase(Locale.ROOT).trim()
+                                Log.d(TAG, "WakeWord candidate heard: $candidate")
+                                val detected = KEYWORDS.firstOrNull { candidate.contains(it) }
+                                if (detected != null) {
+                                    Log.i(TAG, "WakeWord DETECTED: $detected")
+                                    stopListening()
+                                    onWakeWordDetected(detected)
+                                    return
+                                }
+                            }
+                            if (isSpotting) {
+                                restartSpotting()
+                            }
+                        }
+
+                        override fun onPartialResults(partialResults: Bundle?) {
+                            val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                            if (!matches.isNullOrEmpty()) {
+                                val candidate = matches[0].lowercase(Locale.ROOT).trim()
+                                val detected = KEYWORDS.firstOrNull { candidate.contains(it) }
+                                if (detected != null) {
+                                    Log.i(TAG, "WakeWord DETECTED on partial: $detected")
+                                    stopListening()
+                                    onWakeWordDetected(detected)
+                                }
+                            }
+                        }
+
+                        override fun onEvent(eventType: Int, params: Bundle?) {}
+                    })
+                }
+
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.US.toLanguageTag())
+                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                }
+
+                speechRecognizer?.startListening(intent)
+                isSpotting = true
+                Log.i(TAG, "Wake-word spotting started on Main thread")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start wake-word spotting", e)
+                isSpotting = false
             }
-
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.US.toLanguageTag())
-                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            }
-
-            speechRecognizer?.startListening(intent)
-            isSpotting = true
-            Log.i(TAG, "Wake-word spotting started")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start wake-word spotting", e)
-            isSpotting = false
         }
     }
 
     private fun restartSpotting() {
         if (!isSpotting) return
-        try {
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.US.toLanguageTag())
-                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        mainHandler.post {
+            try {
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.US.toLanguageTag())
+                    putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+                    putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+                }
+                speechRecognizer?.startListening(intent)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error restarting wake word spotting", e)
             }
-            speechRecognizer?.startListening(intent)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error restarting wake word spotting", e)
         }
     }
 
     fun stopListening() {
         isSpotting = false
-        try {
-            speechRecognizer?.stopListening()
-            speechRecognizer?.cancel()
-            speechRecognizer?.destroy()
-            speechRecognizer = null
-            Log.i(TAG, "Wake-word spotting stopped")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error stopping wake word spotting", e)
+        mainHandler.post {
+            try {
+                speechRecognizer?.stopListening()
+                speechRecognizer?.cancel()
+                speechRecognizer?.destroy()
+                speechRecognizer = null
+                Log.i(TAG, "Wake-word spotting stopped")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error stopping wake word spotting", e)
+            }
         }
     }
 
