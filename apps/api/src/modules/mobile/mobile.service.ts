@@ -26,24 +26,50 @@ export class MobileService {
   /**
    * Step 1: Initiate device pairing with Android Keystore public key.
    * Generates a random cryptographic challenge for the device to sign.
+   * Idempotent per user + public key to avoid orphan duplicate devices.
    */
   async initiatePairing(userId: string, dto: InitiateDevicePairingDto) {
     const challenge = crypto.randomBytes(32).toString('hex');
     const challengeExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    const device = await this.prisma.mobileDevice.create({
-      data: {
+    // Check for existing pending or paired device with matching public key for this user
+    const existingDevice = await this.prisma.mobileDevice.findFirst({
+      where: {
         userId,
-        deviceName: dto.deviceName,
-        deviceModel: dto.deviceModel,
-        osVersion: dto.osVersion,
-        appVersion: dto.appVersion,
         publicKey: dto.publicKey,
-        pairingChallenge: challenge,
-        challengeExpiry,
-        status: 'PENDING_PAIRING',
       },
+      orderBy: { createdAt: 'desc' },
     });
+
+    let device;
+    if (existingDevice) {
+      device = await this.prisma.mobileDevice.update({
+        where: { id: existingDevice.id },
+        data: {
+          deviceName: dto.deviceName,
+          deviceModel: dto.deviceModel,
+          osVersion: dto.osVersion,
+          appVersion: dto.appVersion,
+          pairingChallenge: challenge,
+          challengeExpiry,
+          status: 'PENDING_PAIRING',
+        },
+      });
+    } else {
+      device = await this.prisma.mobileDevice.create({
+        data: {
+          userId,
+          deviceName: dto.deviceName,
+          deviceModel: dto.deviceModel,
+          osVersion: dto.osVersion,
+          appVersion: dto.appVersion,
+          publicKey: dto.publicKey,
+          pairingChallenge: challenge,
+          challengeExpiry,
+          status: 'PENDING_PAIRING',
+        },
+      });
+    }
 
     return {
       deviceId: device.id,

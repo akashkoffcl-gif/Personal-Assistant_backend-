@@ -23,6 +23,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicBoolean
 import org.json.JSONObject
 import com.nova.companion.voice.NovaVoiceForegroundService
 import com.nova.companion.voice.VoiceActivationManager
@@ -47,6 +50,10 @@ class NovaNativeBridge(
 
     private val bridgeScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var voiceActivationManager: VoiceActivationManager? = null
+
+    // Single-flight pairing protection
+    private val pairingMutex = Mutex()
+    private val isPairingInProgress = AtomicBoolean(false)
 
     init {
         // Initialize voice manager for in-app or bridge interactions
@@ -139,51 +146,59 @@ class NovaNativeBridge(
 
     private fun autoPairDeviceIfNeeded(token: String, userId: String) {
         bridgeScope.launch {
+            if (!isPairingInProgress.compareAndSet(false, true)) {
+                Log.d(TAG, "Device pairing already in progress. Ignoring duplicate request.")
+                return@launch
+            }
             try {
-                val existingDeviceId = SecureSessionManager.getDeviceId(context)
-                if (!existingDeviceId.isNullOrBlank()) {
-                    Log.i(TAG, "Device already paired: $existingDeviceId")
-                    syncApprovedAppsToBackend()
-                    return@launch
-                }
+                pairingMutex.withLock {
+                    val existingDeviceId = SecureSessionManager.getDeviceId(context)
+                    if (!existingDeviceId.isNullOrBlank()) {
+                        Log.i(TAG, "Device already paired: $existingDeviceId")
+                        syncApprovedAppsToBackend()
+                        return@launch
+                    }
 
-                Log.i(TAG, "Initiating device pairing handshake with backend...")
-                val apiService = NovaApiClient.getApiService()
-                val authHeader = if (token.startsWith("Bearer ")) token else "Bearer $token"
+                    Log.i(TAG, "Initiating device pairing handshake with backend (single-flight guarded)...")
+                    val apiService = NovaApiClient.getApiService()
+                    val authHeader = if (token.startsWith("Bearer ")) token else "Bearer $token"
 
-                val initReq = InitiatePairingRequest(
-                    deviceName = "${Build.MANUFACTURER} ${Build.MODEL}",
-                    deviceModel = Build.MODEL,
-                    osVersion = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
-                    appVersion = "1.0.0",
-                    publicKey = KeyStoreManager.getPublicKeyPem()
-                )
+                    val initReq = InitiatePairingRequest(
+                        deviceName = "${Build.MANUFACTURER} ${Build.MODEL}",
+                        deviceModel = Build.MODEL,
+                        osVersion = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+                        appVersion = "1.0.0",
+                        publicKey = KeyStoreManager.getPublicKeyPem()
+                    )
 
-                val initRes = apiService.initiatePairing(authHeader, initReq)
-                val pairingData = initRes.body()?.data
-                if (!initRes.isSuccessful || pairingData == null) {
-                    Log.e(TAG, "Failed to initiate pairing: HTTP ${initRes.code()}")
-                    return@launch
-                }
+                    val initRes = apiService.initiatePairing(authHeader, initReq)
+                    val pairingData = initRes.body()?.data
+                    if (!initRes.isSuccessful || pairingData == null) {
+                        Log.e(TAG, "Failed to initiate pairing: HTTP ${initRes.code()}")
+                        return@launch
+                    }
 
-                val signedChallenge = KeyStoreManager.signChallenge(pairingData.challenge)
+                    val signedChallenge = KeyStoreManager.signChallenge(pairingData.challenge)
 
-                val confirmReq = ConfirmPairingRequest(
-                    deviceId = pairingData.deviceId,
-                    signedChallenge = signedChallenge
-                )
+                    val confirmReq = ConfirmPairingRequest(
+                        deviceId = pairingData.deviceId,
+                        signedChallenge = signedChallenge
+                    )
 
-                val confirmRes = apiService.confirmPairing(authHeader, confirmReq)
-                val confirmData = confirmRes.body()?.data
-                if (confirmRes.isSuccessful && confirmData != null && confirmData.status == "PAIRED") {
-                    SecureSessionManager.saveDeviceId(context, pairingData.deviceId)
-                    Log.i(TAG, "Device pairing completed successfully! Device ID: ${pairingData.deviceId}")
-                    syncApprovedAppsToBackend()
-                } else {
-                    Log.e(TAG, "Device confirmation failed: HTTP ${confirmRes.code()}")
+                    val confirmRes = apiService.confirmPairing(authHeader, confirmReq)
+                    val confirmData = confirmRes.body()?.data
+                    if (confirmRes.isSuccessful && confirmData != null && confirmData.status == "PAIRED") {
+                        SecureSessionManager.saveDeviceId(context, pairingData.deviceId)
+                        Log.i(TAG, "Device pairing completed successfully! Device ID: ${pairingData.deviceId}")
+                        syncApprovedAppsToBackend()
+                    } else {
+                        Log.e(TAG, "Device confirmation failed: HTTP ${confirmRes.code()}")
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Exception during auto device pairing", e)
+            } finally {
+                isPairingInProgress.set(false)
             }
         }
     }

@@ -85,7 +85,20 @@ class NovaSpeechSynthesisManager(
             putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
         }
 
-        tts?.speak(sanitized, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+        // Log audio device route information for debugging
+        try {
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? android.media.AudioManager
+            if (audioManager != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                val devices = audioManager.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS)
+                val deviceNames = devices.joinToString(", ") { "${it.productName} (type:${it.type})" }
+                Log.i(TAG, "Active audio output routes: $deviceNames")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not query audio devices: ${e.message}")
+        }
+
+        val result = tts?.speak(sanitized, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+        Log.i(TAG, "tts.speak invoked for utteranceId=$utteranceId, returnCode=$result (SUCCESS=${TextToSpeech.SUCCESS})")
     }
 
     fun stop() {

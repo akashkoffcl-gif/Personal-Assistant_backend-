@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MobileService } from '../src/modules/mobile/mobile.service';
 import { MobilePushService } from '../src/modules/mobile/mobile-push.service';
 import { PrismaService } from '../src/common/prisma.service';
+import { RedisService } from '../src/common/redis.service';
 import { BadRequestException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 
 describe('MobileService (Phase 54 & 54.1 Device Intelligence & Real-Device Readiness)', () => {
@@ -47,6 +48,12 @@ describe('MobileService (Phase 54 & 54.1 Device Intelligence & Real-Device Readi
     sendCommand: jest.fn().mockResolvedValue({ sent: 1, failed: 0 }),
   };
 
+  const mockRedis = {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue('OK'),
+    del: jest.fn().mockResolvedValue(1),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
@@ -54,6 +61,7 @@ describe('MobileService (Phase 54 & 54.1 Device Intelligence & Real-Device Readi
         MobileService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: MobilePushService, useValue: mockPushService },
+        { provide: RedisService, useValue: mockRedis },
       ],
     }).compile();
 

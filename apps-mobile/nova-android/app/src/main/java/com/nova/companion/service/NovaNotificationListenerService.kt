@@ -103,7 +103,16 @@ class NovaNotificationListenerService : NotificationListenerService() {
 
         Log.i(TAG, "Approved notification captured: [$appName] (Package: $packageName)")
 
-        // 5. Persist to local Room Queue and Trigger Background Sync Worker
+        // 5. Trigger User-Visible Alert and Optional Voice Announcement
+        com.nova.companion.notification.NotificationAlertDispatcher.dispatchAlert(
+            context = applicationContext,
+            packageName = packageName,
+            appName = appName,
+            sanitizedTitle = sanitizedTitle,
+            sanitizedSummary = sanitizedSummary
+        )
+
+        // 6. Persist to local Room Queue and Trigger Background Sync Worker
         serviceScope.launch {
             try {
                 val db = NotificationDatabase.getInstance(applicationContext)

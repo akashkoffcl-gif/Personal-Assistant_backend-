@@ -1,0 +1,180 @@
+package com.nova.companion.notification
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.media.AudioAttributes
+import android.media.RingtoneManager
+import android.os.Build
+import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import com.nova.companion.MainActivity
+import com.nova.companion.voice.NovaSpeechSynthesisManager
+import java.util.concurrent.ConcurrentHashMap
+
+object NotificationAlertDispatcher {
+
+    private const val TAG = "NotificationAlert"
+    const val CHANNEL_ID = "nova_companion_alerts"
+    private const val CHANNEL_NAME = "NOVA Companion Alerts"
+    private const val CHANNEL_DESC = "User-facing alerts for intercepted assistant events and messages"
+
+    // Deduplication window: 5 seconds per source package + title
+    private val recentAlerts = ConcurrentHashMap<String, Long>()
+    private const val DEDUP_WINDOW_MS = 5000L
+
+    // Optional shared speech synthesizer instance for announcements
+    @Volatile
+    private var sharedTts: NovaSpeechSynthesisManager? = null
+
+    fun initializeTts(context: Context) {
+        if (sharedTts == null) {
+            synchronized(this) {
+                if (sharedTts == null) {
+                    sharedTts = NovaSpeechSynthesisManager(context.applicationContext)
+                }
+            }
+        }
+    }
+
+    fun createNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                ?: return
+
+            val existingChannel = manager.getNotificationChannel(CHANNEL_ID)
+            if (existingChannel == null) {
+                val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                val audioAttributes = AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
+
+                val channel = NotificationChannel(
+                    CHANNEL_ID,
+                    CHANNEL_NAME,
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = CHANNEL_DESC
+                    enableLights(true)
+                    enableVibration(true)
+                    setSound(soundUri, audioAttributes)
+                    setShowBadge(true)
+                }
+                manager.createNotificationChannel(channel)
+                Log.i(TAG, "Notification channel created: $CHANNEL_ID")
+            }
+        }
+    }
+
+    fun dispatchAlert(
+        context: Context,
+        packageName: String,
+        appName: String,
+        sanitizedTitle: String,
+        sanitizedSummary: String
+    ) {
+        try {
+            // 1. Check user preferences
+            if (!NotificationAlertPreferences.isAlertsEnabled(context)) {
+                Log.d(TAG, "Alerts disabled by user preference")
+                return
+            }
+
+            // 2. Check Android POST_NOTIFICATIONS permission
+            if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+                Log.w(TAG, "App notifications are disabled at Android system level")
+                return
+            }
+
+            // 3. Deduplication check
+            val dedupKey = "$packageName:$sanitizedTitle"
+            val now = System.currentTimeMillis()
+            val lastTime = recentAlerts[dedupKey] ?: 0L
+            if (now - lastTime < DEDUP_WINDOW_MS) {
+                Log.d(TAG, "Duplicate alert suppressed within dedup window: $dedupKey")
+                return
+            }
+            recentAlerts[dedupKey] = now
+
+            // Clean up stale entries periodically
+            if (recentAlerts.size > 50) {
+                recentAlerts.entries.removeIf { now - it.value > DEDUP_WINDOW_MS * 2 }
+            }
+
+            // Ensure channel exists
+            createNotificationChannel(context)
+
+            // 4. Construct privacy-respecting content
+            val title = if (NotificationAlertPreferences.isSenderAnnouncementEnabled(context) && sanitizedTitle.isNotBlank()) {
+                "New message from $sanitizedTitle"
+            } else {
+                "New notification from $appName"
+            }
+
+            val content = if (NotificationAlertPreferences.isContentPreviewEnabled(context) && sanitizedSummary.isNotBlank()) {
+                sanitizedSummary
+            } else {
+                "NOVA captured a message from $appName"
+            }
+
+            // 5. Intent to launch app
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("source_package", packageName)
+                putExtra("app_name", appName)
+            }
+            val pendingIntent = PendingIntent.getActivity(
+                context,
+                packageName.hashCode(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(title)
+                .setContentText(content)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+
+            if (!NotificationAlertPreferences.isSoundEnabled(context)) {
+                notificationBuilder.setSilent(true)
+            }
+
+            val notificationManager = NotificationManagerCompat.from(context)
+            val notificationId = (packageName.hashCode() xor now.toInt()) and 0x7FFFFFFF
+            notificationManager.notify(notificationId, notificationBuilder.build())
+            Log.i(TAG, "Dispatched user-visible alert for [$appName] (ID: $notificationId)")
+
+            // 6. Optional voice announcement
+            if (NotificationAlertPreferences.isVoiceAnnouncementEnabled(context)) {
+                speakAnnouncement(context, appName, sanitizedTitle)
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to dispatch notification alert", e)
+        }
+    }
+
+    private fun speakAnnouncement(context: Context, appName: String, sender: String) {
+        try {
+            val announcement = if (NotificationAlertPreferences.isSenderAnnouncementEnabled(context) && sender.isNotBlank()) {
+                "New $appName message from $sender"
+            } else {
+                "You have a new $appName notification"
+            }
+
+            initializeTts(context)
+            sharedTts?.speak(announcement)
+            Log.i(TAG, "Voice announcement spoken: $announcement")
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not speak voice announcement", e)
+        }
+    }
+}
