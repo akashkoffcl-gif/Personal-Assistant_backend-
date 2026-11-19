@@ -11,6 +11,7 @@ export type PrimaryIntent =
   | 'EMOTIONAL_DISCLOSURE'
   | 'CONTEXT_STATEMENT'
   | 'IMPLICIT_ASSISTANCE_REQUEST'
+  | 'STATUS_INQUIRY'
   | 'GREETING_OR_SMALLTALK';
 
 export type DecisionPolicy =
@@ -20,6 +21,7 @@ export type DecisionPolicy =
   | 'CLARIFICATION'
   | 'PLAN'
   | 'ACTION'
+  | 'STATUS_REPORT'
   | 'PROACTIVE_SUGGESTION';
 
 export type UserPacing = 'IN_A_HURRY' | 'MEASURED' | 'REFLECTIVE' | 'NORMAL';
