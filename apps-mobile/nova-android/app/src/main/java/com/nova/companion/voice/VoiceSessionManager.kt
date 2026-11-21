@@ -104,6 +104,27 @@ class VoiceSessionManager(
                         if (!matches.isNullOrEmpty()) {
                             val recognizedText = matches[0]
                             Log.i(TAG, "Speech recognized: $recognizedText")
+
+                            // 1. Check if speaker is verified owner (speaker authentication check)
+                            val isOwnerVerified = com.nova.companion.voice.identity.VoiceIdentityManager.verifySpeaker(context, 0.85f)
+                            if (!isOwnerVerified) {
+                                Log.w(TAG, "Unverified speaker attempted voice command. Rejecting.")
+                                onStateChanged(VoiceState.READY, "Unrecognized speaker")
+                                speechSynthesisManager.speak("I didn't recognize your voice. Voice commands are restricted to the enrolled owner.")
+                                return
+                            }
+
+                            // 2. Check for contextual notification reply commands
+                            val resolvedCommand = com.nova.companion.voice.command.CommandIntentResolver.resolve(recognizedText)
+                            if (resolvedCommand.intent != com.nova.companion.voice.command.ResolvedIntentType.UNKNOWN) {
+                                com.nova.companion.voice.command.CommandIntentResolver.executeVoiceCommand(context, resolvedCommand) { responseText ->
+                                    onStateChanged(VoiceState.RESPONDING, responseText)
+                                    speechSynthesisManager.speak(responseText)
+                                }
+                                return
+                            }
+
+                            // 3. Normal conversational AI request
                             dispatchToBackendAi(recognizedText)
                         } else {
                             onStateChanged(VoiceState.READY, "No speech detected")

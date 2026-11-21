@@ -154,7 +154,7 @@ object NotificationAlertDispatcher {
 
             // 6. Optional voice announcement
             if (NotificationAlertPreferences.isVoiceAnnouncementEnabled(context)) {
-                speakAnnouncement(context, appName, sanitizedTitle)
+                speakAnnouncement(context, appName, sanitizedTitle, sanitizedSummary)
             }
 
         } catch (e: Exception) {
@@ -162,19 +162,53 @@ object NotificationAlertDispatcher {
         }
     }
 
-    private fun speakAnnouncement(context: Context, appName: String, sender: String) {
+    private fun speakAnnouncement(context: Context, appName: String, sender: String, summary: String = "") {
         try {
-            val announcement = if (NotificationAlertPreferences.isSenderAnnouncementEnabled(context) && sender.isNotBlank()) {
-                "New $appName message from $sender"
-            } else {
-                "You have a new $appName notification"
+            val owner = com.nova.companion.voice.identity.VoiceIdentityManager.getOwnerName(context)
+            val style = NotificationAlertPreferences.getAnnouncementStyle(context)
+
+            val announcement = when (style.uppercase()) {
+                "FULL" -> {
+                    if (sender.isNotBlank() && summary.isNotBlank()) {
+                        "$owner, you have a $appName message from $sender. They say: $summary"
+                    } else if (sender.isNotBlank()) {
+                        "$owner, $sender sent you a message on $appName"
+                    } else {
+                        "$owner, you have a new $appName notification"
+                    }
+                }
+                "SUMMARY" -> {
+                    if (sender.isNotBlank()) {
+                        "$owner, new message from $sender on $appName"
+                    } else {
+                        "$owner, new $appName notification received"
+                    }
+                }
+                "MINIMAL" -> {
+                    if (sender.isNotBlank()) {
+                        "New message from $sender"
+                    } else {
+                        "New $appName alert"
+                    }
+                }
+                "PRIVATE" -> {
+                    "New notification received"
+                }
+                else -> {
+                    "$owner, you have a new $appName notification from $sender"
+                }
             }
 
-            initializeTts(context)
-            sharedTts?.speak(announcement)
-            Log.i(TAG, "Voice announcement spoken: $announcement")
+            // Route through central SpeechArbitrator with NOTIFICATION_ANNOUNCEMENT priority
+            val utterance = com.nova.companion.voice.arbitration.ArbitratedUtterance(
+                id = "notif_announcement_${System.currentTimeMillis()}",
+                text = announcement,
+                priority = com.nova.companion.voice.arbitration.UtterancePriority.NOTIFICATION_ANNOUNCEMENT
+            )
+            com.nova.companion.voice.arbitration.SpeechArbitrator.getInstance(context).enqueueUtterance(utterance)
+            Log.i(TAG, "Queued arbitrated voice announcement: \"$announcement\"")
         } catch (e: Exception) {
-            Log.w(TAG, "Could not speak voice announcement", e)
+            Log.w(TAG, "Could not queue voice announcement", e)
         }
     }
 }

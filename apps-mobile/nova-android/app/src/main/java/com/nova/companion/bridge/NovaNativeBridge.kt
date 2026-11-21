@@ -423,6 +423,58 @@ class NovaNativeBridge(
     }
 
     @JavascriptInterface
+    fun getNotificationVoicePreferences(): String {
+        return try {
+            val json = JSONObject().apply {
+                put("voiceAnnouncementsEnabled", com.nova.companion.notification.NotificationAlertPreferences.isVoiceAnnouncementEnabled(context))
+                put("alertsEnabled", com.nova.companion.notification.NotificationAlertPreferences.isAlertsEnabled(context))
+                put("announcementStyle", com.nova.companion.notification.NotificationAlertPreferences.getAnnouncementStyle(context))
+                put("senderAnnouncementEnabled", com.nova.companion.notification.NotificationAlertPreferences.isSenderAnnouncementEnabled(context))
+                put("contentPreviewEnabled", com.nova.companion.notification.NotificationAlertPreferences.isContentPreviewEnabled(context))
+                put("isVoiceEnrolled", com.nova.companion.voice.identity.VoiceIdentityManager.isEnrolled(context))
+                put("ownerName", com.nova.companion.voice.identity.VoiceIdentityManager.getOwnerName(context))
+            }
+            json.toString()
+        } catch (e: Exception) {
+            "{\"error\":\"${e.message}\"}"
+        }
+    }
+
+    @JavascriptInterface
+    fun setNotificationVoicePreferences(jsonString: String): Boolean {
+        return try {
+            val obj = JSONObject(jsonString)
+            if (obj.has("voiceAnnouncementsEnabled")) {
+                com.nova.companion.notification.NotificationAlertPreferences.setVoiceAnnouncementEnabled(context, obj.getBoolean("voiceAnnouncementsEnabled"))
+            }
+            if (obj.has("announcementStyle")) {
+                com.nova.companion.notification.NotificationAlertPreferences.setAnnouncementStyle(context, obj.getString("announcementStyle"))
+            }
+            if (obj.has("senderAnnouncementEnabled")) {
+                com.nova.companion.notification.NotificationAlertPreferences.setSenderAnnouncementEnabled(context, obj.getBoolean("senderAnnouncementEnabled"))
+            }
+            if (obj.has("contentPreviewEnabled")) {
+                com.nova.companion.notification.NotificationAlertPreferences.setContentPreviewEnabled(context, obj.getBoolean("contentPreviewEnabled"))
+            }
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to set notification voice preferences", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
+    fun enrollOwnerVoice(ownerName: String, sampleHash: String): Boolean {
+        return try {
+            com.nova.companion.voice.identity.VoiceIdentityManager.enrollOwner(context, ownerName, sampleHash)
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to enroll owner voice", e)
+            false
+        }
+    }
+
+    @JavascriptInterface
     fun testVoiceOutput(phrase: String?): String {
         return try {
             val textToSpeak = if (!phrase.isNullOrBlank()) phrase else "Hello! This is NOVA. Native Android voice output is working properly."

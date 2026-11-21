@@ -11,9 +11,17 @@ object NotificationAlertPreferences {
     private const val KEY_SENDER_ANNOUNCEMENT_ENABLED = "sender_announcement_enabled"
     private const val KEY_CONTENT_PREVIEW_ENABLED = "content_preview_enabled"
     private const val KEY_VOICE_ANNOUNCEMENT_ENABLED = "voice_announcement_enabled"
+    private const val KEY_ANNOUNCEMENT_STYLE = "announcement_style" // FULL, SUMMARY, MINIMAL, PRIVATE
 
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    fun getAnnouncementStyle(context: Context): String =
+        getPrefs(context).getString(KEY_ANNOUNCEMENT_STYLE, "FULL") ?: "FULL"
+
+    fun setAnnouncementStyle(context: Context, style: String) {
+        getPrefs(context).edit().putString(KEY_ANNOUNCEMENT_STYLE, style).apply()
     }
 
     fun isAlertsEnabled(context: Context): Boolean =

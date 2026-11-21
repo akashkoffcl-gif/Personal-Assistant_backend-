@@ -103,6 +103,20 @@ class NovaNotificationListenerService : NotificationListenerService() {
 
         Log.i(TAG, "Approved notification captured: [$appName] (Package: $packageName)")
 
+        // 4. Parse notification and register RemoteInput reply context if available
+        val parsedEvent = com.nova.companion.notification.engine.NotificationParser.parse(this, sbn)
+        if (parsedEvent != null) {
+            com.nova.companion.notification.engine.NotificationConversationRegistry.registerNotification(
+                eventId = parsedEvent.id,
+                packageName = parsedEvent.packageName,
+                appName = parsedEvent.appName,
+                sender = parsedEvent.sender,
+                summary = parsedEvent.summary,
+                replyAction = parsedEvent.replyAction,
+                remoteInput = parsedEvent.remoteInput
+            )
+        }
+
         // 5. Trigger User-Visible Alert and Optional Voice Announcement
         com.nova.companion.notification.NotificationAlertDispatcher.dispatchAlert(
             context = applicationContext,
