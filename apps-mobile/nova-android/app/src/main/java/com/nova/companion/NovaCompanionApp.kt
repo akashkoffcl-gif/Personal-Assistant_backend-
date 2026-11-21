@@ -7,6 +7,9 @@ import dagger.hilt.android.HiltAndroidApp
 class NovaCompanionApp : Application() {
     override fun onCreate() {
         super.onCreate()
+        // Pre-warm audio channel and SpeechArbitrator
+        com.nova.companion.notification.NotificationAlertDispatcher.createNotificationChannel(this)
+        com.nova.companion.voice.arbitration.SpeechArbitrator.getInstance(this)
     }
 }
 

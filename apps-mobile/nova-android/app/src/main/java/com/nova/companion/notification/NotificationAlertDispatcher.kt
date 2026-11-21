@@ -31,13 +31,7 @@ object NotificationAlertDispatcher {
     private var sharedTts: NovaSpeechSynthesisManager? = null
 
     fun initializeTts(context: Context) {
-        if (sharedTts == null) {
-            synchronized(this) {
-                if (sharedTts == null) {
-                    sharedTts = NovaSpeechSynthesisManager(context.applicationContext)
-                }
-            }
-        }
+        com.nova.companion.voice.arbitration.SpeechArbitrator.getInstance(context)
     }
 
     fun createNotificationChannel(context: Context) {

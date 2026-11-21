@@ -47,11 +47,22 @@ class SpeechArbitrator private constructor(private val context: Context) {
     private val speechQueue = PriorityBlockingQueue<ArbitratedUtterance>()
     @Volatile
     private var currentUtterance: ArbitratedUtterance? = null
+    private val audioFocusManager = com.nova.companion.voice.NovaAudioFocusManager(context)
 
-    private val ttsManager = NovaSpeechSynthesisManager(context) {
-        // Speech completed callback
-        handleUtteranceCompleted()
-    }
+    private val ttsManager = NovaSpeechSynthesisManager(
+        context = context,
+        onInitResult = { success ->
+            Log.i(TAG, "SpeechArbitrator TTS engine initialized: success=$success")
+            if (success) {
+                synchronized(this) {
+                    processNextUtterance()
+                }
+            }
+        },
+        onSpeechCompleted = {
+            handleUtteranceCompleted()
+        }
+    )
 
     @Synchronized
     fun enqueueUtterance(utterance: ArbitratedUtterance) {
@@ -70,6 +81,11 @@ class SpeechArbitrator private constructor(private val context: Context) {
 
     @Synchronized
     private fun processNextUtterance() {
+        if (!ttsManager.isReady()) {
+            Log.d(TAG, "TTS not ready yet; pending utterances remaining: ${speechQueue.size}")
+            return
+        }
+
         if (currentUtterance != null || ttsManager.isSpeaking()) {
             return
         }
@@ -77,15 +93,23 @@ class SpeechArbitrator private constructor(private val context: Context) {
         val next = speechQueue.poll() ?: return
         currentUtterance = next
 
-        Log.i(TAG, "Speaking utterance [${next.id}] (${next.priority}): \"${next.text.take(40)}...\"")
+        Log.i(TAG, "Speaking utterance [${next.id}] (${next.priority}): \"${next.text.take(60)}...\"")
         next.onStart?.invoke()
-        ttsManager.speak(next.text, utteranceId = next.id)
+        audioFocusManager.requestAudioFocus()
+        val started = ttsManager.speak(next.text, utteranceId = next.id)
+        if (!started) {
+            Log.w(TAG, "Failed to start speaking utterance [${next.id}], recovering audio focus and state")
+            audioFocusManager.abandonAudioFocus()
+            currentUtterance = null
+            processNextUtterance()
+        }
     }
 
     @Synchronized
     private fun handleUtteranceCompleted() {
         val finished = currentUtterance
         Log.i(TAG, "Utterance completed: [${finished?.id}]")
+        audioFocusManager.abandonAudioFocus()
         finished?.onDone?.invoke()
         currentUtterance = null
         processNextUtterance()

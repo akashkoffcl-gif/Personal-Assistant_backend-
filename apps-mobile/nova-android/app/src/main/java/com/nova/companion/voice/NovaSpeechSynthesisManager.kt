@@ -9,6 +9,7 @@ import java.util.Locale
 
 class NovaSpeechSynthesisManager(
     private val context: Context,
+    private val onInitResult: ((Boolean) -> Unit)? = null,
     private val onSpeechCompleted: () -> Unit = {}
 ) : TextToSpeech.OnInitListener {
 
@@ -17,7 +18,10 @@ class NovaSpeechSynthesisManager(
     }
 
     private var tts: TextToSpeech? = null
+    @Volatile
     private var isInitialized = false
+
+    fun isReady(): Boolean = isInitialized && tts != null
 
     init {
         tts = TextToSpeech(context.applicationContext, this)
@@ -62,15 +66,18 @@ class NovaSpeechSynthesisManager(
 
             isInitialized = true
             Log.i(TAG, "Native Android TextToSpeech engine initialized successfully")
+            onInitResult?.invoke(true)
         } else {
+            isInitialized = false
             Log.e(TAG, "Failed to initialize native TextToSpeech engine: status=$status")
+            onInitResult?.invoke(false)
         }
     }
 
-    fun speak(text: String, utteranceId: String = "nova_tts_${System.currentTimeMillis()}") {
+    fun speak(text: String, utteranceId: String = "nova_tts_${System.currentTimeMillis()}"): Boolean {
         if (!isInitialized || tts == null) {
             Log.w(TAG, "Cannot speak: TTS not yet initialized")
-            return
+            return false
         }
 
         // Strip markdown formatting symbols (*, _, #, `, [ACTION:...])
@@ -79,7 +86,7 @@ class NovaSpeechSynthesisManager(
             .replace(Regex("[*#`_]"), "")
             .trim()
 
-        if (sanitized.isBlank()) return
+        if (sanitized.isBlank()) return false
 
         val params = Bundle().apply {
             putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
@@ -98,7 +105,9 @@ class NovaSpeechSynthesisManager(
         }
 
         val result = tts?.speak(sanitized, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+        val success = (result == TextToSpeech.SUCCESS)
         Log.i(TAG, "tts.speak invoked for utteranceId=$utteranceId, returnCode=$result (SUCCESS=${TextToSpeech.SUCCESS})")
+        return success
     }
 
     fun stop() {
