@@ -225,7 +225,7 @@ object NotificationConversationManager {
         }
 
         // Dispatch through central SpeechArbitrator with appropriate priority
-        val utterancePriority = if (isEmergency) UtterancePriority.HIGH else UtterancePriority.NOTIFICATION_ANNOUNCEMENT
+        val utterancePriority = if (isEmergency) UtterancePriority.EMERGENCY else UtterancePriority.NOTIFICATION_ANNOUNCEMENT
         val utterance = ArbitratedUtterance(
             id = "batch_announcement_${now}",
             text = announcement,
