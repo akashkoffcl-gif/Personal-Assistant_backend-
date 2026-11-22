@@ -146,9 +146,16 @@ object NotificationAlertDispatcher {
             notificationManager.notify(notificationId, notificationBuilder.build())
             Log.i(TAG, "Dispatched user-visible alert for [$appName] (ID: $notificationId)")
 
-            // 6. Optional voice announcement
+            // 6. Voice announcement handled via intelligent conversation manager
             if (NotificationAlertPreferences.isVoiceAnnouncementEnabled(context)) {
-                speakAnnouncement(context, appName, sanitizedTitle, sanitizedSummary)
+                com.nova.companion.notification.engine.NotificationConversationManager.onNotificationReceived(
+                    context = context,
+                    eventId = dedupKey + "_" + now,
+                    packageName = packageName,
+                    appName = appName,
+                    sender = sanitizedTitle,
+                    summary = sanitizedSummary
+                )
             }
 
         } catch (e: Exception) {
