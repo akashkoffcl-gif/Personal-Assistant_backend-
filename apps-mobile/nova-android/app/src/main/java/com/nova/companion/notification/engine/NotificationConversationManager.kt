@@ -5,6 +5,15 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.nova.companion.notification.NotificationAlertPreferences
+import com.nova.companion.notification.intelligence.classifier.ContextualClassifier
+import com.nova.companion.notification.intelligence.memory.NotificationDeliveryState
+import com.nova.companion.notification.intelligence.memory.NotificationMemoryManager
+import com.nova.companion.notification.intelligence.model.ContextualNotification
+import com.nova.companion.notification.intelligence.model.MessageIntent
+import com.nova.companion.notification.intelligence.model.MessageType
+import com.nova.companion.notification.intelligence.model.PriorityLevel
+import com.nova.companion.notification.intelligence.preferences.NotificationIntelligencePrefs
+import com.nova.companion.notification.intelligence.priority.NotificationPriorityEngine
 import com.nova.companion.voice.arbitration.ArbitratedUtterance
 import com.nova.companion.voice.arbitration.SpeechArbitrator
 import com.nova.companion.voice.arbitration.UtterancePriority
@@ -13,23 +22,16 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
- * Single unit of notification context used for conversational batching and history.
- */
-data class QueuedNotification(
-    val eventId: String,
-    val packageName: String,
-    val appName: String,
-    val sender: String,
-    val summary: String,
-    val timestamp: Long = System.currentTimeMillis()
-)
-
-/**
- * Natural Notification Conversation Manager
+ * Natural Notification Conversation Manager (Phase 66 Upgrade)
  *
- * Implements intelligent window-based batching (3s initial, 2s extension, max 8s),
- * same-sender grouping, deduplication protection, conversational context history,
- * and natural human-like speech announcement generation.
+ * Preserves Phase 65.1 batching (3s initial, 2s extension, max 8s), deduplication,
+ * and audio arbitration.
+ *
+ * Enhances with Phase 66 Contextual Intelligence:
+ * - Deterministic Priority Engine (P0..P4)
+ * - Quiet Hours & DND Interruption Policies
+ * - Conversational phrasing for Groups, Questions, Missed Calls, and OTPs
+ * - Short-term Thread Conversation Memory (3-minute TTL)
  */
 object NotificationConversationManager {
 
@@ -45,8 +47,8 @@ object NotificationConversationManager {
     // Main thread handler for window scheduling
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    // Batch buffer state
-    private val currentBatch = CopyOnWriteArrayList<QueuedNotification>()
+    // Batch buffer state holding rich contextual notifications
+    private val currentBatch = CopyOnWriteArrayList<ContextualNotification>()
     private var batchStartTime = 0L
     private var batchFlushRunnable: Runnable? = null
 
@@ -55,7 +57,7 @@ object NotificationConversationManager {
     private const val DEDUP_FINGERPRINT_TTL_MS = 6000L
 
     // Conversational context history (bounded to last 20 notifications)
-    private val recentContextHistory = CopyOnWriteArrayList<QueuedNotification>()
+    private val recentContextHistory = CopyOnWriteArrayList<ContextualNotification>()
     private const val MAX_HISTORY_SIZE = 20
 
     /**
@@ -86,14 +88,52 @@ object NotificationConversationManager {
             recentContentHashes.entries.removeIf { now - it.value > DEDUP_FINGERPRINT_TTL_MS * 2 }
         }
 
-        val item = QueuedNotification(
+        // 2. Classify Context (Phase 66.1)
+        val initialContextual = ContextualClassifier.classify(
             eventId = eventId,
             packageName = packageName,
             appName = appName,
-            sender = sender.trim(),
-            summary = summary.trim(),
-            timestamp = now
+            rawTitle = sender,
+            rawSummary = summary
         )
+
+        // 3. Evaluate Deterministic Priority (Phase 66.2)
+        val (priority, explanation) = NotificationPriorityEngine.evaluatePriority(context, initialContextual)
+
+        // 4. Check Thread Memory (Phase 66.4)
+        val threadKey = NotificationMemoryManager.buildThreadKey(
+            packageName,
+            initialContextual.cleanSender,
+            initialContextual.conversationTitle
+        )
+        val isOngoing = NotificationMemoryManager.isOngoingThread(threadKey)
+
+        val item = initialContextual.copy(
+            priority = priority,
+            priorityExplanation = explanation,
+            isOngoingThread = isOngoing
+        )
+
+        NotificationMemoryManager.recordNotification(item, NotificationDeliveryState.RECEIVED)
+
+        // 5. Check Quiet Mode & Priority Policy (Phase 66.5)
+        if (NotificationIntelligencePrefs.isQuietHoursActive(context)) {
+            val allowP0 = NotificationIntelligencePrefs.isAllowP0Always(context) && item.priority == PriorityLevel.P0_CRITICAL
+            val allowVip = NotificationIntelligencePrefs.isAllowVipsInQuiet(context) && item.isVip
+
+            if (!allowP0 && !allowVip) {
+                Log.i(TAG, "Quiet hours active: suppressed speech for [${item.cleanSender}] (Priority: ${item.priority}). Policy explanation: $explanation")
+                NotificationMemoryManager.recordNotification(item, NotificationDeliveryState.SUPPRESSED)
+                return
+            }
+        }
+
+        // Drop P4 (Suppressed) from speech announcements
+        if (item.priority == PriorityLevel.P4_SUPPRESSED) {
+            Log.d(TAG, "Notification speech suppressed by Priority Engine (P4): $explanation")
+            NotificationMemoryManager.recordNotification(item, NotificationDeliveryState.SUPPRESSED)
+            return
+        }
 
         // Add to historical context
         recentContextHistory.add(item)
@@ -101,19 +141,30 @@ object NotificationConversationManager {
             recentContextHistory.removeAt(0)
         }
 
-        // 2. Intelligent Batching Logic
+        // 6. Emergency Preemption (P0 Critical): Flush immediately and speak with HIGH priority
+        if (item.priority == PriorityLevel.P0_CRITICAL) {
+            Log.w(TAG, "P0 Critical notification arrived. Preempting current batch and triggering immediate speech: $explanation")
+            cancelScheduledFlush()
+            currentBatch.add(item)
+            flushBatch(context, isEmergency = true)
+            return
+        }
+
+        // 7. Intelligent Batching Logic (Phase 65.1 Preservation)
         if (currentBatch.isEmpty()) {
             batchStartTime = now
             currentBatch.add(item)
+            NotificationMemoryManager.recordNotification(item, NotificationDeliveryState.QUEUED)
             scheduleFlush(context, INITIAL_BATCH_WINDOW_MS)
             Log.d(TAG, "Started notification batch window (${INITIAL_BATCH_WINDOW_MS}ms) with event: $eventId")
         } else {
             currentBatch.add(item)
+            NotificationMemoryManager.recordNotification(item, NotificationDeliveryState.QUEUED)
             val elapsed = now - batchStartTime
             if (currentBatch.size >= MAX_NOTIFS_PER_BATCH || elapsed >= MAX_BATCH_WINDOW_MS) {
                 Log.d(TAG, "Batch threshold reached (count=${currentBatch.size}, elapsed=${elapsed}ms). Flushing immediately.")
                 cancelScheduledFlush()
-                flushBatch(context)
+                flushBatch(context, isEmergency = false)
             } else {
                 // Extend window dynamically
                 val remainingMax = MAX_BATCH_WINDOW_MS - elapsed
@@ -128,7 +179,7 @@ object NotificationConversationManager {
     private fun scheduleFlush(context: Context, delayMs: Long) {
         val runnable = Runnable {
             synchronized(this) {
-                flushBatch(context)
+                flushBatch(context, isEmergency = false)
             }
         }
         batchFlushRunnable = runnable
@@ -141,7 +192,7 @@ object NotificationConversationManager {
     }
 
     @Synchronized
-    private fun flushBatch(context: Context) {
+    private fun flushBatch(context: Context, isEmergency: Boolean = false) {
         cancelScheduledFlush()
         if (currentBatch.isEmpty()) return
 
@@ -163,37 +214,74 @@ object NotificationConversationManager {
             return
         }
 
-        // Generate natural conversational announcement
+        // Generate context-aware conversational announcement (Phase 66.3)
         val owner = VoiceIdentityManager.getOwnerName(context)
         val announcement = buildNaturalAnnouncement(owner, validItems)
         if (announcement.isBlank()) return
 
-        // Dispatch through central SpeechArbitrator
+        // Mark items as ANNOUNCED in thread memory
+        for (item in validItems) {
+            NotificationMemoryManager.recordNotification(item, NotificationDeliveryState.ANNOUNCED)
+        }
+
+        // Dispatch through central SpeechArbitrator with appropriate priority
+        val utterancePriority = if (isEmergency) UtterancePriority.HIGH else UtterancePriority.NOTIFICATION_ANNOUNCEMENT
         val utterance = ArbitratedUtterance(
             id = "batch_announcement_${now}",
             text = announcement,
-            priority = UtterancePriority.NOTIFICATION_ANNOUNCEMENT
+            priority = utterancePriority
         )
         SpeechArbitrator.getInstance(context).enqueueUtterance(utterance)
-        Log.i(TAG, "Dispatched conversational batch announcement [${validItems.size} item(s)]: \"$announcement\"")
+        Log.i(TAG, "Dispatched conversational batch announcement [${validItems.size} item(s), Emergency=$isEmergency]: \"$announcement\"")
     }
 
     /**
-     * Synthesizes conversational, human-like phrases depending on:
-     * - Number of items
-     * - Same-sender vs multi-sender grouping
-     * - App identities
-     * - Content preview availability
+     * Synthesizes conversational, context-aware phrases (Phase 66.3).
      */
-    private fun buildNaturalAnnouncement(owner: String, items: List<QueuedNotification>): String {
+    private fun buildNaturalAnnouncement(owner: String, items: List<ContextualNotification>): String {
         if (items.isEmpty()) return ""
 
         // Case 1: Exactly 1 notification in batch
         if (items.size == 1) {
             val single = items[0]
-            val sender = if (single.sender.isNotBlank()) single.sender else single.appName
+            val sender = single.cleanSender
             val app = single.appName
 
+            // Missed Call template
+            if (single.messageType == MessageType.MISSED_CALL) {
+                return "$owner, you missed a call from $sender on $app."
+            }
+
+            // OTP / Verification Code template (Security: avoid reading token digits aloud)
+            if (single.messageType == MessageType.OTP) {
+                return "$owner, you received a verification code from $app."
+            }
+
+            // Ongoing thread follow-up template
+            if (single.isOngoingThread) {
+                return if (single.summary.isNotBlank()) {
+                    "$owner, $sender also said: ${single.summary}"
+                } else {
+                    "$owner, $sender followed up on $app."
+                }
+            }
+
+            // Group message template
+            if (single.messageType == MessageType.GROUP) {
+                val group = single.conversationTitle ?: "group chat"
+                return if (single.summary.isNotBlank()) {
+                    "$owner, $sender posted in $group on $app: ${single.summary}"
+                } else {
+                    "$owner, new message from $sender in $group on $app."
+                }
+            }
+
+            // Direct Question template
+            if (single.messageIntent == MessageIntent.QUESTION && single.summary.isNotBlank()) {
+                return "$owner, $sender asks on $app: ${single.summary}"
+            }
+
+            // Standard Direct message template
             return if (single.summary.isNotBlank()) {
                 "$owner, $sender sent you a message on $app. They say: ${single.summary}"
             } else {
@@ -201,9 +289,9 @@ object NotificationConversationManager {
             }
         }
 
-        // Case 2: Check if all notifications are from the same sender
-        val firstSender = items[0].sender.ifBlank { items[0].appName }
-        val allSameSender = items.all { (it.sender.ifBlank { it.appName }).equals(firstSender, ignoreCase = true) }
+        // Case 2: All notifications are from the same sender
+        val firstSender = items[0].cleanSender
+        val allSameSender = items.all { it.cleanSender.equals(firstSender, ignoreCase = true) }
 
         if (allSameSender) {
             val countWord = when (items.size) {
@@ -215,6 +303,17 @@ object NotificationConversationManager {
             }
             val app = items[0].appName
             val lastSummary = items.last().summary
+
+            // If same group
+            if (items[0].messageType == MessageType.GROUP && items[0].conversationTitle != null) {
+                val group = items[0].conversationTitle
+                return if (lastSummary.isNotBlank()) {
+                    "$owner, $firstSender sent $countWord messages in $group on $app. The latest is: $lastSummary"
+                } else {
+                    "$owner, $firstSender sent $countWord messages in $group on $app."
+                }
+            }
+
             return if (lastSummary.isNotBlank()) {
                 "$owner, $firstSender has sent you $countWord messages on $app. The latest is: $lastSummary"
             } else {
@@ -224,8 +323,7 @@ object NotificationConversationManager {
 
         // Case 3: Multiple different senders / apps
         val senderList = items.map {
-            val s = it.sender.ifBlank { it.appName }
-            "$s on ${it.appName}"
+            "${it.cleanSender} on ${it.appName}"
         }.distinct()
 
         val summaryPhrase = when (senderList.size) {
@@ -245,19 +343,17 @@ object NotificationConversationManager {
         return "$owner, you've got $totalCountWord new notifications: from $summaryPhrase."
     }
 
-    /**
-     * Context retrieval for follow-up voice queries ("read last message", etc.)
-     */
-    fun getLastNotification(): QueuedNotification? {
+    fun getLastNotification(): ContextualNotification? {
         return recentContextHistory.lastOrNull()
     }
 
-    fun getRecentNotifications(): List<QueuedNotification> {
+    fun getRecentNotifications(): List<ContextualNotification> {
         return ArrayList(recentContextHistory)
     }
 
     fun clearHistory() {
         recentContextHistory.clear()
         recentContentHashes.clear()
+        NotificationMemoryManager.clearAll()
     }
 }
