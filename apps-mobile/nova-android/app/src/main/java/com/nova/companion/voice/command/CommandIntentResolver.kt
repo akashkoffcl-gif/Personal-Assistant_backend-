@@ -7,6 +7,8 @@ import com.nova.companion.notification.engine.NotificationConversationRegistry
 enum class ResolvedIntentType {
     REPLY_TO_SENDER,
     REPLY_TO_LAST,
+    CONFIRM_PENDING_ACTION,
+    CANCEL_PENDING_ACTION,
     READ_LAST_MESSAGE,
     STOP_SPEECH,
     UNKNOWN
@@ -32,7 +34,15 @@ object CommandIntentResolver {
             return ResolvedVoiceCommand(ResolvedIntentType.STOP_SPEECH, null, null, clean)
         }
 
-        // 2. Read last message
+        // 2. Confirmation / Rejection of Pending Action (Phase 67.4)
+        if (lower == "yes" || lower == "send it" || lower == "yes send it" || lower == "confirm" || lower == "yes reply") {
+            return ResolvedVoiceCommand(ResolvedIntentType.CONFIRM_PENDING_ACTION, null, null, clean)
+        }
+        if (lower == "no" || lower == "cancel" || lower == "don't send" || lower == "dont send" || lower == "dismiss") {
+            return ResolvedVoiceCommand(ResolvedIntentType.CANCEL_PENDING_ACTION, null, null, clean)
+        }
+
+        // 3. Read last message
         if (lower.contains("read last message") || lower.contains("read the last notification") || lower.contains("read message again")) {
             return ResolvedVoiceCommand(ResolvedIntentType.READ_LAST_MESSAGE, null, null, clean)
         }
@@ -64,6 +74,32 @@ object CommandIntentResolver {
             ResolvedIntentType.STOP_SPEECH -> {
                 com.nova.companion.voice.arbitration.SpeechArbitrator.getInstance(context).stopAllSpeech()
                 onResultSpoken("Speech stopped.")
+            }
+            ResolvedIntentType.CONFIRM_PENDING_ACTION -> {
+                val pending = com.nova.companion.notification.intelligence.actions.PendingActionManager.getLatestPendingAction()
+                if (pending != null) {
+                    pending.state = com.nova.companion.notification.intelligence.actions.ActionState.APPROVED
+                    val res = com.nova.companion.notification.intelligence.actions.SmartReplyActionExecutor.executePendingReply(context, pending)
+                    when (res) {
+                        is com.nova.companion.notification.intelligence.actions.ActionExecutionResult.Success -> {
+                            onResultSpoken(res.message)
+                        }
+                        is com.nova.companion.notification.intelligence.actions.ActionExecutionResult.Failure -> {
+                            onResultSpoken(res.error)
+                        }
+                    }
+                } else {
+                    onResultSpoken("There is no pending action to confirm.")
+                }
+            }
+            ResolvedIntentType.CANCEL_PENDING_ACTION -> {
+                val pending = com.nova.companion.notification.intelligence.actions.PendingActionManager.getLatestPendingAction()
+                if (pending != null) {
+                    pending.state = com.nova.companion.notification.intelligence.actions.ActionState.CANCELLED
+                    onResultSpoken("Action cancelled.")
+                } else {
+                    onResultSpoken("There is no pending action to cancel.")
+                }
             }
             ResolvedIntentType.READ_LAST_MESSAGE -> {
                 val last = NotificationConversationRegistry.getLastContext()

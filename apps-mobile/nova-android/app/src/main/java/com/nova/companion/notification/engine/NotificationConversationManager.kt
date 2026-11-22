@@ -216,7 +216,7 @@ object NotificationConversationManager {
 
         // Generate context-aware conversational announcement (Phase 66.3)
         val owner = VoiceIdentityManager.getOwnerName(context)
-        val announcement = buildNaturalAnnouncement(owner, validItems)
+        val announcement = buildNaturalAnnouncement(context, owner, validItems)
         if (announcement.isBlank()) return
 
         // Mark items as ANNOUNCED in thread memory
@@ -236,9 +236,9 @@ object NotificationConversationManager {
     }
 
     /**
-     * Synthesizes conversational, context-aware phrases (Phase 66.3).
+     * Synthesizes conversational, context-aware phrases (Phase 66 & 67 Proactive Assistance).
      */
-    private fun buildNaturalAnnouncement(owner: String, items: List<ContextualNotification>): String {
+    private fun buildNaturalAnnouncement(context: Context, owner: String, items: List<ContextualNotification>): String {
         if (items.isEmpty()) return ""
 
         // Case 1: Exactly 1 notification in batch
@@ -246,6 +246,12 @@ object NotificationConversationManager {
             val single = items[0]
             val sender = single.cleanSender
             val app = single.appName
+
+            // Extract potential follow-ups or callbacks (Phase 67.5)
+            val followUp = com.nova.companion.notification.intelligence.followup.ConversationActionExtractor.extractAction(single)
+            if (followUp != null) {
+                com.nova.companion.notification.intelligence.followup.ConversationFollowUpManager.recordFollowUp(followUp)
+            }
 
             // Missed Call template
             if (single.messageType == MessageType.MISSED_CALL) {
@@ -276,9 +282,41 @@ object NotificationConversationManager {
                 }
             }
 
+            // Evaluate Reply Intent & Proactive Suggestion (Phase 67.1 & 67.7)
+            val (replyIntent, _) = com.nova.companion.notification.intelligence.reply.ReplyIntentClassifier.classify(
+                single.summary,
+                single.messageType
+            )
+
             // Direct Question template
             if (single.messageIntent == MessageIntent.QUESTION && single.summary.isNotBlank()) {
-                return "$owner, $sender asks on $app: ${single.summary}"
+                val shouldProactivelyOffer = com.nova.companion.notification.intelligence.proactive.ProactiveAssistantEngine.shouldOfferReplyAssistance(
+                    context,
+                    single,
+                    replyIntent
+                )
+
+                // Stage smart replies if actionable
+                val replies = com.nova.companion.notification.intelligence.reply.SmartReplyEngine.generateReplies(single, replyIntent)
+                if (replies.isNotEmpty()) {
+                    val pendingAction = com.nova.companion.notification.intelligence.actions.PendingAction(
+                        id = java.util.UUID.randomUUID().toString(),
+                        type = com.nova.companion.notification.intelligence.actions.ActionType.SEND_REPLY,
+                        eventId = single.eventId,
+                        packageName = single.packageName,
+                        appName = single.appName,
+                        targetSender = single.cleanSender,
+                        proposedContent = replies.first().text,
+                        state = com.nova.companion.notification.intelligence.actions.ActionState.PENDING_APPROVAL
+                    )
+                    com.nova.companion.notification.intelligence.actions.PendingActionManager.stageAction(pendingAction)
+                }
+
+                return if (shouldProactivelyOffer) {
+                    "$owner, $sender asks on $app: ${single.summary}. Would you like me to prepare a reply?"
+                } else {
+                    "$owner, $sender asks on $app: ${single.summary}"
+                }
             }
 
             // Standard Direct message template
