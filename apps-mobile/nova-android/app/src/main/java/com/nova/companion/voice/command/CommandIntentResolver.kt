@@ -9,6 +9,8 @@ enum class ResolvedIntentType {
     REPLY_TO_LAST,
     CONFIRM_PENDING_ACTION,
     CANCEL_PENDING_ACTION,
+    DAILY_BRIEFING,
+    MEMORY_QUERY,
     READ_LAST_MESSAGE,
     STOP_SPEECH,
     UNKNOWN
@@ -42,7 +44,17 @@ object CommandIntentResolver {
             return ResolvedVoiceCommand(ResolvedIntentType.CANCEL_PENDING_ACTION, null, null, clean)
         }
 
-        // 3. Read last message
+        // 3. Daily Briefing / Status
+        if (lower.contains("daily briefing") || lower.contains("morning briefing") || lower.contains("my status") || lower.contains("what's on my plate")) {
+            return ResolvedVoiceCommand(ResolvedIntentType.DAILY_BRIEFING, null, null, clean)
+        }
+
+        // 4. Memory / Task / Commitment Queries
+        if (lower.contains("what did i promise") || lower.contains("what are my tasks") || lower.contains("who am i waiting for") || lower.contains("what is pending")) {
+            return ResolvedVoiceCommand(ResolvedIntentType.MEMORY_QUERY, null, null, clean)
+        }
+
+        // 5. Read last message
         if (lower.contains("read last message") || lower.contains("read the last notification") || lower.contains("read message again")) {
             return ResolvedVoiceCommand(ResolvedIntentType.READ_LAST_MESSAGE, null, null, clean)
         }
@@ -100,6 +112,14 @@ object CommandIntentResolver {
                 } else {
                     onResultSpoken("There is no pending action to cancel.")
                 }
+            }
+            ResolvedIntentType.DAILY_BRIEFING -> {
+                val briefing = com.nova.companion.task.briefing.DailyBriefingEngine.generateBriefingText(context)
+                onResultSpoken(briefing)
+            }
+            ResolvedIntentType.MEMORY_QUERY -> {
+                val answer = com.nova.companion.memory.PersonalAssistantQueryEngine.answerQuery(context, command.originalQuery)
+                onResultSpoken(answer)
             }
             ResolvedIntentType.READ_LAST_MESSAGE -> {
                 val last = NotificationConversationRegistry.getLastContext()
