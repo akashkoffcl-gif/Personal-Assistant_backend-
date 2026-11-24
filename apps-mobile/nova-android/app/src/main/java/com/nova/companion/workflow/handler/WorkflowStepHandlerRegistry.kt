@@ -75,7 +75,7 @@ class WorkflowStepHandlerRegistry(private val context: Context) {
                 val commitments = if (!contact.isNullOrBlank()) {
                     CommitmentLedgerManager.findCommitmentsForContact(contact)
                 } else {
-                    CommitmentLedgerManager.getActiveCommitments()
+                    CommitmentLedgerManager.getPendingCommitments()
                 }
                 val summary = commitments.joinToString("; ") { "${it.owner}: ${it.description}" }
                 return WorkflowStepResult.Success(
