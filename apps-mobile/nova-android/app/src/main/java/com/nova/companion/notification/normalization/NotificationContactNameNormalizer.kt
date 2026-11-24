@@ -20,9 +20,10 @@ object NotificationContactNameNormalizer {
     // \p{Sk}: Modifier Symbol
     // \p{M}: Combining Mark (excluding standard language diacritics where applicable)
     // Specific emoji ranges: U+1F300-1F64F, U+1F680-1F6FF, U+2600-27BF, U+1F900-1F9FF, etc.
+    // Android's java.util.regex (backed by ICU) does not support Pattern.UNICODE_CHARACTER_CLASS.
+    // We use character code-point filtering and standard regex for emoji removal.
     private val EMOJI_AND_DECORATIVE_PATTERN = Pattern.compile(
-        "[\\p{So}\\p{Cs}\\x{1F000}-\\x{1FAFF}\\x{2600}-\\x{27BF}\\x{2300}-\\x{23FF}\\x{2B50}\\x{200D}\\x{FE0E}\\x{FE0F}]+",
-        Pattern.UNICODE_CHARACTER_CLASS
+        "[\\p{So}\\p{Cs}\\x{1F000}-\\x{1FAFF}\\x{2600}-\\x{27BF}\\x{2300}-\\x{23FF}\\x{2B50}\\x{200D}\\x{FE0E}\\x{FE0F}]+"
     )
 
     // Unwanted leading/trailing non-word characters (e.g. decorative dashes, stars, tildes)
