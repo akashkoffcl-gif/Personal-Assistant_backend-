@@ -37,13 +37,12 @@ class WorkflowStepHandlerRegistry(private val context: Context) {
                     return WorkflowStepResult.Failure("No contact specified for READ_CONTEXT", isRecoverable = false)
                 }
                 val snapshot = UnifiedContextEngine.resolveContextForContact(context, contact)
-                val resultMap: Map<String, String> = mapOf(
-                    "contact" to snapshot.activeContact,
-                    "tasksCount" to snapshot.relatedTasks.size.toString(),
-                    "commitmentsCount" to snapshot.relatedCommitments.size.toString(),
-                    "isWaiting" to snapshot.isWaitingForResponse.toString(),
-                    "suggestedNextAction" to (snapshot.suggestedNextAction ?: "None")
-                )
+                val resultMap = mutableMapOf<String, String>()
+                resultMap["contact"] = snapshot.activeContact ?: contact
+                resultMap["tasksCount"] = snapshot.relatedTasks.size.toString()
+                resultMap["commitmentsCount"] = snapshot.relatedCommitments.size.toString()
+                resultMap["isWaiting"] = snapshot.isWaitingForResponse.toString()
+                resultMap["suggestedNextAction"] = snapshot.suggestedNextAction ?: "None"
                 return WorkflowStepResult.Success(resultMap)
             }
         })
@@ -157,3 +156,4 @@ class WorkflowStepHandlerRegistry(private val context: Context) {
         })
     }
 }
+
