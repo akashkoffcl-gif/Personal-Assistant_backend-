@@ -39,7 +39,7 @@ class WorkflowStepHandlerRegistry(private val context: Context) {
                 val snapshot = UnifiedContextEngine.resolveContextForContact(context, contact)
                 return WorkflowStepResult.Success(
                     mapOf(
-                        "contact" to snapshot.activeContact,
+                        "contact" to (snapshot.activeContact ?: contact),
                         "tasksCount" to snapshot.relatedTasks.size.toString(),
                         "commitmentsCount" to snapshot.relatedCommitments.size.toString(),
                         "isWaiting" to snapshot.isWaitingForResponse.toString(),
