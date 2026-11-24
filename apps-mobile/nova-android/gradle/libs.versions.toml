@@ -49,6 +49,9 @@ okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor",
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 
+# Testing
+junit = { group = "junit", name = "junit", version = "4.13.2" }
+
 # Coroutines
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 
