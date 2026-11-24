@@ -123,7 +123,8 @@ class NovaNotificationListenerService : NotificationListenerService() {
             packageName = packageName,
             appName = appName,
             sanitizedTitle = sanitizedTitle,
-            sanitizedSummary = sanitizedSummary
+            sanitizedSummary = sanitizedSummary,
+            sbn = sbn
         )
 
         // 6. Persist to local Room Queue and Trigger Background Sync Worker

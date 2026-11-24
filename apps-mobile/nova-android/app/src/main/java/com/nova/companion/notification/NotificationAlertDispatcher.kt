@@ -69,9 +69,21 @@ object NotificationAlertDispatcher {
         packageName: String,
         appName: String,
         sanitizedTitle: String,
-        sanitizedSummary: String
+        sanitizedSummary: String,
+        sbn: android.service.notification.StatusBarNotification? = null
     ) {
         try {
+            // 1. WhatsApp-Specific Strict Classifier (Phase 69.5.3)
+            val isWhatsApp = com.nova.companion.notification.whatsapp.WhatsAppNotificationClassifier.isWhatsAppPackage(packageName)
+            var whatsAppDetails: com.nova.companion.notification.whatsapp.WhatsAppNotificationClassifier.ClassificationResult? = null
+
+            if (isWhatsApp && sbn != null) {
+                whatsAppDetails = com.nova.companion.notification.whatsapp.WhatsAppNotificationClassifier.classify(sbn)
+                if (!whatsAppDetails.isEligibleForSpeech) {
+                    Log.d(TAG, "WhatsApp notification rejected for speech by strict classifier: ${whatsAppDetails.rejectionReason}")
+                }
+            }
+
             // 1. Check user preferences
             if (!NotificationAlertPreferences.isAlertsEnabled(context)) {
                 Log.d(TAG, "Alerts disabled by user preference")
@@ -148,13 +160,24 @@ object NotificationAlertDispatcher {
 
             // 6. Voice announcement handled via intelligent conversation manager
             if (NotificationAlertPreferences.isVoiceAnnouncementEnabled(context)) {
+                // If it's WhatsApp and not eligible, do NOT speak
+                if (isWhatsApp && whatsAppDetails?.isEligibleForSpeech == false) {
+                    Log.d(TAG, "Voice announcement skipped: WhatsApp event is not eligible for speech.")
+                    return
+                }
+
+                val effectiveSender = whatsAppDetails?.sender ?: sanitizedTitle
+                val effectiveSummary = whatsAppDetails?.messageBody ?: sanitizedSummary
+
                 com.nova.companion.notification.engine.NotificationConversationManager.onNotificationReceived(
                     context = context,
-                    eventId = dedupKey + "_" + now,
+                    eventId = whatsAppDetails?.messageIdentity ?: (dedupKey + "_" + now),
                     packageName = packageName,
                     appName = appName,
-                    sender = sanitizedTitle,
-                    summary = sanitizedSummary
+                    sender = effectiveSender,
+                    summary = effectiveSummary,
+                    isGroup = whatsAppDetails?.isGroup ?: false,
+                    conversationTitle = whatsAppDetails?.conversationTitle
                 )
             }
 

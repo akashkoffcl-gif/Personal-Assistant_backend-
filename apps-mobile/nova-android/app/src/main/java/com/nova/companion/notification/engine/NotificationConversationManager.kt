@@ -70,12 +70,15 @@ object NotificationConversationManager {
         packageName: String,
         appName: String,
         sender: String,
-        summary: String
+        summary: String,
+        isGroup: Boolean = false,
+        conversationTitle: String? = null
     ) {
         val now = System.currentTimeMillis()
 
-        // 1. Event-Level Deduplication & Single Delivery Claim (Phase 69.5.1)
-        val fingerprint = "$packageName|$sender|${summary.trim()}"
+        // 1. Event-Level Deduplication & Single Delivery Claim (Phase 69.5.1 / Phase 69.5.3)
+        // Use eventId if it contains unique message identity, otherwise fallback to fingerprint
+        val fingerprint = if (eventId.contains("|")) eventId else "$packageName|$sender|${summary.trim()}"
         if (!EventSpeechDeliveryCoordinator.tryClaimForSpeech(fingerprint)) {
             Log.d(TAG, "DUPLICATE_EVENT_REJECTED: Event already QUEUED, SPEAKING, or DELIVERED: $fingerprint")
             return
@@ -263,6 +266,18 @@ object NotificationConversationManager {
             val single = items[0]
             val sender = single.cleanSender
             val app = single.appName
+
+            // Phase 69.5.3: Pure natural announcement for WhatsApp incoming messages:
+            // "Akash, Harish sent you a message: Hii."
+            if (com.nova.companion.notification.whatsapp.WhatsAppNotificationClassifier.isWhatsAppPackage(single.packageName)) {
+                return com.nova.companion.notification.whatsapp.WhatsAppMessageSpeechFormatter.formatAnnouncement(
+                    userName = owner,
+                    rawSender = single.cleanSender,
+                    messageBody = single.summary,
+                    conversationTitle = single.conversationTitle,
+                    isGroup = single.isGroup
+                )
+            }
 
             // Extract potential follow-ups or callbacks (Phase 67.5)
             val followUp = com.nova.companion.notification.intelligence.followup.ConversationActionExtractor.extractAction(single)
