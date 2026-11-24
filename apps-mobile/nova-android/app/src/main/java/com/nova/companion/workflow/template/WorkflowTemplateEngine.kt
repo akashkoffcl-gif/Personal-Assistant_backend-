@@ -97,7 +97,7 @@ class WorkflowTemplateEngine(
             description = template.description,
             status = WorkflowStatus.READY,
             steps = steps,
-            source = WorkflowSource.AUTOMATION,
+            source = WorkflowSource.SYSTEM,
             priority = template.defaultPriority,
             metadata = parameters.toMutableMap().apply {
                 put("templateId", template.templateId)
@@ -108,7 +108,7 @@ class WorkflowTemplateEngine(
         // 5. Structural validation
         val structValidation = workflow.validate()
         if (!structValidation.isValid) {
-            return Result.failure(IllegalStateException("Workflow DAG validation failed: ${structValidation.errorMessage}"))
+            return Result.failure(IllegalStateException("Workflow DAG validation failed: ${structValidation.error}"))
         }
 
         return Result.success(workflow)
