@@ -37,13 +37,15 @@ class WorkflowStepHandlerRegistry(private val context: Context) {
                     return WorkflowStepResult.Failure("No contact specified for READ_CONTEXT", isRecoverable = false)
                 }
                 val snapshot = UnifiedContextEngine.resolveContextForContact(context, contact)
-                val resultMap = mutableMapOf<String, String>()
-                resultMap["contact"] = snapshot.activeContact ?: contact
-                resultMap["tasksCount"] = snapshot.relatedTasks.size.toString()
-                resultMap["commitmentsCount"] = snapshot.relatedCommitments.size.toString()
-                resultMap["isWaiting"] = snapshot.isWaitingForResponse.toString()
-                resultMap["suggestedNextAction"] = snapshot.suggestedNextAction ?: "None"
-                return WorkflowStepResult.Success(resultMap)
+                return WorkflowStepResult.Success(
+                    mapOf(
+                        "contact" to snapshot.activeContact,
+                        "tasksCount" to snapshot.relatedTasks.size.toString(),
+                        "commitmentsCount" to snapshot.relatedCommitments.size.toString(),
+                        "isWaiting" to snapshot.isWaitingForResponse.toString(),
+                        "suggestedNextAction" to (snapshot.suggestedNextAction ?: "None")
+                    )
+                )
             }
         })
 
@@ -73,7 +75,7 @@ class WorkflowStepHandlerRegistry(private val context: Context) {
                 val commitments = if (!contact.isNullOrBlank()) {
                     CommitmentLedgerManager.findCommitmentsForContact(contact)
                 } else {
-                    CommitmentLedgerManager.getPendingCommitments()
+                    CommitmentLedgerManager.getActiveCommitments()
                 }
                 val summary = commitments.joinToString("; ") { "${it.owner}: ${it.description}" }
                 return WorkflowStepResult.Success(

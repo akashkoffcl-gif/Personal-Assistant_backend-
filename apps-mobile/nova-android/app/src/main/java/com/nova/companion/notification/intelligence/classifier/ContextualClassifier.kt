@@ -128,12 +128,17 @@ object ContextualClassifier {
         val (intent, intentEvidence) = IntentClassifier.classifyIntent(text)
         evidence.addAll(intentEvidence)
 
+        // Normalize Sender Name for Natural Speech (Phase 69.5.1)
+        val normalizedSender = com.nova.companion.notification.normalization.NotificationContactNameNormalizer.normalizeForSpeech(cleanSender)
+
         return ContextualNotification(
             eventId = eventId,
             packageName = packageName,
             appName = appName,
             rawSender = rawTitle,
-            cleanSender = if (cleanSender.isBlank()) appName else cleanSender,
+            cleanSender = if (normalizedSender.isBlank() || normalizedSender.equals("Someone", ignoreCase = true)) {
+                if (cleanSender.isNotBlank()) cleanSender else appName
+            } else normalizedSender,
             conversationTitle = conversationTitle,
             summary = text,
             messageType = messageType,

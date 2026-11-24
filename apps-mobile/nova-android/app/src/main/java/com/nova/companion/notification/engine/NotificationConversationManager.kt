@@ -74,8 +74,13 @@ object NotificationConversationManager {
     ) {
         val now = System.currentTimeMillis()
 
-        // 1. Duplicate & re-processing protection
+        // 1. Event-Level Deduplication & Single Delivery Claim (Phase 69.5.1)
         val fingerprint = "$packageName|$sender|${summary.trim()}"
+        if (!EventSpeechDeliveryCoordinator.tryClaimForSpeech(fingerprint)) {
+            Log.d(TAG, "DUPLICATE_EVENT_REJECTED: Event already QUEUED, SPEAKING, or DELIVERED: $fingerprint")
+            return
+        }
+
         val lastSeen = recentContentHashes[fingerprint] ?: 0L
         if (now - lastSeen < DEDUP_FINGERPRINT_TTL_MS) {
             Log.d(TAG, "Suppressed duplicate notification callback within fingerprint TTL: $fingerprint")
@@ -224,12 +229,24 @@ object NotificationConversationManager {
             NotificationMemoryManager.recordNotification(item, NotificationDeliveryState.ANNOUNCED)
         }
 
-        // Dispatch through central SpeechArbitrator with appropriate priority
+        // Dispatch through central SpeechArbitrator with appropriate priority and completion listener
         val utterancePriority = if (isEmergency) UtterancePriority.EMERGENCY else UtterancePriority.NOTIFICATION_ANNOUNCEMENT
         val utterance = ArbitratedUtterance(
             id = "batch_announcement_${now}",
             text = announcement,
-            priority = utterancePriority
+            priority = utterancePriority,
+            onDone = {
+                for (item in validItems) {
+                    val fp = "${item.packageName}|${item.rawSender}|${item.summary.trim()}"
+                    EventSpeechDeliveryCoordinator.markDelivered(fp)
+                }
+            },
+            onError = {
+                for (item in validItems) {
+                    val fp = "${item.packageName}|${item.rawSender}|${item.summary.trim()}"
+                    EventSpeechDeliveryCoordinator.markFailed(fp)
+                }
+            }
         )
         SpeechArbitrator.getInstance(context).enqueueUtterance(utterance)
         Log.i(TAG, "Dispatched conversational batch announcement [${validItems.size} item(s), Emergency=$isEmergency]: \"$announcement\"")
@@ -319,11 +336,32 @@ object NotificationConversationManager {
                 }
             }
 
-            // Standard Direct message template
-            return if (single.summary.isNotBlank()) {
-                "$owner, $sender sent you a message on $app. They say: ${single.summary}"
-            } else {
-                "$owner, you have a new $app notification from $sender."
+            // Standard Direct message template (Phase 69.5.1 Content Filter)
+            val filtered = com.nova.companion.notification.normalization.NotificationContentFilter.filterContent(
+                rawTitle = single.cleanSender,
+                rawSummary = single.summary,
+                isGroupChat = single.isGroup,
+                groupName = single.conversationTitle
+            )
+
+            return when (filtered.contentType) {
+                com.nova.companion.notification.normalization.NotificationContentType.VOICE_MESSAGE ->
+                    "$owner, $sender sent you a voice message on $app."
+                com.nova.companion.notification.normalization.NotificationContentType.IMAGE_MESSAGE ->
+                    "$owner, $sender sent you a photo on $app."
+                com.nova.companion.notification.normalization.NotificationContentType.VIDEO_MESSAGE ->
+                    "$owner, $sender sent you a video on $app."
+                com.nova.companion.notification.normalization.NotificationContentType.MULTIPLE_MESSAGES ->
+                    "$owner, $sender ${filtered.spokenText} on $app."
+                com.nova.companion.notification.normalization.NotificationContentType.MISSED_CALL ->
+                    "$owner, you missed a call from $sender on $app."
+                else -> {
+                    if (single.summary.isNotBlank()) {
+                        "$owner, $sender sent you a message on $app. They say: ${single.summary}"
+                    } else {
+                        "$owner, you have a new $app notification from $sender."
+                    }
+                }
             }
         }
 
