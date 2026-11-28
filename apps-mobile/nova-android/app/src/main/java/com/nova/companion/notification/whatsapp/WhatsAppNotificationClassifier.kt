@@ -65,6 +65,35 @@ object WhatsAppNotificationClassifier {
             isEligibleForSpeech = false,
             rejectionReason = "Null package name"
         )
+        val notification = sbn.notification ?: return ClassificationResult(
+            eventType = WhatsAppEventType.UNKNOWN_INELIGIBLE,
+            isEligibleForSpeech = false,
+            rejectionReason = "Null notification"
+        )
+        return classifyRaw(
+            packageName = packageName,
+            category = notification.category,
+            extras = notification.extras ?: Bundle(),
+            sbnKey = sbn.key ?: "unknown",
+            postTime = sbn.postTime
+        )
+    }
+
+    /**
+     * Core classification logic decoupled from Android OS mocks for fast and robust unit testing.
+     */
+    fun classifyRaw(
+        packageName: String?,
+        category: String?,
+        extras: Bundle,
+        sbnKey: String,
+        postTime: Long
+    ): ClassificationResult {
+        if (packageName == null) return ClassificationResult(
+            eventType = WhatsAppEventType.UNKNOWN_INELIGIBLE,
+            isEligibleForSpeech = false,
+            rejectionReason = "Null package name"
+        )
 
         if (!isWhatsAppPackage(packageName)) {
             return ClassificationResult(
@@ -74,14 +103,7 @@ object WhatsAppNotificationClassifier {
             )
         }
 
-        val notification = sbn.notification ?: return ClassificationResult(
-            eventType = WhatsAppEventType.UNKNOWN_INELIGIBLE,
-            isEligibleForSpeech = false,
-            rejectionReason = "Null notification"
-        )
-
         // 1. Check Notification Category
-        val category = notification.category
         if (category == Notification.CATEGORY_CALL) {
             return ClassificationResult(
                 eventType = WhatsAppEventType.CALL_NOTIFICATION,
@@ -103,8 +125,6 @@ object WhatsAppNotificationClassifier {
                 rejectionReason = "Category is SERVICE or PROGRESS"
             )
         }
-
-        val extras = notification.extras ?: Bundle()
 
         // 2. Extract Title and Text
         val rawTitle = (extras.getString(Notification.EXTRA_TITLE)
@@ -195,7 +215,7 @@ object WhatsAppNotificationClassifier {
         }
 
         // Construct stable message identity (key, postTime, sender, content)
-        val messageIdentity = "${sbn.key}|${extraction.sender}|${extraction.messageBody.hashCode()}|${sbn.postTime}"
+        val messageIdentity = "$sbnKey|${extraction.sender}|${extraction.messageBody.hashCode()}|$postTime"
 
         return ClassificationResult(
             eventType = WhatsAppEventType.INCOMING_MESSAGE,
